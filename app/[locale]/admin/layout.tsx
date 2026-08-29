@@ -28,14 +28,7 @@ export default function AdminLayout({
         <div className="border-b border-ink-200 bg-ink-950">
           <div className="container-x flex items-center justify-between py-3.5">
             <Link href={`/${locale}/admin`} className="flex items-center gap-3">
-              <Logo
-                locale={locale}
-                siteName={dict.meta.siteName}
-                markClassName="h-8 w-8"
-                markColorClassName="text-accent-400"
-                textColorClassName="text-white"
-                textClassName="text-lg"
-              />
+              <Logo variant="color" className="h-8 w-auto" />
               <span className="rounded-full bg-primary-800 px-2.5 py-0.5 text-xs font-semibold text-primary-100">
                 {dict.nav.admin}
               </span>

@@ -34,7 +34,7 @@ export function Header({
     <header className="sticky top-0 z-50 border-b border-ink-100 bg-white/90 backdrop-blur">
       <div className="container-x flex items-center justify-between py-3">
         <Link href={`/${locale}`}>
-          <Logo locale={locale} siteName={dict.meta.siteName} />
+          <Logo variant="color" className="h-10 w-auto" priority />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">

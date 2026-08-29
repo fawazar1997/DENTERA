@@ -20,12 +20,7 @@ export function Footer({
     <footer className="border-t border-ink-100 bg-ink-950 text-ink-200">
       <div className="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <Logo
-            locale={locale}
-            siteName={dict.meta.siteName}
-            markColorClassName="text-accent-400"
-            textColorClassName="text-white"
-          />
+          <Logo variant="color" className="h-10 w-auto" />
           <p className="mt-4 text-sm leading-relaxed text-ink-300">
             {dict.footer.description}
           </p>
