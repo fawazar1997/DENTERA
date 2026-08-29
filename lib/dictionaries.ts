@@ -26,11 +26,11 @@ export const dictionaries = {
       ctaSecondary: "Explore Departments",
       stat1Value: "15+",
       stat1Label: "Years of Experience",
-      stat2Value: "8",
+      stat2Value: "40+",
       stat2Label: "Specialist Doctors",
       stat3Value: "20,000+",
       stat3Label: "Happy Patients",
-      stat4Value: "8",
+      stat4Value: "9",
       stat4Label: "Specialized Departments",
     },
     home: {
@@ -163,6 +163,16 @@ export const dictionaries = {
       statusHidden: "Hidden",
       totalDoctors: "Total Doctors",
       totalDepartments: "Total Departments",
+      photo: "Photo",
+      photoHint:
+        "Upload a photo (JPG, PNG or WebP, max 5MB). Shown on both the English and Arabic site.",
+      siteSettings: "Site Settings",
+      bannerImage: "Homepage Banner Image",
+      bannerHint:
+        "Shown at the top of the homepage. Recommended: a wide photo, at least 1600px wide.",
+      uploadBanner: "Upload Banner",
+      removeBanner: "Remove Banner",
+      noBanner: "No banner image set.",
     },
     common: {
       loading: "Loading...",
@@ -193,11 +203,11 @@ export const dictionaries = {
       ctaSecondary: "استكشف الأقسام",
       stat1Value: "+15",
       stat1Label: "سنة خبرة",
-      stat2Value: "8",
+      stat2Value: "+40",
       stat2Label: "أطباء أخصائيون",
       stat3Value: "+20,000",
       stat3Label: "مريض سعيد",
-      stat4Value: "8",
+      stat4Value: "9",
       stat4Label: "أقسام متخصصة",
     },
     home: {
@@ -326,6 +336,16 @@ export const dictionaries = {
       statusHidden: "مخفي",
       totalDoctors: "إجمالي الأطباء",
       totalDepartments: "إجمالي الأقسام",
+      photo: "الصورة",
+      photoHint:
+        "ارفع صورة (JPG أو PNG أو WebP، بحد أقصى 5 ميجابايت). تظهر في الموقع بالعربي والإنجليزي.",
+      siteSettings: "إعدادات الموقع",
+      bannerImage: "صورة بانر الصفحة الرئيسية",
+      bannerHint:
+        "تظهر أعلى الصفحة الرئيسية. يُفضّل صورة عريضة بعرض 1600 بكسل على الأقل.",
+      uploadBanner: "رفع البانر",
+      removeBanner: "إزالة البانر",
+      noBanner: "لا توجد صورة بانر حالياً.",
     },
     common: {
       loading: "جارٍ التحميل...",

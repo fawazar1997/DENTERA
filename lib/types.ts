@@ -15,13 +15,19 @@ export type Doctor = {
   titleEn: string;
   titleAr: string;
   departmentId: string;
-  bioEn: string;
-  bioAr: string;
-  yearsExperience: number;
+  bioEn?: string;
+  bioAr?: string;
+  yearsExperience?: number;
+  photoUrl?: string;
   active: boolean;
+};
+
+export type SiteSettings = {
+  bannerUrl?: string;
 };
 
 export type Database = {
   departments: Department[];
   doctors: Doctor[];
+  settings: SiteSettings;
 };

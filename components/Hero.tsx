@@ -1,9 +1,18 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowLeft, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 
-export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
+export function Hero({
+  locale,
+  dict,
+  bannerUrl,
+}: {
+  locale: Locale;
+  dict: Dictionary;
+  bannerUrl?: string;
+}) {
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
@@ -60,42 +69,55 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         <div className="relative mx-auto aspect-square w-full max-w-md lg:max-w-none">
           <div className="absolute -top-6 end-6 h-32 w-32 rounded-3xl bg-accent-200/60 blur-2xl" />
           <div className="absolute -bottom-8 start-8 h-40 w-40 rounded-3xl bg-primary-200/70 blur-2xl" />
-          <div className="relative flex h-full w-full items-center justify-center rounded-xl2 border border-primary-100 bg-white/80 p-10 shadow-soft backdrop-blur">
-            <div className="grid w-full grid-cols-2 gap-4">
-              <div className="col-span-2 rounded-xl2 bg-primary-600 p-6 text-white shadow-soft">
-                <p className="text-sm font-medium text-primary-100">
-                  {dict.hero.stat1Label}
-                </p>
-                <p className="mt-1 text-3xl font-extrabold">
-                  {dict.hero.stat1Value}
-                </p>
-              </div>
-              <div className="rounded-xl2 bg-accent-100 p-5">
-                <p className="text-xs font-medium text-accent-800">
-                  {dict.hero.stat2Label}
-                </p>
-                <p className="mt-1 text-2xl font-extrabold text-accent-700">
-                  {dict.hero.stat2Value}
-                </p>
-              </div>
-              <div className="rounded-xl2 bg-primary-50 p-5">
-                <p className="text-xs font-medium text-primary-800">
-                  {dict.hero.stat4Label}
-                </p>
-                <p className="mt-1 text-2xl font-extrabold text-primary-700">
-                  {dict.hero.stat4Value}
-                </p>
-              </div>
-              <div className="col-span-2 rounded-xl2 border border-ink-100 p-5">
-                <p className="text-xs font-medium text-ink-500">
-                  {dict.hero.stat3Label}
-                </p>
-                <p className="mt-1 text-2xl font-extrabold text-ink-900">
-                  {dict.hero.stat3Value}
-                </p>
+          {bannerUrl ? (
+            <div className="relative h-full w-full overflow-hidden rounded-xl2 border border-primary-100 shadow-soft">
+              <Image
+                src={bannerUrl}
+                alt=""
+                fill
+                priority
+                className="object-cover"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+              />
+            </div>
+          ) : (
+            <div className="relative flex h-full w-full items-center justify-center rounded-xl2 border border-primary-100 bg-white/80 p-10 shadow-soft backdrop-blur">
+              <div className="grid w-full grid-cols-2 gap-4">
+                <div className="col-span-2 rounded-xl2 bg-primary-600 p-6 text-white shadow-soft">
+                  <p className="text-sm font-medium text-primary-100">
+                    {dict.hero.stat1Label}
+                  </p>
+                  <p className="mt-1 text-3xl font-extrabold">
+                    {dict.hero.stat1Value}
+                  </p>
+                </div>
+                <div className="rounded-xl2 bg-accent-100 p-5">
+                  <p className="text-xs font-medium text-accent-800">
+                    {dict.hero.stat2Label}
+                  </p>
+                  <p className="mt-1 text-2xl font-extrabold text-accent-700">
+                    {dict.hero.stat2Value}
+                  </p>
+                </div>
+                <div className="rounded-xl2 bg-primary-50 p-5">
+                  <p className="text-xs font-medium text-primary-800">
+                    {dict.hero.stat4Label}
+                  </p>
+                  <p className="mt-1 text-2xl font-extrabold text-primary-700">
+                    {dict.hero.stat4Value}
+                  </p>
+                </div>
+                <div className="col-span-2 rounded-xl2 border border-ink-100 p-5">
+                  <p className="text-xs font-medium text-ink-500">
+                    {dict.hero.stat3Label}
+                  </p>
+                  <p className="mt-1 text-2xl font-extrabold text-ink-900">
+                    {dict.hero.stat3Value}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

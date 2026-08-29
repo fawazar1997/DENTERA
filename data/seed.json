@@ -55,6 +55,15 @@
       "active": true
     },
     {
+      "id": "restorative-dentistry",
+      "nameEn": "Restorative Dentistry",
+      "nameAr": "ترميم الأسنان",
+      "descriptionEn": "Fillings, crowns and repair of damaged or decayed teeth to restore function and appearance.",
+      "descriptionAr": "حشوات وتيجان وإصلاح الأسنان التالفة أو المتسوسة لاستعادة الوظيفة والمظهر.",
+      "icon": "ShieldCheck",
+      "active": true
+    },
+    {
       "id": "periodontics",
       "nameEn": "Periodontics (Gum Care)",
       "nameAr": "علاج اللثة",
@@ -75,100 +84,392 @@
   ],
   "doctors": [
     {
-      "id": "dr-sarah-alharbi",
-      "nameEn": "Dr. Sarah Al-Harbi",
-      "nameAr": "د. سارة الحربي",
-      "titleEn": "General Dentist",
-      "titleAr": "طبيبة أسنان عامة",
-      "departmentId": "general-dentistry",
-      "bioEn": "Dr. Sarah has over a decade of experience providing gentle, comprehensive dental care for patients of all ages.",
-      "bioAr": "تتمتع الدكتورة سارة بخبرة تزيد عن عشر سنوات في تقديم رعاية أسنان شاملة ولطيفة لجميع الأعمار.",
-      "yearsExperience": 11,
-      "active": true
-    },
-    {
-      "id": "dr-mohammed-alqahtani",
-      "nameEn": "Dr. Mohammed Al-Qahtani",
-      "nameAr": "د. محمد القحطاني",
-      "titleEn": "Orthodontist",
-      "titleAr": "أخصائي تقويم أسنان",
+      "id": "ibrahim-alshahrani",
+      "nameEn": "Prof. Ibrahim Alshahrani",
+      "nameAr": "أ.د. إبراهيم الشهراني",
+      "titleEn": "Professor of Orthodontics",
+      "titleAr": "أستاذ دكتور - أخصائي تقويم أسنان",
       "departmentId": "orthodontics",
-      "bioEn": "Specialist in braces and clear aligners, helping hundreds of patients achieve confident, straight smiles.",
-      "bioAr": "أخصائي في التقويم المعدني والشفاف، ساعد مئات المرضى على الحصول على ابتسامة واثقة ومستقيمة.",
-      "yearsExperience": 14,
       "active": true
     },
     {
-      "id": "dr-lama-alotaibi",
-      "nameEn": "Dr. Lama Al-Otaibi",
-      "nameAr": "د. لمى العتيبي",
-      "titleEn": "Pediatric Dentist",
-      "titleAr": "أخصائية طب أسنان أطفال",
-      "departmentId": "pediatric-dentistry",
-      "bioEn": "Dr. Lama creates a fun, stress-free environment to keep young patients smiling at every visit.",
-      "bioAr": "تخلق الدكتورة لمى بيئة ممتعة وخالية من التوتر لتبقي المرضى الصغار مبتسمين في كل زيارة.",
-      "yearsExperience": 8,
-      "active": true
-    },
-    {
-      "id": "dr-faisal-alshammari",
-      "nameEn": "Dr. Faisal Al-Shammari",
-      "nameAr": "د. فيصل الشمري",
-      "titleEn": "Oral & Maxillofacial Surgeon",
-      "titleAr": "استشاري جراحة الفم والوجه والفكين",
-      "departmentId": "oral-surgery",
-      "bioEn": "A leading surgeon specializing in wisdom tooth extraction and complex jaw procedures.",
-      "bioAr": "جراح رائد متخصص في خلع ضرس العقل والعمليات الجراحية المعقدة للفك.",
-      "yearsExperience": 17,
-      "active": true
-    },
-    {
-      "id": "dr-noura-aldosari",
-      "nameEn": "Dr. Noura Al-Dosari",
-      "nameAr": "د. نورة الدوسري",
-      "titleEn": "Cosmetic Dentist",
-      "titleAr": "أخصائية طب أسنان تجميلي",
-      "departmentId": "cosmetic-dentistry",
-      "bioEn": "Dr. Noura designs personalized smile makeovers using veneers and the latest whitening technology.",
-      "bioAr": "تصمم الدكتورة نورة تجديدات ابتسامة مخصصة باستخدام القشور وأحدث تقنيات التبييض.",
-      "yearsExperience": 9,
-      "active": true
-    },
-    {
-      "id": "dr-abdullah-alghamdi",
-      "nameEn": "Dr. Abdullah Al-Ghamdi",
-      "nameAr": "د. عبدالله الغامدي",
-      "titleEn": "Endodontist",
-      "titleAr": "أخصائي علاج جذور",
-      "departmentId": "endodontics",
-      "bioEn": "Dr. Abdullah focuses on advanced, pain-free root canal therapy using the latest microscopic technology.",
-      "bioAr": "يركز الدكتور عبدالله على علاج الجذور المتقدم والخالي من الألم باستخدام أحدث تقنيات المجهر.",
-      "yearsExperience": 12,
-      "active": true
-    },
-    {
-      "id": "dr-hind-almutairi",
-      "nameEn": "Dr. Hind Al-Mutairi",
-      "nameAr": "د. هند المطيري",
+      "id": "mohammed-almagbol",
+      "nameEn": "Dr. Mohammed Almagbol",
+      "nameAr": "د. محمد ال مقبول",
       "titleEn": "Periodontist",
-      "titleAr": "أخصائية علاج لثة",
+      "titleAr": "أخصائي علاج لثة",
       "departmentId": "periodontics",
-      "bioEn": "Dr. Hind is dedicated to preventing and treating gum disease with a gentle, patient-first approach.",
-      "bioAr": "تكرس الدكتورة هند جهودها للوقاية من أمراض اللثة وعلاجها بأسلوب لطيف يركز على راحة المريض.",
-      "yearsExperience": 10,
       "active": true
     },
     {
-      "id": "dr-khalid-alrasheed",
-      "nameEn": "Dr. Khalid Al-Rasheed",
-      "nameAr": "د. خالد الرشيد",
+      "id": "manea-musa-al-ahmari",
+      "nameEn": "Dr. Manea Musa Al-Ahmari",
+      "nameAr": "د. مانع موسى الاحمري",
+      "titleEn": "Periodontist",
+      "titleAr": "أخصائي علاج لثة",
+      "departmentId": "periodontics",
+      "active": true
+    },
+    {
+      "id": "abdulaziz-al-shahrani",
+      "nameEn": "Prof. Abdulaziz Al-Shahrani",
+      "nameAr": "أ.د. عبدالعزيز الشهراني",
+      "titleEn": "Professor of Orthodontics",
+      "titleAr": "أستاذ دكتور - أخصائي تقويم أسنان",
+      "departmentId": "orthodontics",
+      "active": true
+    },
+    {
+      "id": "abdulaziz-abu-melha",
+      "nameEn": "Prof. Abdulaziz Abu Melha",
+      "nameAr": "أ.د. عبدالعزيز ابو ملحة",
+      "titleEn": "Professor of Endodontics",
+      "titleAr": "أستاذ دكتور - أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "mohammad-al-wadaei",
+      "nameEn": "Dr. Mohammad Al-Wadaei",
+      "nameAr": "د. محمد الوادعي",
       "titleEn": "Prosthodontist",
       "titleAr": "أخصائي تركيبات وزراعة أسنان",
       "departmentId": "implants-prosthodontics",
-      "bioEn": "An implant specialist with a track record of restoring smiles through precise, lasting reconstructions.",
-      "bioAr": "أخصائي زراعة أسنان له سجل حافل في استعادة الابتسامات من خلال تركيبات دقيقة وطويلة الأمد.",
-      "yearsExperience": 15,
+      "active": true
+    },
+    {
+      "id": "mohammed-nimer-alqahtani",
+      "nameEn": "Dr. Mohammed Nimer Alqahtani",
+      "nameAr": "د. محمد نمر القحطاني",
+      "titleEn": "Oral Biology & Dental Implant Specialist",
+      "titleAr": "أخصائي أحياء الفم وزراعة الأسنان",
+      "departmentId": "implants-prosthodontics",
+      "active": true
+    },
+    {
+      "id": "abdulmajeed-al-shahrani",
+      "nameEn": "Dr. Abdulmajeed Al-Shahrani",
+      "nameAr": "د. عبدالمجيد الشهراني",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "waleed-saeed-asiri",
+      "nameEn": "Dr. Waleed Saeed Asiri",
+      "nameAr": "د. وليد سعيد عسيري",
+      "titleEn": "Restorative Dentist",
+      "titleAr": "أخصائي ترميم الأسنان",
+      "departmentId": "restorative-dentistry",
+      "active": true
+    },
+    {
+      "id": "faisal-ali-abboud",
+      "nameEn": "Dr. Faisal Ali Abboud",
+      "nameAr": "د. فيصل علي عبود",
+      "titleEn": "Pediatric Dentist",
+      "titleAr": "أخصائي طب أسنان أطفال",
+      "departmentId": "pediatric-dentistry",
+      "active": true
+    },
+    {
+      "id": "nasser-mesfer-al-ahmari",
+      "nameEn": "Dr. Nasser Mesfer Al-Ahmari",
+      "nameAr": "د. ناصر مسفر الاحمري",
+      "titleEn": "Prosthodontist",
+      "titleAr": "أخصائي تركيبات وزراعة أسنان",
+      "departmentId": "implants-prosthodontics",
+      "active": true
+    },
+    {
+      "id": "raed-abdullah-al-manea",
+      "nameEn": "Dr. Raed Abdullah Al-Manea",
+      "nameAr": "د. رائد عبدالله ال منيع",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "ghadeer-saleh-al-wadaei",
+      "nameEn": "Dr. Ghadeer Saleh Al-Wadaei",
+      "nameAr": "د. غدير صالح الوادعي",
+      "titleEn": "Prosthodontist",
+      "titleAr": "أخصائية تركيبات وزراعة أسنان",
+      "departmentId": "implants-prosthodontics",
+      "active": true
+    },
+    {
+      "id": "malek-abo-zeed",
+      "nameEn": "Dr. Malek Abo Zeed",
+      "nameAr": "د. مالك أبا زيد",
+      "titleEn": "Prosthodontist",
+      "titleAr": "أخصائي تركيبات وزراعة أسنان",
+      "departmentId": "implants-prosthodontics",
+      "active": true
+    },
+    {
+      "id": "ola-daoud",
+      "nameEn": "Dr. Ola Daoud",
+      "nameAr": "د. علا داوود",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيبة أسنان عامة",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "amel-shaiban",
+      "nameEn": "Dr. Amel Shaiban",
+      "nameAr": "د. أمل شيبان",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائية علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "mohammed-alamri",
+      "nameEn": "Dr. Mohammed Alamri",
+      "nameAr": "د. محمد العمري",
+      "titleEn": "Restorative Dentist",
+      "titleAr": "أخصائي ترميم الأسنان",
+      "departmentId": "restorative-dentistry",
+      "active": true
+    },
+    {
+      "id": "ali-alhaizaey",
+      "nameEn": "Dr. Ali Alhaizaey",
+      "nameAr": "د. علي الهيزعي",
+      "titleEn": "Orthodontist",
+      "titleAr": "أخصائي تقويم أسنان",
+      "departmentId": "orthodontics",
+      "active": true
+    },
+    {
+      "id": "abdulellah-alamodi",
+      "nameEn": "Dr. Abdulellah Alamodi",
+      "nameAr": "د. عبدالاله العمودي",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيب أسنان عام",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "ryan-al-mezher",
+      "nameEn": "Dr. Ryan Al Mezher",
+      "nameAr": "د. ريان ال مزهر",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيب أسنان عام",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "alhanuf-almoghamer",
+      "nameEn": "Dr. Alhanuf Almoghamer",
+      "nameAr": "د. الهنوف ال مغامر",
+      "titleEn": "Pediatric Dentist",
+      "titleAr": "أخصائية طب أسنان أطفال",
+      "departmentId": "pediatric-dentistry",
+      "active": true
+    },
+    {
+      "id": "lujain-aldossari",
+      "nameEn": "Dr. Lujain Aldossari",
+      "nameAr": "د. لجين الدوسري",
+      "titleEn": "Prosthodontist",
+      "titleAr": "أخصائية تركيبات وزراعة أسنان",
+      "departmentId": "implants-prosthodontics",
+      "active": true
+    },
+    {
+      "id": "nadaa-alamoudi",
+      "nameEn": "Dr. Nadaa Alamoudi",
+      "nameAr": "د. ندى العمودي",
+      "titleEn": "Restorative Dentist",
+      "titleAr": "أخصائية ترميم الأسنان",
+      "departmentId": "restorative-dentistry",
+      "active": true
+    },
+    {
+      "id": "abdullah-awn",
+      "nameEn": "Dr. Abdullah Awn",
+      "nameAr": "د. عبدالله عون",
+      "titleEn": "Periodontist",
+      "titleAr": "أخصائي علاج لثة",
+      "departmentId": "periodontics",
+      "active": true
+    },
+    {
+      "id": "mansour-alamri",
+      "nameEn": "Dr. Mansour Alamri",
+      "nameAr": "د. منصور العمري",
+      "titleEn": "Orthodontist",
+      "titleAr": "أخصائي تقويم أسنان",
+      "departmentId": "orthodontics",
+      "active": true
+    },
+    {
+      "id": "ali-alqahtani",
+      "nameEn": "Dr. Ali Alqahtani",
+      "nameAr": "د. علي القحطاني",
+      "titleEn": "Maxillofacial Surgeon",
+      "titleAr": "استشاري جراحة الفم والوجه والفكين",
+      "departmentId": "oral-surgery",
+      "active": true
+    },
+    {
+      "id": "atheer-al-ghanem",
+      "nameEn": "Dr. Atheer Al Ghanem",
+      "nameAr": "د. أثير ال غانم",
+      "titleEn": "Orthodontist",
+      "titleAr": "أخصائي تقويم أسنان",
+      "departmentId": "orthodontics",
+      "active": true
+    },
+    {
+      "id": "abdulmajeed-alqahtani",
+      "nameEn": "Dr. Abdulmajeed Alqahtani",
+      "nameAr": "د. عبدالمجيد محمد القحطاني",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيب أسنان عام",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "lujain-alasiri",
+      "nameEn": "Dr. Lujain Alasiri",
+      "nameAr": "د. لجين قاسم العسيري",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيبة أسنان عامة",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "ahmed-alelyani",
+      "nameEn": "Dr. Ahmed Alelyani",
+      "nameAr": "د. أحمد علي العلياني",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "khalid-alhindi",
+      "nameEn": "Dr. Khalid Alhindi",
+      "nameAr": "د. خالد ظافر آل هندي",
+      "titleEn": "Prosthodontist",
+      "titleAr": "أخصائي تركيبات وزراعة أسنان",
+      "departmentId": "implants-prosthodontics",
+      "active": true
+    },
+    {
+      "id": "saad-sabrah",
+      "nameEn": "Dr. Saad Sabrah",
+      "nameAr": "د. سعد علي سبره",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "abdulrahman-alasiri",
+      "nameEn": "Dr. Abdulrahman Alasiri",
+      "nameAr": "د. عبدالرحمن أحمد عسيري",
+      "titleEn": "Periodontist",
+      "titleAr": "أخصائي علاج لثة",
+      "departmentId": "periodontics",
+      "active": true
+    },
+    {
+      "id": "mohammed-thamer-alqahtani",
+      "nameEn": "Dr. Mohammed Thamer Alqahtani",
+      "nameAr": "د. محمد ثامر القحطاني",
+      "titleEn": "Restorative Dentist",
+      "titleAr": "أخصائي ترميم الأسنان",
+      "departmentId": "restorative-dentistry",
+      "active": true
+    },
+    {
+      "id": "mohammed-alsharif",
+      "nameEn": "Dr. Mohammed Alsharif",
+      "nameAr": "د. محمد عبدالله الشريف",
+      "titleEn": "Restorative Dentist",
+      "titleAr": "أخصائي ترميم الأسنان",
+      "departmentId": "restorative-dentistry",
+      "active": true
+    },
+    {
+      "id": "nasser-alshehri",
+      "nameEn": "Dr. Nasser Alshehri",
+      "nameAr": "د. ناصر محمد الشهري",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "abdulelah-daghriri",
+      "nameEn": "Dr. Abdulelah Daghriri",
+      "nameAr": "د. عبدالإله دغريري",
+      "titleEn": "Periodontist",
+      "titleAr": "أخصائي علاج لثة",
+      "departmentId": "periodontics",
+      "active": true
+    },
+    {
+      "id": "rawan-saddah",
+      "nameEn": "Dr. Rawan Saddah",
+      "nameAr": "د. روان سداح",
+      "titleEn": "Orthodontist",
+      "titleAr": "أخصائية تقويم أسنان",
+      "departmentId": "orthodontics",
+      "active": true
+    },
+    {
+      "id": "waleed-alhogban",
+      "nameEn": "Dr. Waleed Alhogban",
+      "nameAr": "د. وليد الحقبان",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "active": true
+    },
+    {
+      "id": "sanaa-alshahrani",
+      "nameEn": "Dr. Sanaa Alshahrani",
+      "nameAr": "د. سناء الشهراني",
+      "titleEn": "Pediatric Dentist",
+      "titleAr": "أخصائية طب أسنان أطفال",
+      "departmentId": "pediatric-dentistry",
+      "active": true
+    },
+    {
+      "id": "amal-alzaydani",
+      "nameEn": "Dr. Amal Alzaydani",
+      "nameAr": "د. أمل الزيداني",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيبة أسنان عامة",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "meelaf-alshahrani",
+      "nameEn": "Dr. Meelaf Alshahrani",
+      "nameAr": "د. ميلاف الشهراني",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيبة أسنان عامة",
+      "departmentId": "general-dentistry",
+      "active": true
+    },
+    {
+      "id": "shaden-bander",
+      "nameEn": "Dr. Shaden Bander",
+      "nameAr": "د. شادن بندر",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيبة أسنان عامة",
+      "departmentId": "general-dentistry",
       "active": true
     }
-  ]
+  ],
+  "settings": {}
 }

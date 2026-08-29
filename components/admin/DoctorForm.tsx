@@ -1,6 +1,8 @@
+import Image from "next/image";
 import type { Doctor, Department } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
+import { Avatar } from "@/components/Avatar";
 
 export function DoctorForm({
   action,
@@ -18,9 +20,40 @@ export function DoctorForm({
   submitLabel: string;
 }) {
   return (
-    <form action={action} className="space-y-5">
+    <form
+      action={action}
+      encType="multipart/form-data"
+      className="space-y-5"
+    >
       <input type="hidden" name="locale" value={locale} />
       {doctor && <input type="hidden" name="id" value={doctor.id} />}
+
+      <div>
+        <label className="label">{dict.admin.photo}</label>
+        <div className="flex items-center gap-4">
+          {doctor?.photoUrl ? (
+            <Image
+              src={doctor.photoUrl}
+              alt=""
+              width={112}
+              height={112}
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          ) : (
+            <Avatar
+              name={doctor?.nameEn || "?"}
+              className="h-14 w-14 text-base"
+            />
+          )}
+          <input
+            name="photo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="input"
+          />
+        </div>
+        <p className="mt-1.5 text-xs text-ink-400">{dict.admin.photoHint}</p>
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
@@ -83,8 +116,7 @@ export function DoctorForm({
             type="number"
             min={0}
             max={60}
-            required
-            defaultValue={doctor?.yearsExperience ?? 5}
+            defaultValue={doctor?.yearsExperience ?? ""}
             className="input"
           />
         </div>
@@ -94,7 +126,6 @@ export function DoctorForm({
         <label className="label">{dict.admin.bioEn}</label>
         <textarea
           name="bioEn"
-          required
           rows={2}
           defaultValue={doctor?.bioEn}
           className="input"
@@ -104,7 +135,6 @@ export function DoctorForm({
         <label className="label">{dict.admin.bioAr}</label>
         <textarea
           name="bioAr"
-          required
           dir="rtl"
           rows={2}
           defaultValue={doctor?.bioAr}

@@ -13,10 +13,14 @@ Built with Next.js 14 (App Router), TypeScript and Tailwind CSS.
 - **Arabic support**: full RTL layout, mirrored navigation, Arabic
   typography, and a language switcher that preserves the current page.
 - **Control panel** (`/en/admin` or `/ar/admin`): password-protected
-  dashboard to add, edit, delete and hide/show doctors and departments.
-  Changes are reflected on the public site immediately.
+  dashboard to add, edit, delete and hide/show doctors and departments,
+  upload a doctor photo, and set the homepage banner image. Changes are
+  reflected on the public site immediately, in both languages — photos
+  aren't per-language, the same upload shows on `/en` and `/ar`.
 - Data is stored in a local JSON file (`data/db.local.json`, generated
   on first run from `data/seed.json`) — no external database required.
+- Photo uploads (doctor photos, homepage banner) go to Vercel Blob
+  storage — see the environment variables section below.
 
 ## Getting started
 
@@ -34,6 +38,7 @@ Open http://localhost:3000 — you'll be redirected to `/en`.
 | --- | --- |
 | `ADMIN_PASSWORD` | Password required to sign in to `/admin`. Defaults to `dentera-admin` if unset — **change this before deploying**. |
 | `SESSION_SECRET` | Random string used to sign the admin session cookie. Use a long, random value in production. |
+| `BLOB_READ_WRITE_TOKEN` | Enables photo uploads (doctor photos, homepage banner). Provided automatically once you enable **Vercel Blob** for this project (Vercel dashboard → your project → Storage → Create Database → Blob). Without it, the rest of the admin panel still works — photo upload attempts are skipped gracefully (logged, not an error) and the form saves everything else. |
 
 ### Using the control panel
 
@@ -41,7 +46,10 @@ Open http://localhost:3000 — you'll be redirected to `/en`.
 2. Sign in with `ADMIN_PASSWORD`.
 3. Use the **Doctors** and **Departments** tabs to add, edit, delete, or
    toggle visibility (the "Active" checkbox) of entries. Every entry has
-   separate English and Arabic fields.
+   separate English and Arabic fields, plus an optional photo (Doctors)
+   which is not localized — one upload, shown on both languages.
+4. Use the **Site Settings** tab to upload or remove the homepage banner
+   image.
 
 ## Production
 

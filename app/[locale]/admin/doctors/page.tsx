@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Plus, Pencil } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
@@ -68,7 +69,17 @@ export default function AdminDoctorsPage({
             return (
               <div key={doctor.id} className="card p-5">
                 <div className="flex flex-wrap items-center gap-4">
-                  <Avatar name={doctor.nameEn} className="h-12 w-12 text-sm" />
+                  {doctor.photoUrl ? (
+                    <Image
+                      src={doctor.photoUrl}
+                      alt=""
+                      width={96}
+                      height={96}
+                      className="h-12 w-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <Avatar name={doctor.nameEn} className="h-12 w-12 text-sm" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-ink-900">
                       {doctor.nameEn}{" "}
@@ -78,10 +89,10 @@ export default function AdminDoctorsPage({
                     </p>
                     <p className="text-sm text-ink-500">
                       {doctor.titleEn} ·{" "}
-                      {department
-                        ? department.nameEn
-                        : "—"}{" "}
-                      · {doctor.yearsExperience}y
+                      {department ? department.nameEn : "—"}
+                      {typeof doctor.yearsExperience === "number" &&
+                        doctor.yearsExperience > 0 &&
+                        ` · ${doctor.yearsExperience}y`}
                     </p>
                   </div>
                   <span

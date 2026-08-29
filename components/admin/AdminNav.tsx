@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, Stethoscope, Building2, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Stethoscope,
+  Building2,
+  Image as ImageIcon,
+  LogOut,
+} from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 
@@ -31,6 +37,11 @@ export function AdminNav({
       href: `/${locale}/admin/departments`,
       label: dict.admin.departments,
       icon: Building2,
+    },
+    {
+      href: `/${locale}/admin/settings`,
+      label: dict.admin.siteSettings,
+      icon: ImageIcon,
     },
   ];
 

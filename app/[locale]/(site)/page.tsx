@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getActiveDepartments, getActiveDoctors } from "@/lib/db";
+import { getActiveDepartments, getActiveDoctors, getSettings } from "@/lib/db";
 import { Hero } from "@/components/Hero";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
 import { DepartmentCard } from "@/components/DepartmentCard";
@@ -21,12 +21,13 @@ export default function HomePage({
   const dict = getDictionary(locale);
   const departments = getActiveDepartments();
   const doctors = getActiveDoctors();
+  const settings = getSettings();
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
   return (
     <>
-      <Hero locale={locale} dict={dict} />
+      <Hero locale={locale} dict={dict} bannerUrl={settings.bannerUrl} />
       <WhyChooseUs dict={dict} />
 
       <section className="section-y bg-ink-50/60">

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { Database, Department, Doctor } from "./types";
+import type { Database, Department, Doctor, SiteSettings } from "./types";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "db.local.json");
@@ -34,18 +34,23 @@ function ensureDb(dbPath: string): void {
   }
 }
 
+function withDefaults(db: Database): Database {
+  if (!db.settings) db.settings = {};
+  return db;
+}
+
 function readDb(): Database {
   if (memoryDb) return memoryDb;
   try {
     const dbPath = resolveDbPath();
     ensureDb(dbPath);
     const raw = fs.readFileSync(dbPath, "utf-8");
-    return JSON.parse(raw) as Database;
+    return withDefaults(JSON.parse(raw) as Database);
   } catch {
     // Filesystem is entirely unavailable for writing — keep an in-memory
     // copy so the app still renders instead of crashing the page.
     const seed = fs.readFileSync(SEED_PATH, "utf-8");
-    memoryDb = JSON.parse(seed) as Database;
+    memoryDb = withDefaults(JSON.parse(seed) as Database);
     return memoryDb;
   }
 }
@@ -180,4 +185,17 @@ export function deleteDoctor(id: string): boolean {
   const removed = db.doctors.length !== before;
   if (removed) writeDb(db);
   return removed;
+}
+
+// Site settings
+
+export function getSettings(): SiteSettings {
+  return readDb().settings;
+}
+
+export function updateSettings(input: Partial<SiteSettings>): SiteSettings {
+  const db = readDb();
+  db.settings = { ...db.settings, ...input };
+  writeDb(db);
+  return db.settings;
 }
