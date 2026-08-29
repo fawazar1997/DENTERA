@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { MapPin, Phone, Mail, Sparkles } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import type { Department } from "@/lib/types";
+import { Logo } from "./Logo";
 
 export function Footer({
   locale,
@@ -19,12 +20,12 @@ export function Footer({
     <footer className="border-t border-ink-100 bg-ink-950 text-ink-200">
       <div className="container-x grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <div className="flex items-center gap-2 text-xl font-extrabold text-white">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-white">
-              <Sparkles className="h-5 w-5" />
-            </span>
-            {dict.meta.siteName}
-          </div>
+          <Logo
+            locale={locale}
+            siteName={dict.meta.siteName}
+            markColorClassName="text-accent-400"
+            textColorClassName="text-white"
+          />
           <p className="mt-4 text-sm leading-relaxed text-ink-300">
             {dict.footer.description}
           </p>

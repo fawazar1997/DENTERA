@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { LanguageSwitcher } from "./LanguageSwitcher";
+import { Logo } from "./Logo";
 
 export function Header({
   locale,
@@ -32,14 +33,8 @@ export function Header({
   return (
     <header className="sticky top-0 z-50 border-b border-ink-100 bg-white/90 backdrop-blur">
       <div className="container-x flex items-center justify-between py-3">
-        <Link
-          href={`/${locale}`}
-          className="flex items-center gap-2 text-xl font-extrabold text-primary-800"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-white">
-            <Sparkles className="h-5 w-5" />
-          </span>
-          {dict.meta.siteName}
+        <Link href={`/${locale}`}>
+          <Logo locale={locale} siteName={dict.meta.siteName} />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
 import "../../globals.css";
 import { isLocale, isRtl, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { FontLinks } from "@/components/FontLinks";
+import { Logo } from "@/components/Logo";
 
 export default function AdminLayout({
   children,
@@ -20,17 +21,21 @@ export default function AdminLayout({
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>
+      <head>
+        <FontLinks />
+      </head>
       <body className={`bg-ink-50 ${rtl ? "font-arabic" : "font-sans"}`}>
         <div className="border-b border-ink-200 bg-ink-950">
           <div className="container-x flex items-center justify-between py-3.5">
-            <Link
-              href={`/${locale}/admin`}
-              className="flex items-center gap-2 text-lg font-extrabold text-white"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600">
-                <Sparkles className="h-4 w-4" />
-              </span>
-              {dict.meta.siteName}
+            <Link href={`/${locale}/admin`} className="flex items-center gap-3">
+              <Logo
+                locale={locale}
+                siteName={dict.meta.siteName}
+                markClassName="h-8 w-8"
+                markColorClassName="text-accent-400"
+                textColorClassName="text-white"
+                textClassName="text-lg"
+              />
               <span className="rounded-full bg-primary-800 px-2.5 py-0.5 text-xs font-semibold text-primary-100">
                 {dict.nav.admin}
               </span>

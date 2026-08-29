@@ -4,6 +4,7 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getActiveDepartments } from "@/lib/db";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { FontLinks } from "@/components/FontLinks";
 
 export default function SiteLayout({
   children,
@@ -21,6 +22,9 @@ export default function SiteLayout({
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>
+      <head>
+        <FontLinks />
+      </head>
       <body className={rtl ? "font-arabic" : "font-sans"}>
         <Header locale={locale} dict={dict} />
         <main className="min-h-screen">{children}</main>
