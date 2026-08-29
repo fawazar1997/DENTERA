@@ -108,12 +108,14 @@ export const dictionaries = {
       emailValue: "info@dentera.com.sa",
       hoursLabel: "Working Hours",
       hoursValue: "Sat – Thu: 9:00 AM – 9:00 PM",
-      formTitle: "Send Us a Message",
+      formTitle: "Request an Appointment",
       formName: "Full Name",
-      formPhone: "Phone Number",
-      formEmail: "Email Address",
-      formMessage: "Message",
-      formSubmit: "Send Message",
+      formMobile: "Mobile Number",
+      formDepartment: "Department",
+      formDepartmentPlaceholder: "Select a department",
+      formSubmit: "Send Request",
+      formSuccessMessage:
+        "Thank you! We've received your request and will contact you shortly.",
     },
     footer: {
       description:
@@ -173,9 +175,22 @@ export const dictionaries = {
       uploadBanner: "Upload Banner",
       removeBanner: "Remove Banner",
       noBanner: "No banner image set.",
+      blobNotEnabled:
+        "Photo uploads are currently disabled: Vercel Blob storage isn't set up for this project yet. Everything else on this page still saves normally. To enable uploads: Vercel dashboard → your project → Storage → Create Database → Blob, then redeploy.",
+      inquiries: "Contact Requests",
+      inquiriesSubtitle:
+        "People who submitted the contact / book-appointment form on the website.",
+      noInquiries: "No contact requests yet.",
+      mobile: "Mobile Number",
+      submittedAt: "Submitted",
+      markContacted: "Mark Contacted",
+      markNew: "Mark New",
+      statusNew: "New",
+      statusContacted: "Contacted",
     },
     common: {
       loading: "Loading...",
+      errorTryAgain: "Something went wrong. Please try again.",
     },
   },
   ar: {
@@ -281,12 +296,13 @@ export const dictionaries = {
       emailValue: "info@dentera.com.sa",
       hoursLabel: "ساعات العمل",
       hoursValue: "السبت – الخميس: 9:00 صباحًا – 9:00 مساءً",
-      formTitle: "أرسل لنا رسالة",
+      formTitle: "اطلب موعدًا",
       formName: "الاسم الكامل",
-      formPhone: "رقم الهاتف",
-      formEmail: "البريد الإلكتروني",
-      formMessage: "الرسالة",
-      formSubmit: "إرسال الرسالة",
+      formMobile: "رقم الجوال",
+      formDepartment: "القسم",
+      formDepartmentPlaceholder: "اختر القسم",
+      formSubmit: "إرسال الطلب",
+      formSuccessMessage: "شكرًا لك! استلمنا طلبك وسنتواصل معك قريبًا.",
     },
     footer: {
       description:
@@ -346,9 +362,21 @@ export const dictionaries = {
       uploadBanner: "رفع البانر",
       removeBanner: "إزالة البانر",
       noBanner: "لا توجد صورة بانر حالياً.",
+      blobNotEnabled:
+        "رفع الصور معطّل حالياً: لم يتم تفعيل خدمة Vercel Blob لهذا المشروع بعد. باقي الحقول في هذه الصفحة تُحفظ بشكل طبيعي. لتفعيل رفع الصور: من لوحة Vercel ← مشروعك ← Storage ← Create Database ← Blob، ثم أعد النشر.",
+      inquiries: "طلبات التواصل",
+      inquiriesSubtitle: "الأشخاص الذين أرسلوا نموذج التواصل / حجز موعد في الموقع.",
+      noInquiries: "لا توجد طلبات تواصل بعد.",
+      mobile: "رقم الجوال",
+      submittedAt: "تاريخ الإرسال",
+      markContacted: "تحديد كـ تم التواصل",
+      markNew: "تحديد كـ جديد",
+      statusNew: "جديد",
+      statusContacted: "تم التواصل",
     },
     common: {
       loading: "جارٍ التحميل...",
+      errorTryAgain: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
     },
   },
 } satisfies Record<Locale, unknown>;

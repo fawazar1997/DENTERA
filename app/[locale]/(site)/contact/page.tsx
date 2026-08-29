@@ -1,6 +1,7 @@
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
+import { getActiveDepartments } from "@/lib/db";
 import { ContactForm } from "@/components/ContactForm";
 
 export default function ContactPage({
@@ -12,6 +13,7 @@ export default function ContactPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
+  const departments = getActiveDepartments();
 
   const info = [
     { icon: MapPin, label: dict.contact.addressLabel, value: dict.contact.addressValue, dir: undefined as "ltr" | undefined },
@@ -40,7 +42,7 @@ export default function ContactPage({
               {dict.contact.formTitle}
             </h2>
             <div className="mt-6">
-              <ContactForm dict={dict} />
+              <ContactForm dict={dict} locale={locale} departments={departments} />
             </div>
           </div>
 

@@ -17,6 +17,11 @@ Built with Next.js 14 (App Router), TypeScript and Tailwind CSS.
   upload a doctor photo, and set the homepage banner image. Changes are
   reflected on the public site immediately, in both languages — photos
   aren't per-language, the same upload shows on `/en` and `/ar`.
+- **Appointment / contact requests**: the public Contact page collects
+  name, mobile number and department, and saves each submission to the
+  **Contact Requests** tab in the control panel (with an unread-count
+  badge) so staff can see and follow up with patients — mark as
+  contacted, or delete.
 - Data is stored in a local JSON file (`data/db.local.json`, generated
   on first run from `data/seed.json`) — no external database required.
 - Photo uploads (doctor photos, homepage banner) go to Vercel Blob
@@ -49,7 +54,9 @@ Open http://localhost:3000 — you'll be redirected to `/en`.
    separate English and Arabic fields, plus an optional photo (Doctors)
    which is not localized — one upload, shown on both languages.
 4. Use the **Site Settings** tab to upload or remove the homepage banner
-   image.
+   image (shown as a full-width strip at the top of the homepage).
+5. Use the **Contact Requests** tab to see appointment/contact form
+   submissions and mark them as contacted.
 
 ## Production
 
@@ -88,6 +95,8 @@ tab; it injects the connection env vars automatically).
   and a PostCSS advisory affecting attacker-supplied CSS) are only fixed
   in the Next.js 16 major release, which involves breaking API changes.
   Upgrading is recommended when convenient.
-- The contact form currently logs submissions to the server console; wire
-  `app/api/contact/route.ts` up to an email service or CRM for production
-  use.
+- Contact/appointment submissions are saved to the same JSON store as
+  doctors and departments, so they're subject to the same Vercel
+  temp-dir caveat above. Consider also wiring `app/api/contact/route.ts`
+  up to an email/SMS notification so staff don't have to keep checking
+  the control panel.

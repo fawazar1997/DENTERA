@@ -26,8 +26,18 @@ export type SiteSettings = {
   bannerUrl?: string;
 };
 
+export type Inquiry = {
+  id: string;
+  name: string;
+  mobile: string;
+  departmentId: string;
+  status: "new" | "contacted";
+  createdAt: string;
+};
+
 export type Database = {
   departments: Department[];
   doctors: Doctor[];
   settings: SiteSettings;
+  inquiries: Inquiry[];
 };

@@ -2,9 +2,14 @@ import Image from "next/image";
 import { Upload, Trash2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getSettings } from "@/lib/db";
+import { getInquiries, getSettings } from "@/lib/db";
 import { removeBannerAction, updateBannerAction } from "@/lib/actions";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
+
+// Admin pages always need the current data, never a stale build-time or
+// revalidation-cached snapshot, so render them fresh on every request.
+export const dynamic = "force-dynamic";
 
 export default function AdminSettingsPage({
   params,
@@ -16,16 +21,21 @@ export default function AdminSettingsPage({
     : defaultLocale;
   const dict = getDictionary(locale);
   const settings = getSettings();
+  const newInquiries = getInquiries().filter((i) => i.status === "new").length;
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
+      <AdminNav locale={locale} dict={dict} newInquiries={newInquiries} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.siteSettings}
         </h1>
 
-        <div className="card mt-6 max-w-2xl p-7">
+        <div className="mt-6 max-w-2xl">
+          <BlobConfigNotice text={dict.admin.blobNotEnabled} />
+        </div>
+
+        <div className="card max-w-2xl p-7">
           <h2 className="font-bold text-ink-900">{dict.admin.bannerImage}</h2>
           <p className="mt-1 text-sm text-ink-500">{dict.admin.bannerHint}</p>
 

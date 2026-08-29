@@ -1,9 +1,13 @@
 import Link from "next/link";
-import { Stethoscope, Building2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Stethoscope, Building2, Inbox, ArrowRight, ArrowLeft } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getDepartments, getDoctors } from "@/lib/db";
+import { getDepartments, getDoctors, getInquiries } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
+
+// Admin pages always need the current data, never a stale build-time or
+// revalidation-cached snapshot, so render them fresh on every request.
+export const dynamic = "force-dynamic";
 
 export default function AdminDashboardPage({
   params,
@@ -16,6 +20,8 @@ export default function AdminDashboardPage({
   const dict = getDictionary(locale);
   const doctors = getDoctors();
   const departments = getDepartments();
+  const inquiries = getInquiries();
+  const newInquiries = inquiries.filter((i) => i.status === "new").length;
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
@@ -34,18 +40,25 @@ export default function AdminDashboardPage({
       value: departments.length,
       color: "bg-accent-500",
     },
+    {
+      href: `/${locale}/admin/inquiries`,
+      icon: Inbox,
+      label: dict.admin.inquiries,
+      value: inquiries.length,
+      color: "bg-ink-700",
+    },
   ];
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
+      <AdminNav locale={locale} dict={dict} newInquiries={newInquiries} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.dashboardTitle}
         </h1>
         <p className="mt-1 text-ink-500">{dict.admin.dashboardSubtitle}</p>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:max-w-2xl">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-3">
           {cards.map((card) => (
             <Link
               key={card.href}

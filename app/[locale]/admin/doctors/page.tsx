@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Plus, Pencil } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getDepartments, getDoctors } from "@/lib/db";
+import { getDepartments, getDoctors, getInquiries } from "@/lib/db";
 import {
   createDoctorAction,
   deleteDoctorAction,
@@ -11,7 +11,12 @@ import {
 import { AdminNav } from "@/components/admin/AdminNav";
 import { DoctorForm } from "@/components/admin/DoctorForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
+import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 import { Avatar } from "@/components/Avatar";
+
+// Admin pages always need the current data, never a stale build-time or
+// revalidation-cached snapshot, so render them fresh on every request.
+export const dynamic = "force-dynamic";
 
 export default function AdminDoctorsPage({
   params,
@@ -24,10 +29,11 @@ export default function AdminDoctorsPage({
   const dict = getDictionary(locale);
   const doctors = getDoctors();
   const departments = getDepartments();
+  const newInquiries = getInquiries().filter((i) => i.status === "new").length;
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
+      <AdminNav locale={locale} dict={dict} newInquiries={newInquiries} />
       <div className="container-x py-10">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-extrabold text-ink-950">
@@ -35,7 +41,11 @@ export default function AdminDoctorsPage({
           </h1>
         </div>
 
-        <details className="card mt-6 p-6 open:pb-7">
+        <div className="mt-6">
+          <BlobConfigNotice text={dict.admin.blobNotEnabled} />
+        </div>
+
+        <details className="card p-6 open:pb-7">
           <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary-700">
             <Plus className="h-4 w-4" />
             {dict.admin.addDoctor}

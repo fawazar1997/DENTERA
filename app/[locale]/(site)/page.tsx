@@ -4,6 +4,7 @@ import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getActiveDepartments, getActiveDoctors, getSettings } from "@/lib/db";
 import { Hero } from "@/components/Hero";
+import { HomeBanner } from "@/components/HomeBanner";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
 import { DepartmentCard } from "@/components/DepartmentCard";
 import { DoctorCard } from "@/components/DoctorCard";
@@ -27,7 +28,8 @@ export default function HomePage({
 
   return (
     <>
-      <Hero locale={locale} dict={dict} bannerUrl={settings.bannerUrl} />
+      <HomeBanner bannerUrl={settings.bannerUrl} />
+      <Hero locale={locale} dict={dict} />
       <WhyChooseUs dict={dict} />
 
       <section className="section-y bg-ink-50/60">

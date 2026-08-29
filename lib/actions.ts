@@ -6,9 +6,11 @@ import {
   createDoctor,
   deleteDepartment,
   deleteDoctor,
+  deleteInquiry,
   getDoctor,
   updateDepartment,
   updateDoctor,
+  updateInquiryStatus,
   updateSettings,
 } from "./db";
 import { uploadImage } from "./blob";
@@ -37,6 +39,8 @@ function fileOrNull(formData: FormData, key: string): File | null {
 function revalidateAll(locale: string) {
   revalidatePath(`/${locale}/admin/doctors`);
   revalidatePath(`/${locale}/admin/departments`);
+  revalidatePath(`/${locale}/admin/settings`);
+  revalidatePath(`/${locale}/admin/inquiries`);
   revalidatePath(`/${locale}/admin`);
   revalidatePath(`/${locale}`);
   revalidatePath(`/${locale}/doctors`);
@@ -132,5 +136,23 @@ export async function updateBannerAction(formData: FormData) {
 export async function removeBannerAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
   updateSettings({ bannerUrl: undefined });
+  revalidateAll(locale);
+}
+
+export async function markInquiryContactedAction(formData: FormData) {
+  const locale = str(formData, "locale") || "en";
+  updateInquiryStatus(str(formData, "id"), "contacted");
+  revalidateAll(locale);
+}
+
+export async function markInquiryNewAction(formData: FormData) {
+  const locale = str(formData, "locale") || "en";
+  updateInquiryStatus(str(formData, "id"), "new");
+  revalidateAll(locale);
+}
+
+export async function deleteInquiryAction(formData: FormData) {
+  const locale = str(formData, "locale") || "en";
+  deleteInquiry(str(formData, "id"));
   revalidateAll(locale);
 }

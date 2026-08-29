@@ -1,7 +1,7 @@
 import { Plus, Pencil } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getDepartments } from "@/lib/db";
+import { getDepartments, getInquiries } from "@/lib/db";
 import {
   createDepartmentAction,
   deleteDepartmentAction,
@@ -11,6 +11,10 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { DepartmentForm } from "@/components/admin/DepartmentForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { DepartmentIcon } from "@/components/IconMap";
+
+// Admin pages always need the current data, never a stale build-time or
+// revalidation-cached snapshot, so render them fresh on every request.
+export const dynamic = "force-dynamic";
 
 export default function AdminDepartmentsPage({
   params,
@@ -22,10 +26,11 @@ export default function AdminDepartmentsPage({
     : defaultLocale;
   const dict = getDictionary(locale);
   const departments = getDepartments();
+  const newInquiries = getInquiries().filter((i) => i.status === "new").length;
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
+      <AdminNav locale={locale} dict={dict} newInquiries={newInquiries} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.departments}

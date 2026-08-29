@@ -3,23 +3,37 @@
 import { useState, type FormEvent } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import type { Dictionary } from "@/lib/dictionaries";
+import type { Locale } from "@/lib/i18n";
+import type { Department } from "@/lib/types";
 
-export function ContactForm({ dict }: { dict: Dictionary }) {
-  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+export function ContactForm({
+  dict,
+  locale,
+  departments,
+}: {
+  dict: Dictionary;
+  locale: Locale;
+  departments: Department[];
+}) {
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    "idle"
+  );
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("sending");
     const formData = new FormData(e.currentTarget);
     try {
-      await fetch("/api/contact", {
+      const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(Object.fromEntries(formData)),
       });
-    } finally {
+      if (!res.ok) throw new Error("request failed");
       setStatus("sent");
       e.currentTarget.reset();
+    } catch {
+      setStatus("error");
     }
   }
 
@@ -27,7 +41,9 @@ export function ContactForm({ dict }: { dict: Dictionary }) {
     return (
       <div className="card flex flex-col items-center gap-3 p-10 text-center">
         <CheckCircle2 className="h-10 w-10 text-primary-600" />
-        <p className="font-semibold text-ink-900">{dict.contact.formSubmit}</p>
+        <p className="font-semibold text-ink-900">
+          {dict.contact.formSuccessMessage}
+        </p>
       </div>
     );
   }
@@ -40,38 +56,37 @@ export function ContactForm({ dict }: { dict: Dictionary }) {
         </label>
         <input id="name" name="name" required className="input" />
       </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="phone">
-            {dict.contact.formPhone}
-          </label>
-          <input id="phone" name="phone" required className="input" />
-        </div>
-        <div>
-          <label className="label" htmlFor="email">
-            {dict.contact.formEmail}
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            className="input"
-          />
-        </div>
-      </div>
       <div>
-        <label className="label" htmlFor="message">
-          {dict.contact.formMessage}
+        <label className="label" htmlFor="mobile">
+          {dict.contact.formMobile}
         </label>
-        <textarea
-          id="message"
-          name="message"
+        <input
+          id="mobile"
+          name="mobile"
+          type="tel"
+          dir="ltr"
           required
-          rows={4}
           className="input"
         />
       </div>
+      <div>
+        <label className="label" htmlFor="departmentId">
+          {dict.contact.formDepartment}
+        </label>
+        <select id="departmentId" name="departmentId" required className="input">
+          <option value="">{dict.contact.formDepartmentPlaceholder}</option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {locale === "ar" ? department.nameAr : department.nameEn}
+            </option>
+          ))}
+        </select>
+      </div>
+      {status === "error" && (
+        <p className="text-sm font-medium text-red-600">
+          {dict.common.errorTryAgain}
+        </p>
+      )}
       <button
         type="submit"
         disabled={status === "sending"}

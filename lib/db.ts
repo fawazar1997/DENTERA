@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { Database, Department, Doctor, SiteSettings } from "./types";
+import type { Database, Department, Doctor, Inquiry, SiteSettings } from "./types";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "db.local.json");
@@ -28,14 +28,25 @@ function resolveDbPath(): string {
 }
 
 function ensureDb(dbPath: string): void {
-  if (!fs.existsSync(dbPath)) {
-    const seed = fs.readFileSync(SEED_PATH, "utf-8");
-    fs.writeFileSync(dbPath, seed, "utf-8");
+  if (fs.existsSync(dbPath)) return;
+  const seed = fs.readFileSync(SEED_PATH, "utf-8");
+  try {
+    // Exclusive write ("wx"): fails instead of overwriting if the file
+    // already exists. Next.js can statically render several pages
+    // concurrently at build time, and they all call this on first run —
+    // without this, two pages racing the existsSync check above could
+    // both decide the file is missing and write it at once.
+    fs.writeFileSync(dbPath, seed, { encoding: "utf-8", flag: "wx" });
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code !== "EEXIST") throw error;
+    // Another concurrent caller already created it first — that's fine.
   }
 }
 
 function withDefaults(db: Database): Database {
   if (!db.settings) db.settings = {};
+  if (!db.inquiries) db.inquiries = [];
   return db;
 }
 
@@ -198,4 +209,48 @@ export function updateSettings(input: Partial<SiteSettings>): SiteSettings {
   db.settings = { ...db.settings, ...input };
   writeDb(db);
   return db.settings;
+}
+
+// Contact / appointment inquiries
+
+export function getInquiries(): Inquiry[] {
+  return [...readDb().inquiries].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+}
+
+export function createInquiry(
+  input: Omit<Inquiry, "id" | "status" | "createdAt">
+): Inquiry {
+  const db = readDb();
+  const inquiry: Inquiry = {
+    id: crypto.randomUUID(),
+    ...input,
+    status: "new",
+    createdAt: new Date().toISOString(),
+  };
+  db.inquiries.push(inquiry);
+  writeDb(db);
+  return inquiry;
+}
+
+export function updateInquiryStatus(
+  id: string,
+  status: Inquiry["status"]
+): Inquiry | undefined {
+  const db = readDb();
+  const index = db.inquiries.findIndex((i) => i.id === id);
+  if (index === -1) return undefined;
+  db.inquiries[index] = { ...db.inquiries[index], status };
+  writeDb(db);
+  return db.inquiries[index];
+}
+
+export function deleteInquiry(id: string): boolean {
+  const db = readDb();
+  const before = db.inquiries.length;
+  db.inquiries = db.inquiries.filter((i) => i.id !== id);
+  const removed = db.inquiries.length !== before;
+  if (removed) writeDb(db);
+  return removed;
 }
