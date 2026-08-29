@@ -6,6 +6,11 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+// Any first path segment other than "en"/"ar" (e.g. a browser's automatic
+// /favicon.ico probe) 404s immediately instead of being rendered as if it
+// were a locale value.
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params,
 }: {

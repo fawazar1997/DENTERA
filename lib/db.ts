@@ -1,25 +1,64 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import type { Database, Department, Doctor } from "./types";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
-const DB_PATH = path.join(process.cwd(), "data", "db.local.json");
+const LOCAL_DB_PATH = path.join(process.cwd(), "data", "db.local.json");
+const TMP_DB_PATH = path.join(os.tmpdir(), "dentera-db.json");
 
-function ensureDb(): void {
-  if (!fs.existsSync(DB_PATH)) {
+// On a normal server the project directory is writable, so we persist
+// changes next to the source (survives restarts). On a read-only
+// deployment (e.g. Vercel's serverless functions) that directory can't be
+// written to, so we fall back to the OS temp dir. That's still writable at
+// runtime, just not shared across instances or persisted across deploys —
+// see README "Known limitations" for the real fix (a proper database).
+let resolvedDbPath: string | null = null;
+let memoryDb: Database | null = null;
+
+function resolveDbPath(): string {
+  if (resolvedDbPath) return resolvedDbPath;
+  try {
+    fs.accessSync(path.dirname(LOCAL_DB_PATH), fs.constants.W_OK);
+    resolvedDbPath = LOCAL_DB_PATH;
+  } catch {
+    resolvedDbPath = TMP_DB_PATH;
+  }
+  return resolvedDbPath;
+}
+
+function ensureDb(dbPath: string): void {
+  if (!fs.existsSync(dbPath)) {
     const seed = fs.readFileSync(SEED_PATH, "utf-8");
-    fs.writeFileSync(DB_PATH, seed, "utf-8");
+    fs.writeFileSync(dbPath, seed, "utf-8");
   }
 }
 
 function readDb(): Database {
-  ensureDb();
-  const raw = fs.readFileSync(DB_PATH, "utf-8");
-  return JSON.parse(raw) as Database;
+  if (memoryDb) return memoryDb;
+  try {
+    const dbPath = resolveDbPath();
+    ensureDb(dbPath);
+    const raw = fs.readFileSync(dbPath, "utf-8");
+    return JSON.parse(raw) as Database;
+  } catch {
+    // Filesystem is entirely unavailable for writing — keep an in-memory
+    // copy so the app still renders instead of crashing the page.
+    const seed = fs.readFileSync(SEED_PATH, "utf-8");
+    memoryDb = JSON.parse(seed) as Database;
+    return memoryDb;
+  }
 }
 
 function writeDb(db: Database): void {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
+  try {
+    fs.writeFileSync(resolveDbPath(), JSON.stringify(db, null, 2), "utf-8");
+    memoryDb = null;
+  } catch {
+    // Can't persist to disk at all — keep the change in memory so it's at
+    // least reflected for the rest of this server instance's lifetime.
+    memoryDb = db;
+  }
 }
 
 function slugify(input: string): string {

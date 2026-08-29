@@ -55,10 +55,22 @@ any platform that runs `next start`). Serve it over HTTPS — the admin
 session cookie is marked `Secure` automatically whenever the incoming
 request (or `X-Forwarded-Proto` from a reverse proxy) is HTTPS.
 
-Because data is written to a local JSON file, run this as a single
-persistent Node.js process with a writable filesystem (not a stateless/
-serverless deployment, where filesystem writes don't persist between
-requests).
+Because data is written to a local JSON file, this works best as a single
+persistent Node.js process with a writable filesystem (a VPS, Docker
+container, Railway, Render, etc.) — data survives restarts there.
+
+### Deploying to Vercel (or another serverless/read-only host)
+
+The app **won't crash** on a read-only filesystem — it automatically falls
+back to writing into the OS temp directory instead of the project folder.
+But that temp directory is **not persistent or shared**: it can reset on
+the next cold start, a new instance, or a redeploy, so admin changes are
+not reliably saved long-term. The public site works fully regardless.
+
+To make the admin panel's changes actually persist on Vercel, swap the
+storage in `lib/db.ts` for a real database — Vercel Postgres or Vercel KV
+are the least-setup options (add one from the Vercel dashboard's Storage
+tab; it injects the connection env vars automatically).
 
 ## Known limitations
 
