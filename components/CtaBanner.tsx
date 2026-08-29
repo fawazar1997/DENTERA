@@ -19,7 +19,7 @@ export function CtaBanner({
             aria-hidden="true"
           />
           <div className="relative">
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               {dict.home.ctaTitle}
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-primary-100">

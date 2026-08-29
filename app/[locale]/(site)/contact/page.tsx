@@ -24,9 +24,9 @@ export default function ContactPage({
 
   return (
     <>
-      <section className="section-y bg-gradient-to-b from-primary-50 to-white">
+      <section className="section-y bg-gradient-to-b from-primary-50 to-paper">
         <div className="container-x text-center">
-          <h1 className="text-4xl font-extrabold text-ink-950 sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
             {dict.contact.title}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-600">
@@ -38,7 +38,7 @@ export default function ContactPage({
       <section className="section-y bg-white">
         <div className="container-x grid gap-12 lg:grid-cols-2">
           <div>
-            <h2 className="text-xl font-bold text-ink-900">
+            <h2 className="text-xl font-semibold text-ink-900">
               {dict.contact.formTitle}
             </h2>
             <div className="mt-6">

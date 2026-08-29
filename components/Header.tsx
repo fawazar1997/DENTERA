@@ -31,7 +31,7 @@ export function Header({
     href === `/${locale}` ? pathname === href : pathname.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ink-100 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-ink-100 bg-paper/85 backdrop-blur">
       <div className="container-x flex items-center justify-between py-3">
         <Link href={`/${locale}`}>
           <Logo variant="color" className="h-10 w-auto" priority />

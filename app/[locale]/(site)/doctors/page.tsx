@@ -5,6 +5,7 @@ import { getActiveDepartments, getActiveDoctors } from "@/lib/db";
 import { DoctorCard } from "@/components/DoctorCard";
 import { DoctorsFilter } from "@/components/DoctorsFilter";
 import { CtaBanner } from "@/components/CtaBanner";
+import { Reveal } from "@/components/Reveal";
 
 export default function DoctorsPage({
   params,
@@ -26,9 +27,9 @@ export default function DoctorsPage({
 
   return (
     <>
-      <section className="section-y bg-gradient-to-b from-primary-50 to-white">
+      <section className="section-y bg-gradient-to-b from-primary-50 to-paper">
         <div className="container-x text-center">
-          <h1 className="text-4xl font-extrabold text-ink-950 sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
             {dict.doctors.title}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-600">
@@ -53,16 +54,17 @@ export default function DoctorsPage({
             <p className="text-center text-ink-500">{dict.doctors.empty}</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {doctors.map((doctor) => (
-                <DoctorCard
-                  key={doctor.id}
-                  doctor={doctor}
-                  department={departments.find(
-                    (d) => d.id === doctor.departmentId
-                  )}
-                  locale={locale}
-                  dict={dict}
-                />
+              {doctors.map((doctor, i) => (
+                <Reveal key={doctor.id} delay={(i % 3) * 100}>
+                  <DoctorCard
+                    doctor={doctor}
+                    department={departments.find(
+                      (d) => d.id === doctor.departmentId
+                    )}
+                    locale={locale}
+                    dict={dict}
+                  />
+                </Reveal>
               ))}
             </div>
           )}

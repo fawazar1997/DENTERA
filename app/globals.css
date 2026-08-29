@@ -6,8 +6,21 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
-  @apply bg-white text-ink-800 antialiased;
+  @apply bg-paper text-ink-800 antialiased;
 }
 
 [dir="rtl"] .ltr-flip {
@@ -19,33 +32,63 @@ body {
 }
 
 .section-y {
-  @apply py-16 sm:py-20 lg:py-24;
+  @apply py-16 sm:py-20 lg:py-28;
 }
 
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all duration-200;
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold transition-all duration-200 ease-out;
 }
 
 .btn-primary {
-  @apply btn bg-primary-600 text-white shadow-soft hover:bg-primary-700 hover:shadow-lg active:scale-[0.98];
+  @apply btn bg-primary-900 text-white shadow-inset hover:bg-primary-800 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
 }
 
 .btn-outline {
-  @apply btn border-2 border-primary-600 text-primary-700 hover:bg-primary-50 active:scale-[0.98];
+  @apply btn border border-ink-900/25 bg-transparent text-ink-900 hover:border-ink-900/40 hover:bg-ink-900/[0.03] active:scale-[0.98];
 }
 
 .btn-accent {
-  @apply btn bg-accent-500 text-white shadow-soft hover:bg-accent-600 active:scale-[0.98];
+  @apply btn bg-accent-500 text-white shadow-inset hover:bg-accent-600 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
 }
 
 .card {
-  @apply rounded-xl2 border border-ink-100 bg-white shadow-card transition-all duration-200;
+  @apply rounded-xl2 border border-ink-100 bg-white shadow-card transition-all duration-300 ease-out;
 }
 
 .input {
-  @apply w-full rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm text-ink-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100;
+  @apply w-full rounded-lg border border-ink-200 bg-white px-4 py-2.5 text-sm text-ink-900 outline-none transition focus:border-primary-500 focus:shadow-focus;
 }
 
 .label {
   @apply mb-1.5 block text-sm font-medium text-ink-700;
+}
+
+.eyebrow {
+  @apply text-xs font-semibold uppercase tracking-widest text-primary-700;
+}
+
+.heading-display {
+  @apply font-semibold leading-[1.05] tracking-tighter text-ink-950;
+}
+
+.heading-section {
+  @apply font-semibold leading-tight tracking-tight text-ink-950;
+}
+
+/* Scroll-reveal: elements start hidden/offset, then animate in once the
+   .in-view class is added by the Reveal component's IntersectionObserver. */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.reveal.in-view {
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

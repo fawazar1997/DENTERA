@@ -22,7 +22,7 @@ export function DepartmentCard({
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-white transition group-hover:bg-accent-500">
         <DepartmentIcon name={department.icon} className="h-7 w-7" />
       </div>
-      <h3 className="mt-5 text-lg font-bold text-ink-900">
+      <h3 className="mt-5 text-lg font-semibold text-ink-900">
         {locale === "ar" ? department.nameAr : department.nameEn}
       </h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-600">

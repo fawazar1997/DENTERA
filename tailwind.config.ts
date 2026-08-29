@@ -30,19 +30,24 @@ const config: Config = {
           800: "#6a4d38",
           900: "#57402f",
         },
+        // Warm neutral scale (paper/charcoal, not blue-gray) — every step is
+        // the same warm hue at a different depth, so text, borders and the
+        // page background all read as one coherent, unforced palette rather
+        // than a generic UI gray scale.
         ink: {
-          50: "#f4f6f7",
-          100: "#e3e8ea",
-          200: "#c9d2d6",
-          300: "#a2b1b8",
-          400: "#748994",
-          500: "#586e79",
-          600: "#4b5c67",
-          700: "#404e57",
-          800: "#38434a",
-          900: "#242c31",
-          950: "#15191c",
+          50: "#faf8f3",
+          100: "#ece7db",
+          200: "#dcd8cd",
+          300: "#bfbbb1",
+          400: "#a19d94",
+          500: "#86827a",
+          600: "#6b6862",
+          700: "#52504a",
+          800: "#3d3b37",
+          900: "#2a2926",
+          950: "#1c1b19",
         },
+        paper: "#faf8f3",
       },
       fontFamily: {
         sans: [
@@ -65,15 +70,39 @@ const config: Config = {
         ],
       },
       boxShadow: {
-        soft: "0 10px 40px -12px rgba(20, 72, 75, 0.18)",
-        card: "0 4px 20px -4px rgba(20, 72, 75, 0.12)",
+        soft: "0 12px 32px -16px rgba(28, 27, 25, 0.16)",
+        card: "0 2px 12px -4px rgba(28, 27, 25, 0.08)",
+        // Tactile inset technique: a thin light highlight along the top
+        // edge plus a soft dark ring, so a dark button reads as pressed
+        // into the surface rather than floating above it.
+        inset: "inset 0 1px 0 0 rgba(255,255,255,0.16), inset 0 0 0 1px rgba(0,0,0,0.12), 0 1px 2px rgba(28,27,25,0.12)",
+        "inset-hover": "inset 0 1px 0 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(0,0,0,0.16), 0 2px 6px rgba(28,27,25,0.16)",
+        focus: "0 0 0 4px rgba(20, 133, 136, 0.15)",
       },
       borderRadius: {
-        xl2: "1.25rem",
+        xl2: "1rem",
+      },
+      letterSpacing: {
+        tighter: "-0.035em",
+        tight: "-0.02em",
       },
       backgroundImage: {
         "hero-grid":
           "radial-gradient(circle at 1px 1px, rgba(20,72,75,0.08) 1px, transparent 0)",
+      },
+      keyframes: {
+        "fade-up": {
+          "0%": { opacity: "0", transform: "translateY(16px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+      },
+      animation: {
+        "fade-up": "fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-in": "fade-in 0.6s ease-out forwards",
       },
     },
   },

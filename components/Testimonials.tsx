@@ -1,6 +1,7 @@
 import { Star, Quote } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
+import { Reveal } from "./Reveal";
 
 const testimonials = [
   {
@@ -40,7 +41,7 @@ export function Testimonials({
     <section className="section-y bg-primary-50/60">
       <div className="container-x">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-extrabold text-ink-950 sm:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight text-ink-950 sm:text-4xl">
             {dict.home.testimonialsTitle}
           </h2>
           <p className="mt-4 text-lg text-ink-600">
@@ -49,24 +50,25 @@ export function Testimonials({
         </div>
 
         <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {testimonials.map((testimonial) => (
-            <figure
-              key={testimonial.nameEn}
-              className="card flex flex-col p-7"
-            >
-              <Quote className="h-8 w-8 text-primary-200" />
-              <div className="mt-3 flex gap-0.5 text-accent-500">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
-                ))}
-              </div>
-              <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-ink-700">
-                “{locale === "ar" ? testimonial.quoteAr : testimonial.quoteEn}”
-              </blockquote>
-              <figcaption className="mt-5 text-sm font-bold text-ink-900">
-                {locale === "ar" ? testimonial.nameAr : testimonial.nameEn}
-              </figcaption>
-            </figure>
+          {testimonials.map((testimonial, i) => (
+            <Reveal key={testimonial.nameEn} delay={i * 80}>
+              <figure className="card flex h-full flex-col p-7">
+                <Quote className="h-8 w-8 text-primary-200" />
+                <div className="mt-3 flex gap-0.5 text-accent-500">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-ink-700">
+                  “
+                  {locale === "ar" ? testimonial.quoteAr : testimonial.quoteEn}
+                  ”
+                </blockquote>
+                <figcaption className="mt-5 text-sm font-semibold text-ink-900">
+                  {locale === "ar" ? testimonial.nameAr : testimonial.nameEn}
+                </figcaption>
+              </figure>
+            </Reveal>
           ))}
         </div>
       </div>

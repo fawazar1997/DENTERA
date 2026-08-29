@@ -15,18 +15,18 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-white to-white">
+    <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
       <div
         className="bg-hero-grid absolute inset-0 opacity-40 [background-size:22px_22px]"
         aria-hidden="true"
       />
       <div className="container-x relative grid gap-12 py-16 sm:py-20 lg:grid-cols-2 lg:items-center lg:py-28">
-        <div>
+        <div className="animate-fade-up opacity-0">
           <span className="inline-flex items-center gap-2 rounded-full bg-primary-100 px-4 py-1.5 text-sm font-semibold text-primary-800">
             <ShieldCheck className="h-4 w-4" />
             {dict.hero.eyebrow}
           </span>
-          <h1 className="mt-6 text-4xl font-extrabold leading-tight tracking-tight text-ink-950 sm:text-5xl lg:text-6xl">
+          <h1 className="mt-6 text-4xl font-semibold leading-[1.05] tracking-tighter text-ink-950 sm:text-5xl lg:text-6xl">
             {dict.hero.title}
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-600">
@@ -57,7 +57,10 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           </dl>
         </div>
 
-        <div className="relative mx-auto aspect-square w-full max-w-md lg:max-w-none">
+        <div
+          className="relative mx-auto aspect-square w-full max-w-md animate-fade-up opacity-0 lg:max-w-none"
+          style={{ animationDelay: "150ms" }}
+        >
           <div className="absolute -top-6 end-6 h-32 w-32 rounded-3xl bg-accent-200/60 blur-2xl" />
           <div className="absolute -bottom-8 start-8 h-40 w-40 rounded-3xl bg-primary-200/70 blur-2xl" />
           <div className="relative flex h-full w-full items-center justify-center rounded-xl2 border border-primary-100 bg-white/80 p-10 shadow-soft backdrop-blur">

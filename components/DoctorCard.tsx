@@ -32,7 +32,7 @@ export function DoctorCard({
       ) : (
         <Avatar name={name} className="h-20 w-20 text-xl" />
       )}
-      <h3 className="mt-5 text-lg font-bold text-ink-900">{name}</h3>
+      <h3 className="mt-5 text-lg font-semibold text-ink-900">{name}</h3>
       <p className="mt-1 text-sm font-semibold text-primary-700">
         {locale === "ar" ? doctor.titleAr : doctor.titleEn}
       </p>
