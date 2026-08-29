@@ -1,0 +1,174 @@
+{
+  "departments": [
+    {
+      "id": "general-dentistry",
+      "nameEn": "General Dentistry",
+      "nameAr": "طب الأسنان العام",
+      "descriptionEn": "Routine check-ups, cleanings, fillings and preventive care for the whole family.",
+      "descriptionAr": "فحوصات دورية وتنظيف وحشوات ورعاية وقائية لجميع أفراد الأسرة.",
+      "icon": "Stethoscope",
+      "active": true
+    },
+    {
+      "id": "orthodontics",
+      "nameEn": "Orthodontics",
+      "nameAr": "تقويم الأسنان",
+      "descriptionEn": "Braces, clear aligners and bite correction for a straighter, healthier smile.",
+      "descriptionAr": "تقويم معدني وتقويم شفاف وتصحيح الإطباق للحصول على ابتسامة أكثر استقامة وصحة.",
+      "icon": "Smile",
+      "active": true
+    },
+    {
+      "id": "pediatric-dentistry",
+      "nameEn": "Pediatric Dentistry",
+      "nameAr": "طب أسنان الأطفال",
+      "descriptionEn": "Gentle, friendly dental care designed specifically for children and teens.",
+      "descriptionAr": "رعاية أسنان لطيفة وودية مصممة خصيصًا للأطفال والمراهقين.",
+      "icon": "Baby",
+      "active": true
+    },
+    {
+      "id": "oral-surgery",
+      "nameEn": "Oral & Maxillofacial Surgery",
+      "nameAr": "جراحة الفم والوجه والفكين",
+      "descriptionEn": "Wisdom tooth extraction, jaw surgery and advanced surgical treatments.",
+      "descriptionAr": "خلع ضرس العقل وجراحة الفك والعلاجات الجراحية المتقدمة.",
+      "icon": "Scissors",
+      "active": true
+    },
+    {
+      "id": "cosmetic-dentistry",
+      "nameEn": "Cosmetic Dentistry",
+      "nameAr": "طب الأسنان التجميلي",
+      "descriptionEn": "Veneers, whitening and smile makeovers using the latest techniques.",
+      "descriptionAr": "قشور الأسنان والتبييض وتجديد الابتسامة بأحدث التقنيات.",
+      "icon": "Sparkles",
+      "active": true
+    },
+    {
+      "id": "endodontics",
+      "nameEn": "Endodontics (Root Canal)",
+      "nameAr": "علاج الجذور",
+      "descriptionEn": "Pain-free root canal treatment to save and restore damaged teeth.",
+      "descriptionAr": "علاج جذور خالٍ من الألم لإنقاذ الأسنان التالفة واستعادتها.",
+      "icon": "Activity",
+      "active": true
+    },
+    {
+      "id": "periodontics",
+      "nameEn": "Periodontics (Gum Care)",
+      "nameAr": "علاج اللثة",
+      "descriptionEn": "Diagnosis and treatment of gum disease to protect your long-term oral health.",
+      "descriptionAr": "تشخيص وعلاج أمراض اللثة للحفاظ على صحة فمك على المدى الطويل.",
+      "icon": "HeartPulse",
+      "active": true
+    },
+    {
+      "id": "implants-prosthodontics",
+      "nameEn": "Implants & Prosthodontics",
+      "nameAr": "زراعة الأسنان والتركيبات",
+      "descriptionEn": "Dental implants, crowns, bridges and dentures to restore missing teeth.",
+      "descriptionAr": "زراعة الأسنان والتيجان والجسور وأطقم الأسنان لتعويض الأسنان المفقودة.",
+      "icon": "PlusCircle",
+      "active": true
+    }
+  ],
+  "doctors": [
+    {
+      "id": "dr-sarah-alharbi",
+      "nameEn": "Dr. Sarah Al-Harbi",
+      "nameAr": "د. سارة الحربي",
+      "titleEn": "General Dentist",
+      "titleAr": "طبيبة أسنان عامة",
+      "departmentId": "general-dentistry",
+      "bioEn": "Dr. Sarah has over a decade of experience providing gentle, comprehensive dental care for patients of all ages.",
+      "bioAr": "تتمتع الدكتورة سارة بخبرة تزيد عن عشر سنوات في تقديم رعاية أسنان شاملة ولطيفة لجميع الأعمار.",
+      "yearsExperience": 11,
+      "active": true
+    },
+    {
+      "id": "dr-mohammed-alqahtani",
+      "nameEn": "Dr. Mohammed Al-Qahtani",
+      "nameAr": "د. محمد القحطاني",
+      "titleEn": "Orthodontist",
+      "titleAr": "أخصائي تقويم أسنان",
+      "departmentId": "orthodontics",
+      "bioEn": "Specialist in braces and clear aligners, helping hundreds of patients achieve confident, straight smiles.",
+      "bioAr": "أخصائي في التقويم المعدني والشفاف، ساعد مئات المرضى على الحصول على ابتسامة واثقة ومستقيمة.",
+      "yearsExperience": 14,
+      "active": true
+    },
+    {
+      "id": "dr-lama-alotaibi",
+      "nameEn": "Dr. Lama Al-Otaibi",
+      "nameAr": "د. لمى العتيبي",
+      "titleEn": "Pediatric Dentist",
+      "titleAr": "أخصائية طب أسنان أطفال",
+      "departmentId": "pediatric-dentistry",
+      "bioEn": "Dr. Lama creates a fun, stress-free environment to keep young patients smiling at every visit.",
+      "bioAr": "تخلق الدكتورة لمى بيئة ممتعة وخالية من التوتر لتبقي المرضى الصغار مبتسمين في كل زيارة.",
+      "yearsExperience": 8,
+      "active": true
+    },
+    {
+      "id": "dr-faisal-alshammari",
+      "nameEn": "Dr. Faisal Al-Shammari",
+      "nameAr": "د. فيصل الشمري",
+      "titleEn": "Oral & Maxillofacial Surgeon",
+      "titleAr": "استشاري جراحة الفم والوجه والفكين",
+      "departmentId": "oral-surgery",
+      "bioEn": "A leading surgeon specializing in wisdom tooth extraction and complex jaw procedures.",
+      "bioAr": "جراح رائد متخصص في خلع ضرس العقل والعمليات الجراحية المعقدة للفك.",
+      "yearsExperience": 17,
+      "active": true
+    },
+    {
+      "id": "dr-noura-aldosari",
+      "nameEn": "Dr. Noura Al-Dosari",
+      "nameAr": "د. نورة الدوسري",
+      "titleEn": "Cosmetic Dentist",
+      "titleAr": "أخصائية طب أسنان تجميلي",
+      "departmentId": "cosmetic-dentistry",
+      "bioEn": "Dr. Noura designs personalized smile makeovers using veneers and the latest whitening technology.",
+      "bioAr": "تصمم الدكتورة نورة تجديدات ابتسامة مخصصة باستخدام القشور وأحدث تقنيات التبييض.",
+      "yearsExperience": 9,
+      "active": true
+    },
+    {
+      "id": "dr-abdullah-alghamdi",
+      "nameEn": "Dr. Abdullah Al-Ghamdi",
+      "nameAr": "د. عبدالله الغامدي",
+      "titleEn": "Endodontist",
+      "titleAr": "أخصائي علاج جذور",
+      "departmentId": "endodontics",
+      "bioEn": "Dr. Abdullah focuses on advanced, pain-free root canal therapy using the latest microscopic technology.",
+      "bioAr": "يركز الدكتور عبدالله على علاج الجذور المتقدم والخالي من الألم باستخدام أحدث تقنيات المجهر.",
+      "yearsExperience": 12,
+      "active": true
+    },
+    {
+      "id": "dr-hind-almutairi",
+      "nameEn": "Dr. Hind Al-Mutairi",
+      "nameAr": "د. هند المطيري",
+      "titleEn": "Periodontist",
+      "titleAr": "أخصائية علاج لثة",
+      "departmentId": "periodontics",
+      "bioEn": "Dr. Hind is dedicated to preventing and treating gum disease with a gentle, patient-first approach.",
+      "bioAr": "تكرس الدكتورة هند جهودها للوقاية من أمراض اللثة وعلاجها بأسلوب لطيف يركز على راحة المريض.",
+      "yearsExperience": 10,
+      "active": true
+    },
+    {
+      "id": "dr-khalid-alrasheed",
+      "nameEn": "Dr. Khalid Al-Rasheed",
+      "nameAr": "د. خالد الرشيد",
+      "titleEn": "Prosthodontist",
+      "titleAr": "أخصائي تركيبات وزراعة أسنان",
+      "departmentId": "implants-prosthodontics",
+      "bioEn": "An implant specialist with a track record of restoring smiles through precise, lasting reconstructions.",
+      "bioAr": "أخصائي زراعة أسنان له سجل حافل في استعادة الابتسامات من خلال تركيبات دقيقة وطويلة الأمد.",
+      "yearsExperience": 15,
+      "active": true
+    }
+  ]
+}
