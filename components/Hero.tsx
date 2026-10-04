@@ -1,17 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, ArrowLeft, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
+import { CallButton } from "./CallButton";
 
 export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
-  const rtl = locale === "ar";
-  const Arrow = rtl ? ArrowLeft : ArrowRight;
-
   const stats = [
-    { value: dict.hero.stat1Value, label: dict.hero.stat1Label },
-    { value: dict.hero.stat2Value, label: dict.hero.stat2Label },
-    { value: dict.hero.stat3Value, label: dict.hero.stat3Label },
-    { value: dict.hero.stat4Value, label: dict.hero.stat4Label },
+    { value: dict.stats.yearsValue, label: dict.stats.yearsLabel },
+    { value: dict.stats.doctorsValue, label: dict.stats.doctorsLabel },
+    { value: dict.stats.patientsValue, label: dict.stats.patientsLabel },
+    { value: dict.stats.departmentsValue, label: dict.stats.departmentsLabel },
   ];
 
   return (
@@ -33,10 +31,7 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             {dict.hero.subtitle}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link href={`/${locale}/contact`} className="btn-primary">
-              {dict.hero.ctaPrimary}
-              <Arrow className="h-4 w-4" />
-            </Link>
+            <CallButton dict={dict} label={dict.hero.ctaPrimary} />
             <Link href={`/${locale}/departments`} className="btn-outline">
               {dict.hero.ctaSecondary}
             </Link>
@@ -67,34 +62,34 @@ export function Hero({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             <div className="grid w-full grid-cols-2 gap-4">
               <div className="col-span-2 rounded-xl2 bg-primary-600 p-6 text-white shadow-soft">
                 <p className="text-sm font-medium text-primary-100">
-                  {dict.hero.stat1Label}
+                  {dict.stats.yearsLabel}
                 </p>
                 <p className="mt-1 text-3xl font-extrabold">
-                  {dict.hero.stat1Value}
+                  {dict.stats.yearsValue}
                 </p>
               </div>
               <div className="rounded-xl2 bg-accent-100 p-5">
                 <p className="text-xs font-medium text-accent-800">
-                  {dict.hero.stat2Label}
+                  {dict.stats.doctorsLabel}
                 </p>
                 <p className="mt-1 text-2xl font-extrabold text-accent-700">
-                  {dict.hero.stat2Value}
+                  {dict.stats.doctorsValue}
                 </p>
               </div>
               <div className="rounded-xl2 bg-primary-50 p-5">
                 <p className="text-xs font-medium text-primary-800">
-                  {dict.hero.stat4Label}
+                  {dict.stats.departmentsLabel}
                 </p>
                 <p className="mt-1 text-2xl font-extrabold text-primary-700">
-                  {dict.hero.stat4Value}
+                  {dict.stats.departmentsValue}
                 </p>
               </div>
               <div className="col-span-2 rounded-xl2 border border-ink-100 p-5">
                 <p className="text-xs font-medium text-ink-500">
-                  {dict.hero.stat3Label}
+                  {dict.stats.patientsLabel}
                 </p>
                 <p className="mt-1 text-2xl font-extrabold text-ink-900">
-                  {dict.hero.stat3Value}
+                  {dict.stats.patientsValue}
                 </p>
               </div>
             </div>

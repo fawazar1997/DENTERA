@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Stethoscope,
   Building2,
   Image as ImageIcon,
-  Inbox,
+  Handshake,
+  MapPin,
+  Type,
   LogOut,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -16,13 +18,10 @@ import type { Dictionary } from "@/lib/dictionaries";
 export function AdminNav({
   locale,
   dict,
-  newInquiries = 0,
 }: {
   locale: Locale;
   dict: Dictionary;
-  newInquiries?: number;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
 
   const tabs = [
@@ -42,15 +41,24 @@ export function AdminNav({
       icon: Building2,
     },
     {
-      href: `/${locale}/admin/inquiries`,
-      label: dict.admin.inquiries,
-      icon: Inbox,
-      badge: newInquiries > 0 ? newInquiries : undefined,
+      href: `/${locale}/admin/partners`,
+      label: dict.admin.partners,
+      icon: Handshake,
     },
     {
-      href: `/${locale}/admin/settings`,
-      label: dict.admin.siteSettings,
+      href: `/${locale}/admin/branches`,
+      label: dict.admin.branches,
+      icon: MapPin,
+    },
+    {
+      href: `/${locale}/admin/banners`,
+      label: dict.admin.banners,
       icon: ImageIcon,
+    },
+    {
+      href: `/${locale}/admin/texts`,
+      label: dict.admin.texts,
+      icon: Type,
     },
   ];
 
@@ -59,7 +67,8 @@ export function AdminNav({
 
   async function handleSignOut() {
     await fetch("/api/admin/logout", { method: "POST" });
-    router.push(`/${locale}/admin/login`);
+    // Full page load so no signed-in pages stay in the client cache.
+    window.location.assign(`/${locale}/admin/login`);
   }
 
   return (
@@ -78,11 +87,6 @@ export function AdminNav({
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
-              {"badge" in tab && tab.badge ? (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-500 px-1.5 text-xs font-bold text-ink-900">
-                  {tab.badge}
-                </span>
-              ) : null}
             </Link>
           ))}
         </nav>

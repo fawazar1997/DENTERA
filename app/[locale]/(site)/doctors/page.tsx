@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
-import { getDictionary } from "@/lib/dictionaries";
-import { getActiveDepartments, getActiveDoctors } from "@/lib/db";
+import { getSiteDictionary } from "@/lib/content";
+import { PageBanner } from "@/components/PageBanner";
+import { getActiveDepartments, getActiveDoctors, getSettings } from "@/lib/db";
 import { DoctorCard } from "@/components/DoctorCard";
 import { DoctorsFilter } from "@/components/DoctorsFilter";
 import { CtaBanner } from "@/components/CtaBanner";
@@ -21,7 +22,8 @@ export default async function DoctorsPage({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  const dict = getDictionary(locale);
+  const dict = await getSiteDictionary(locale);
+  const settings = await getSettings();
   const departments = await getActiveDepartments();
   const allDoctors = await getActiveDoctors();
   const departmentId = searchParams.department;
@@ -31,16 +33,11 @@ export default async function DoctorsPage({
 
   return (
     <>
-      <section className="section-y bg-gradient-to-b from-primary-50 to-paper">
-        <div className="container-x text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
-            {dict.doctors.title}
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-600">
-            {dict.doctors.subtitle}
-          </p>
-        </div>
-      </section>
+      <PageBanner
+        title={dict.doctors.title}
+        subtitle={dict.doctors.subtitle}
+        imageUrl={settings.banners?.doctors}
+      />
 
       <section className="section-y bg-white">
         <div className="container-x">
@@ -59,7 +56,7 @@ export default async function DoctorsPage({
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {doctors.map((doctor, i) => (
-                <Reveal key={doctor.id} delay={(i % 3) * 100}>
+                <Reveal key={doctor.id} delay={(i % 3) * 100} className="h-full">
                   <DoctorCard
                     doctor={doctor}
                     department={departments.find(

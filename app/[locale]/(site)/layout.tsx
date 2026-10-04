@@ -1,7 +1,7 @@
 import "../../globals.css";
 import { isLocale, isRtl, defaultLocale, type Locale } from "@/lib/i18n";
-import { getDictionary } from "@/lib/dictionaries";
-import { getActiveDepartments } from "@/lib/db";
+import { getSiteDictionary } from "@/lib/content";
+import { getActiveBranches, getActiveDepartments } from "@/lib/db";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FontLinks } from "@/components/FontLinks";
@@ -20,9 +20,10 @@ export default async function SiteLayout({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  const dict = getDictionary(locale);
+  const dict = await getSiteDictionary(locale);
   const rtl = isRtl(locale);
   const departments = await getActiveDepartments();
+  const branches = await getActiveBranches();
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>
@@ -32,7 +33,12 @@ export default async function SiteLayout({
       <body className={rtl ? "font-arabic" : "font-sans"}>
         <Header locale={locale} dict={dict} />
         <main className="min-h-screen">{children}</main>
-        <Footer locale={locale} dict={dict} departments={departments} />
+        <Footer
+          locale={locale}
+          dict={dict}
+          departments={departments}
+          branches={branches}
+        />
       </body>
     </html>
   );

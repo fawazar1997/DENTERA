@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { CalendarCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
+import { CallButton } from "./CallButton";
 
 export function CtaBanner({
   locale,
@@ -25,13 +24,15 @@ export function CtaBanner({
             <p className="mx-auto mt-4 max-w-xl text-primary-100">
               {dict.home.ctaBody}
             </p>
-            <Link
-              href={`/${locale}/contact`}
-              className="btn-accent mt-8 inline-flex"
-            >
-              <CalendarCheck className="h-4 w-4" />
-              {dict.home.ctaButton}
-            </Link>
+            <CallButton
+              dict={dict}
+              label={dict.home.ctaButton}
+              variant="accent"
+              className="mt-8 px-8 py-4 text-base"
+            />
+            <p className="mx-auto mt-5 max-w-md text-sm text-sand-200">
+              {dict.booking.note}
+            </p>
           </div>
         </div>
       </div>

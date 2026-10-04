@@ -1,10 +1,16 @@
 import { CheckCircle2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
-import { getDictionary } from "@/lib/dictionaries";
+import { getSiteDictionary } from "@/lib/content";
+import { getSettings } from "@/lib/db";
+import { PageBanner } from "@/components/PageBanner";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
 
-export default function AboutPage({
+// Content is edited live from the control panel, so render on request
+// (the database read itself is cached until the next save).
+export const dynamic = "force-dynamic";
+
+export default async function AboutPage({
   params,
 }: {
   params: { locale: string };
@@ -12,7 +18,8 @@ export default function AboutPage({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  const dict = getDictionary(locale);
+  const dict = await getSiteDictionary(locale);
+  const settings = await getSettings();
 
   const values = [
     dict.about.value1,
@@ -23,16 +30,11 @@ export default function AboutPage({
 
   return (
     <>
-      <section className="section-y bg-gradient-to-b from-primary-50 to-paper">
-        <div className="container-x text-center">
-          <h1 className="text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
-            {dict.about.title}
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-ink-600">
-            {dict.about.subtitle}
-          </p>
-        </div>
-      </section>
+      <PageBanner
+        title={dict.about.title}
+        subtitle={dict.about.subtitle}
+        imageUrl={settings.banners?.about}
+      />
 
       <section className="section-y bg-white">
         <div className="container-x grid gap-12 lg:grid-cols-2 lg:items-center">

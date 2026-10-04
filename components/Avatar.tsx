@@ -16,7 +16,8 @@ function hashString(input: string): number {
 }
 
 function getInitials(name: string): string {
-  const cleaned = name.replace(/^Dr\.\s*|^د\.\s*/u, "");
+  // Skip academic titles ("Prof.", "Dr.", "أ.د.", "د.") before the name.
+  const cleaned = name.replace(/^(?:\s*(?:Prof|Dr|أ\.د|د)\.)+\s*/iu, "");
   const parts = cleaned.trim().split(/\s+/);
   const first = parts[0]?.[0] || "";
   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";

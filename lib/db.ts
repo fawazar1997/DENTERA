@@ -4,7 +4,17 @@ import os from "node:os";
 import { del, list, put } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
-import type { Database, Department, Doctor, Inquiry, SiteSettings } from "./types";
+import type {
+  Branch,
+  ContentOverrides,
+  Database,
+  Department,
+  Doctor,
+  PageKey,
+  Partner,
+  SiteSettings,
+} from "./types";
+import { DEFAULT_BRANCHES } from "./defaults";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "db.local.json");
@@ -32,7 +42,18 @@ function readSeed(): Database {
 
 function withDefaults(db: Database): Database {
   if (!db.settings) db.settings = {};
-  if (!db.inquiries) db.inquiries = [];
+  if (!db.settings.banners) db.settings.banners = {};
+  // Carry the original single home banner over to the per-page banners.
+  if (db.settings.bannerUrl && !db.settings.banners.home) {
+    db.settings.banners.home = db.settings.bannerUrl;
+  }
+  delete db.settings.bannerUrl;
+  if (!db.partners) db.partners = [];
+  if (!db.branches) db.branches = structuredClone(DEFAULT_BRANCHES);
+  if (!db.content) db.content = {};
+  // The contact form (and its saved requests) was removed; booking is by
+  // phone now. Drop any leftover requests so they aren't kept around.
+  delete (db as Database & { inquiries?: unknown }).inquiries;
   return db;
 }
 
@@ -300,53 +321,129 @@ export async function getSettings(): Promise<SiteSettings> {
   return (await readDb()).settings;
 }
 
-export async function updateSettings(input: Partial<SiteSettings>): Promise<SiteSettings> {
+export async function setPageBanner(
+  page: PageKey,
+  url: string | undefined
+): Promise<void> {
   const db = await readDbForWrite();
-  db.settings = { ...db.settings, ...input };
+  const banners = { ...db.settings.banners };
+  if (url) banners[page] = url;
+  else delete banners[page];
+  db.settings = { ...db.settings, banners };
   await writeDb(db);
-  return db.settings;
 }
 
-// Contact / appointment inquiries
+// Partners
 
-export async function getInquiries(): Promise<Inquiry[]> {
-  return [...(await readDb()).inquiries].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt)
+export async function getPartners(): Promise<Partner[]> {
+  return (await readDb()).partners;
+}
+
+export async function getActivePartners(): Promise<Partner[]> {
+  return (await readDb()).partners.filter((p) => p.active);
+}
+
+export async function createPartner(
+  input: Omit<Partner, "id">
+): Promise<Partner> {
+  const db = await readDbForWrite();
+  const id = uniqueId(
+    input.nameEn,
+    db.partners.map((p) => p.id)
   );
-}
-
-export async function createInquiry(
-  input: Omit<Inquiry, "id" | "status" | "createdAt">
-): Promise<Inquiry> {
-  const db = await readDbForWrite();
-  const inquiry: Inquiry = {
-    id: crypto.randomUUID(),
-    ...input,
-    status: "new",
-    createdAt: new Date().toISOString(),
-  };
-  db.inquiries.push(inquiry);
+  const partner: Partner = { id, ...input };
+  db.partners.push(partner);
   await writeDb(db);
-  return inquiry;
+  return partner;
 }
 
-export async function updateInquiryStatus(
+export async function updatePartner(
   id: string,
-  status: Inquiry["status"]
-): Promise<Inquiry | undefined> {
+  input: Partial<Omit<Partner, "id">>
+): Promise<Partner | undefined> {
   const db = await readDbForWrite();
-  const index = db.inquiries.findIndex((i) => i.id === id);
+  const index = db.partners.findIndex((p) => p.id === id);
   if (index === -1) return undefined;
-  db.inquiries[index] = { ...db.inquiries[index], status };
+  db.partners[index] = { ...db.partners[index], ...input };
   await writeDb(db);
-  return db.inquiries[index];
+  return db.partners[index];
 }
 
-export async function deleteInquiry(id: string): Promise<boolean> {
+export async function deletePartner(id: string): Promise<boolean> {
   const db = await readDbForWrite();
-  const before = db.inquiries.length;
-  db.inquiries = db.inquiries.filter((i) => i.id !== id);
-  const removed = db.inquiries.length !== before;
+  const before = db.partners.length;
+  db.partners = db.partners.filter((p) => p.id !== id);
+  const removed = db.partners.length !== before;
   if (removed) await writeDb(db);
   return removed;
+}
+
+// Branches
+
+export async function getBranches(): Promise<Branch[]> {
+  return (await readDb()).branches;
+}
+
+export async function getActiveBranches(): Promise<Branch[]> {
+  return (await readDb()).branches.filter((b) => b.active);
+}
+
+export async function createBranch(input: Omit<Branch, "id">): Promise<Branch> {
+  const db = await readDbForWrite();
+  const id = uniqueId(
+    input.nameEn,
+    db.branches.map((b) => b.id)
+  );
+  const branch: Branch = { id, ...input };
+  db.branches.push(branch);
+  await writeDb(db);
+  return branch;
+}
+
+export async function updateBranch(
+  id: string,
+  input: Partial<Omit<Branch, "id">>
+): Promise<Branch | undefined> {
+  const db = await readDbForWrite();
+  const index = db.branches.findIndex((b) => b.id === id);
+  if (index === -1) return undefined;
+  db.branches[index] = { ...db.branches[index], ...input };
+  await writeDb(db);
+  return db.branches[index];
+}
+
+export async function deleteBranch(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
+  const before = db.branches.length;
+  db.branches = db.branches.filter((b) => b.id !== id);
+  const removed = db.branches.length !== before;
+  if (removed) await writeDb(db);
+  return removed;
+}
+
+// Site text overrides
+
+export async function getContentOverrides(): Promise<ContentOverrides> {
+  return (await readDb()).content;
+}
+
+/**
+ * Save text overrides for some fields. A value equal to the built-in
+ * default (or empty) removes the override, so the default shows again.
+ */
+export async function saveContentOverrides(
+  values: { locale: "en" | "ar"; key: string; value: string; fallback: string }[]
+): Promise<void> {
+  const db = await readDbForWrite();
+  const content: ContentOverrides = {
+    en: { ...db.content.en },
+    ar: { ...db.content.ar },
+  };
+  for (const { locale, key, value, fallback } of values) {
+    const map = content[locale]!;
+    if (!value.trim() || value === fallback) delete map[key];
+    else map[key] = value;
+  }
+  db.content = content;
+  await writeDb(db);
 }

@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
-import { getDictionary } from "@/lib/dictionaries";
-import { getActiveDepartments, getActiveDoctors, getSettings } from "@/lib/db";
+import { getSiteDictionary } from "@/lib/content";
+import {
+  getActiveBranches,
+  getActiveDepartments,
+  getActiveDoctors,
+  getActivePartners,
+  getSettings,
+} from "@/lib/db";
 import { Hero } from "@/components/Hero";
 import { HomeBanner } from "@/components/HomeBanner";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
@@ -11,6 +17,8 @@ import { DoctorCard } from "@/components/DoctorCard";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Testimonials } from "@/components/Testimonials";
 import { Reveal } from "@/components/Reveal";
+import { PartnersMarquee } from "@/components/PartnersMarquee";
+import { BranchCards } from "@/components/BranchCards";
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).
@@ -24,16 +32,21 @@ export default async function HomePage({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  const dict = getDictionary(locale);
+  const dict = await getSiteDictionary(locale);
   const departments = await getActiveDepartments();
   const doctors = await getActiveDoctors();
   const settings = await getSettings();
+  const partners = await getActivePartners();
+  const branches = await getActiveBranches();
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
   return (
     <>
-      <HomeBanner bannerUrl={settings.bannerUrl} tagline={dict.footer.description} />
+      <HomeBanner
+        bannerUrl={settings.banners?.home}
+        tagline={dict.footer.description}
+      />
       <Hero locale={locale} dict={dict} />
       <WhyChooseUs dict={dict} />
 
@@ -59,7 +72,7 @@ export default async function HomePage({
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {departments.slice(0, 4).map((department, i) => (
-              <Reveal key={department.id} delay={i * 80}>
+              <Reveal key={department.id} delay={i * 80} className="h-full">
                 <DepartmentCard
                   department={department}
                   locale={locale}
@@ -93,7 +106,7 @@ export default async function HomePage({
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {doctors.slice(0, 4).map((doctor, i) => (
-              <Reveal key={doctor.id} delay={i * 80}>
+              <Reveal key={doctor.id} delay={i * 80} className="h-full">
                 <DoctorCard
                   doctor={doctor}
                   department={departments.find(
@@ -107,6 +120,26 @@ export default async function HomePage({
           </div>
         </div>
       </section>
+
+      <PartnersMarquee partners={partners} locale={locale} dict={dict} />
+
+      {branches.length > 0 && (
+        <section className="section-y bg-ink-50/60">
+          <div className="container-x">
+            <div className="mx-auto max-w-2xl text-center">
+              <h2 className="text-3xl font-semibold tracking-tight text-ink-950 sm:text-4xl">
+                {dict.home.branchesTitle}
+              </h2>
+              <p className="mt-4 text-lg text-ink-600">
+                {dict.home.branchesSubtitle}
+              </p>
+            </div>
+            <div className="mx-auto mt-12 max-w-4xl">
+              <BranchCards branches={branches} locale={locale} dict={dict} />
+            </div>
+          </div>
+        </section>
+      )}
 
       <Testimonials locale={locale} dict={dict} />
       <CtaBanner locale={locale} dict={dict} />

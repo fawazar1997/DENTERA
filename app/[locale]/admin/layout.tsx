@@ -30,7 +30,7 @@ export default function AdminLayout({
             <Link href={`/${locale}/admin`} className="flex items-center gap-3">
               <Logo variant="color" className="h-8 w-auto" />
               <span className="rounded-full bg-primary-800 px-2.5 py-0.5 text-xs font-semibold text-primary-100">
-                {dict.nav.admin}
+                {dict.admin.badge}
               </span>
             </Link>
             <div className="flex items-center gap-3">

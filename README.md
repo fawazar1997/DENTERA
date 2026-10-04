@@ -9,22 +9,27 @@ Built with Next.js 14 (App Router), TypeScript and Tailwind CSS.
 ## Features
 
 - **Public site**: Home, About, Departments, Doctors (filterable by
-  department), Contact — available at `/en/...` and `/ar/...`.
+  department, each with its own profile/CV page at `/doctors/<id>`),
+  Contact — available at `/en/...` and `/ar/...`.
 - **Arabic support**: full RTL layout, mirrored navigation, Arabic
   typography, and a language switcher that preserves the current page.
-- **Control panel** (`/en/admin` or `/ar/admin`): password-protected
-  dashboard to add, edit, delete and hide/show doctors and departments,
-  upload a doctor photo, and set the homepage banner image. Changes are
-  reflected on the public site immediately, in both languages — photos
-  aren't per-language, the same upload shows on `/en` and `/ar`.
-- **Appointment / contact requests**: the public Contact page collects
-  name, mobile number and department, and saves each submission to the
-  **Contact Requests** tab in the control panel (with an unread-count
-  badge) so staff can see and follow up with patients — mark as
-  contacted, or delete.
+- **Booking by phone**: every "book" button is a tap-to-call link to the
+  booking number (800 301 2345 by default, editable). There is no
+  booking form.
+- **Branches** (Abha and Khamis Mushait): shown on the home and contact
+  pages and in the footer; clicking one opens its Google Maps link.
+- **Partners gallery**: partner logos scroll across the home page in an
+  animated loop (hidden until at least one partner is added).
+- **Control panel** (`/en/admin` or `/ar/admin`): password-protected.
+  Manage doctors (including their CV page), departments, partners,
+  branches, a banner image for each page, and **every text and number on
+  the site** in both languages (Texts & Numbers). Changes show on the
+  public site immediately; images are shared by both languages.
+- **Department icons**: drawn dental icons, chosen automatically from the
+  department name (or picked manually in the department form).
 - Data is stored in a local JSON file (`data/db.local.json`, generated
   on first run from `data/seed.json`) — no external database required.
-- Photo uploads (doctor photos, homepage banner) go to Vercel Blob
+- Image uploads (doctor photos, partner logos, banners) go to Vercel Blob
   storage — see the environment variables section below.
 
 ## Getting started
@@ -43,7 +48,7 @@ Open http://localhost:3000 — you'll be redirected to `/en`.
 | --- | --- |
 | `ADMIN_PASSWORD` | Password required to sign in to `/admin`. Defaults to `dentera-admin` if unset — **change this before deploying**. |
 | `SESSION_SECRET` | Random string used to sign the admin session cookie. Use a long, random value in production. |
-| `BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN` | Set automatically when you connect a **Vercel Blob** store to the project (Vercel dashboard → project → Storage → Blob). Newer stores set `BLOB_STORE_ID` and sign in with OIDC; older ones set `BLOB_READ_WRITE_TOKEN` — either works. With Blob connected, photo uploads work **and** all control-panel data (doctors, departments, banner, contact requests) is saved in the store, so it persists across deploys and serverless instances. Without it, data is kept in a local JSON file (fine for development, not persistent on Vercel). |
+| `BLOB_STORE_ID` / `BLOB_READ_WRITE_TOKEN` | Set automatically when you connect a **Vercel Blob** store to the project (Vercel dashboard → project → Storage → Blob). Newer stores set `BLOB_STORE_ID` and sign in with OIDC; older ones set `BLOB_READ_WRITE_TOKEN` — either works. With Blob connected, photo uploads work **and** all control-panel data (doctors, departments, partners, branches, banners, texts) is saved in the store, so it persists across deploys and serverless instances. Without it, data is kept in a local JSON file (fine for development, not persistent on Vercel). |
 
 ### Using the control panel
 
@@ -53,10 +58,11 @@ Open http://localhost:3000 — you'll be redirected to `/en`.
    toggle visibility (the "Active" checkbox) of entries. Every entry has
    separate English and Arabic fields, plus an optional photo (Doctors)
    which is not localized — one upload, shown on both languages.
-4. Use the **Site Settings** tab to upload or remove the homepage banner
-   image (shown as a full-width strip at the top of the homepage).
-5. Use the **Contact Requests** tab to see appointment/contact form
-   submissions and mark them as contacted.
+4. **Partners** and **Branches**: add/edit/remove partner logos and
+   branches (paste a Google Maps "Share" link for each branch).
+5. **Banners**: upload or remove the banner image at the top of each page.
+6. **Texts & Numbers**: edit any text or number on the site, side by side
+   in English and Arabic. Clearing a field restores its original text.
 
 ## Production
 
@@ -97,6 +103,3 @@ redeploy.
 - All data is one JSON document, saved whole on every change; two saves
   at the exact same moment can overwrite each other. That's fine for a
   clinic's admin traffic; move to a database if that ever changes.
-- Consider wiring `app/api/contact/route.ts`
-  up to an email/SMS notification so staff don't have to keep checking
-  the control panel.

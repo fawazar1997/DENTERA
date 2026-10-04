@@ -1,7 +1,8 @@
 import type { Department } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
-import { departmentIconNames } from "@/components/IconMap";
+import { dentalIconOptions } from "@/components/IconMap";
+import { SubmitButton } from "./SubmitButton";
 
 export function DepartmentForm({
   action,
@@ -18,7 +19,6 @@ export function DepartmentForm({
 }) {
   return (
     <form action={action} className="space-y-5">
-      <input type="hidden" name="locale" value={locale} />
       {department && <input type="hidden" name="id" value={department.id} />}
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -69,12 +69,17 @@ export function DepartmentForm({
         <label className="label">{dict.admin.icon}</label>
         <select
           name="icon"
-          defaultValue={department?.icon || departmentIconNames[0]}
+          defaultValue={
+            dentalIconOptions.some((o) => o.key === department?.icon)
+              ? department?.icon
+              : "auto"
+          }
           className="input"
         >
-          {departmentIconNames.map((name) => (
-            <option key={name} value={name}>
-              {name}
+          <option value="auto">{dict.admin.iconAuto}</option>
+          {dentalIconOptions.map((option) => (
+            <option key={option.key} value={option.key}>
+              {locale === "ar" ? option.ar : option.en}
             </option>
           ))}
         </select>
@@ -90,9 +95,7 @@ export function DepartmentForm({
         {dict.admin.active}
       </label>
 
-      <button type="submit" className="btn-primary">
-        {submitLabel}
-      </button>
+      <SubmitButton label={submitLabel} savedLabel={dict.admin.saved} />
     </form>
   );
 }

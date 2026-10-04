@@ -1,8 +1,8 @@
 import Image from "next/image";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, ExternalLink } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getDepartments, getDoctors, getInquiries } from "@/lib/db";
+import { getBranches, getDepartments, getDoctors } from "@/lib/db";
 import {
   createDoctorAction,
   deleteDoctorAction,
@@ -29,11 +29,11 @@ export default async function AdminDoctorsPage({
   const dict = getDictionary(locale);
   const doctors = await getDoctors();
   const departments = await getDepartments();
-  const newInquiries = (await getInquiries()).filter((i) => i.status === "new").length;
+  const branches = await getBranches();
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} newInquiries={newInquiries} />
+      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-extrabold text-ink-950">
@@ -61,6 +61,7 @@ export default async function AdminDoctorsPage({
                 locale={locale}
                 dict={dict}
                 departments={departments}
+                branches={branches}
                 submitLabel={dict.admin.save}
               />
             )}
@@ -116,6 +117,14 @@ export default async function AdminDoctorsPage({
                       ? dict.admin.statusActive
                       : dict.admin.statusHidden}
                   </span>
+                  <a
+                    href={`/${locale}/doctors/${doctor.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {dict.admin.viewProfile}
+                  </a>
                   <DeleteButton
                     action={deleteDoctorAction}
                     id={doctor.id}
@@ -136,6 +145,7 @@ export default async function AdminDoctorsPage({
                       locale={locale}
                       dict={dict}
                       departments={departments}
+                      branches={branches}
                       doctor={doctor}
                       submitLabel={dict.admin.save}
                     />

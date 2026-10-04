@@ -6,7 +6,7 @@
       "nameAr": "طب الأسنان العام",
       "descriptionEn": "Routine check-ups, cleanings, fillings and preventive care for the whole family.",
       "descriptionAr": "فحوصات دورية وتنظيف وحشوات ورعاية وقائية لجميع أفراد الأسرة.",
-      "icon": "Stethoscope",
+      "icon": "auto",
       "active": true
     },
     {
@@ -15,7 +15,7 @@
       "nameAr": "تقويم الأسنان",
       "descriptionEn": "Braces, clear aligners and bite correction for a straighter, healthier smile.",
       "descriptionAr": "تقويم معدني وتقويم شفاف وتصحيح الإطباق للحصول على ابتسامة أكثر استقامة وصحة.",
-      "icon": "Smile",
+      "icon": "auto",
       "active": true
     },
     {
@@ -24,7 +24,7 @@
       "nameAr": "طب أسنان الأطفال",
       "descriptionEn": "Gentle, friendly dental care designed specifically for children and teens.",
       "descriptionAr": "رعاية أسنان لطيفة وودية مصممة خصيصًا للأطفال والمراهقين.",
-      "icon": "Baby",
+      "icon": "auto",
       "active": true
     },
     {
@@ -33,7 +33,7 @@
       "nameAr": "جراحة الفم والوجه والفكين",
       "descriptionEn": "Wisdom tooth extraction, jaw surgery and advanced surgical treatments.",
       "descriptionAr": "خلع ضرس العقل وجراحة الفك والعلاجات الجراحية المتقدمة.",
-      "icon": "Scissors",
+      "icon": "auto",
       "active": true
     },
     {
@@ -42,7 +42,7 @@
       "nameAr": "طب الأسنان التجميلي",
       "descriptionEn": "Veneers, whitening and smile makeovers using the latest techniques.",
       "descriptionAr": "قشور الأسنان والتبييض وتجديد الابتسامة بأحدث التقنيات.",
-      "icon": "Sparkles",
+      "icon": "auto",
       "active": true
     },
     {
@@ -51,7 +51,7 @@
       "nameAr": "علاج الجذور",
       "descriptionEn": "Pain-free root canal treatment to save and restore damaged teeth.",
       "descriptionAr": "علاج جذور خالٍ من الألم لإنقاذ الأسنان التالفة واستعادتها.",
-      "icon": "Activity",
+      "icon": "auto",
       "active": true
     },
     {
@@ -60,7 +60,7 @@
       "nameAr": "ترميم الأسنان",
       "descriptionEn": "Fillings, crowns and repair of damaged or decayed teeth to restore function and appearance.",
       "descriptionAr": "حشوات وتيجان وإصلاح الأسنان التالفة أو المتسوسة لاستعادة الوظيفة والمظهر.",
-      "icon": "ShieldCheck",
+      "icon": "auto",
       "active": true
     },
     {
@@ -69,7 +69,7 @@
       "nameAr": "علاج اللثة",
       "descriptionEn": "Diagnosis and treatment of gum disease to protect your long-term oral health.",
       "descriptionAr": "تشخيص وعلاج أمراض اللثة للحفاظ على صحة فمك على المدى الطويل.",
-      "icon": "HeartPulse",
+      "icon": "auto",
       "active": true
     },
     {
@@ -78,7 +78,7 @@
       "nameAr": "زراعة الأسنان والتركيبات",
       "descriptionEn": "Dental implants, crowns, bridges and dentures to restore missing teeth.",
       "descriptionAr": "زراعة الأسنان والتيجان والجسور وأطقم الأسنان لتعويض الأسنان المفقودة.",
-      "icon": "PlusCircle",
+      "icon": "auto",
       "active": true
     }
   ],
@@ -471,6 +471,5 @@
       "active": true
     }
   ],
-  "settings": {},
-  "inquiries": []
+  "settings": {}
 }

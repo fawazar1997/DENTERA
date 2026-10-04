@@ -1,4 +1,4 @@
-import { Award, Cpu, HeartHandshake, CalendarClock } from "lucide-react";
+import { Award, Cpu, HeartHandshake, MapPinned } from "lucide-react";
 import type { Dictionary } from "@/lib/dictionaries";
 import { Reveal } from "./Reveal";
 
@@ -12,7 +12,7 @@ export function WhyChooseUs({ dict }: { dict: Dictionary }) {
       body: dict.home.why3Body,
     },
     {
-      icon: CalendarClock,
+      icon: MapPinned,
       title: dict.home.why4Title,
       body: dict.home.why4Body,
     },

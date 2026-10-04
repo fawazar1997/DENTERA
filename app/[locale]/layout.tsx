@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { isLocale, locales, defaultLocale, type Locale } from "@/lib/i18n";
-import { getDictionary } from "@/lib/dictionaries";
+import { getSiteDictionary } from "@/lib/content";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -19,7 +19,7 @@ export async function generateMetadata({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  const dict = getDictionary(locale);
+  const dict = await getSiteDictionary(locale);
   return {
     title: `${dict.meta.siteName} — ${dict.meta.tagline}`,
     description: dict.meta.description,

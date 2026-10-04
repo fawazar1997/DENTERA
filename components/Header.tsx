@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Phone } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Logo } from "./Logo";
+import { CallButton } from "./CallButton";
+import { telHref } from "@/lib/phone";
 
 export function Header({
   locale,
@@ -55,19 +57,27 @@ export function Header({
 
         <div className="hidden items-center gap-3 lg:flex">
           <LanguageSwitcher locale={locale} />
-          <Link href={`/${locale}/contact`} className="btn-primary">
-            {dict.nav.bookAppointment}
-          </Link>
+          <CallButton dict={dict} />
         </div>
 
+        <div className="flex items-center gap-2 lg:hidden">
+          <a
+            href={telHref(dict.booking.phone)}
+            className="btn-primary px-4 py-2"
+            aria-label={`${dict.booking.button} ${dict.booking.phone}`}
+          >
+            <Phone className="h-4 w-4" />
+            {dict.booking.buttonShort}
+          </a>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex items-center justify-center rounded-lg border border-ink-200 p-2 text-ink-700 lg:hidden"
+          className="inline-flex items-center justify-center rounded-lg border border-ink-200 p-2 text-ink-700"
           aria-label="Toggle menu"
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
+        </div>
       </div>
 
       {open && (
@@ -90,13 +100,7 @@ export function Header({
             <div className="mt-2 flex items-center gap-3 px-4">
               <LanguageSwitcher locale={locale} />
             </div>
-            <Link
-              href={`/${locale}/contact`}
-              onClick={() => setOpen(false)}
-              className="btn-primary mx-4 mt-2"
-            >
-              {dict.nav.bookAppointment}
-            </Link>
+            <CallButton dict={dict} className="mx-4 mt-2" />
           </div>
         </div>
       )}

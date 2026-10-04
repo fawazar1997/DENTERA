@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Lock, LogIn } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
@@ -13,7 +12,6 @@ export function LoginForm({
   locale: Locale;
   dict: Dictionary;
 }) {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,7 +26,10 @@ export function LoginForm({
       body: JSON.stringify({ password }),
     });
     if (res.ok) {
-      router.push(`/${locale}/admin`);
+      // Full page load, not router.push: the client router may hold a
+      // prefetched copy of /admin from before sign-in (a redirect back to
+      // this login page) and would replay it.
+      window.location.assign(`/${locale}/admin`);
     } else {
       setError(true);
       setLoading(false);
