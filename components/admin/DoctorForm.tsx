@@ -1,8 +1,7 @@
-import Image from "next/image";
 import type { Branch, Doctor, Department } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
-import { Avatar } from "@/components/Avatar";
+import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { SubmitButton } from "./SubmitButton";
 
 export function DoctorForm({
@@ -33,20 +32,12 @@ export function DoctorForm({
       <div>
         <label className="label">{dict.admin.photo}</label>
         <div className="flex items-center gap-4">
-          {doctor?.photoUrl ? (
-            <Image
-              src={doctor.photoUrl}
-              alt=""
-              width={112}
-              height={112}
-              className="h-14 w-14 rounded-full object-cover"
+          <DoctorPhoto
+              photoUrl={doctor?.photoUrl}
+              name={doctor?.nameEn || ""}
+              sizes="64px"
+              className="h-20 w-16 flex-shrink-0 rounded-lg"
             />
-          ) : (
-            <Avatar
-              name={doctor?.nameEn || "?"}
-              className="h-14 w-14 text-base"
-            />
-          )}
           <input
             name="photo"
             type="file"

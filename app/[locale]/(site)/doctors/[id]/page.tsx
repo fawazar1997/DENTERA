@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -17,7 +16,7 @@ import type { LucideIcon } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { getActiveBranches, getDepartment, getDoctor } from "@/lib/db";
-import { Avatar } from "@/components/Avatar";
+import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { DepartmentIcon } from "@/components/IconMap";
 import { CallButton } from "@/components/CallButton";
 import { Reveal } from "@/components/Reveal";
@@ -115,6 +114,9 @@ export default async function DoctorProfilePage({
   const experience = lines(ar ? doctor.experienceAr : doctor.experienceEn);
   const services = lines(ar ? doctor.servicesAr : doctor.servicesEn);
   const languages = lines(ar ? doctor.languagesAr : doctor.languagesEn);
+  const hasMain = Boolean(
+    bio || qualifications.length || experience.length || services.length
+  );
   const years =
     typeof doctor.yearsExperience === "number" && doctor.yearsExperience > 0
       ? doctor.yearsExperience
@@ -137,21 +139,13 @@ export default async function DoctorProfilePage({
           </Link>
 
           <div className="mt-8 flex animate-fade-up flex-col items-center gap-8 text-center opacity-0 sm:flex-row sm:items-center sm:text-start">
-            {doctor.photoUrl ? (
-              <Image
-                src={doctor.photoUrl}
-                alt={name}
-                width={320}
-                height={320}
-                priority
-                className="h-40 w-40 flex-shrink-0 rounded-full object-cover shadow-soft ring-4 ring-white"
-              />
-            ) : (
-              <Avatar
-                name={name}
-                className="h-40 w-40 flex-shrink-0 text-4xl shadow-soft ring-4 ring-white"
-              />
-            )}
+            <DoctorPhoto
+              photoUrl={doctor.photoUrl}
+              name={name}
+              sizes="224px"
+              priority
+              className="aspect-[4/5] w-48 flex-shrink-0 rounded-xl2 shadow-soft ring-4 ring-white sm:w-56"
+            />
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-ink-950 sm:text-4xl">
                 {name}
@@ -181,8 +175,10 @@ export default async function DoctorProfilePage({
       </section>
 
       <section className="section-y bg-white">
-        <div className="container-x grid gap-8 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
+        <div
+          className={`container-x grid gap-8 ${hasMain ? "lg:grid-cols-3" : ""}`}
+        >
+          <div className={hasMain ? "space-y-6 lg:col-span-2" : "hidden"}>
             {bio && (
               <Reveal>
                 <section className="card p-7">
@@ -215,7 +211,13 @@ export default async function DoctorProfilePage({
             />
           </div>
 
-          <aside className="space-y-6">
+          <aside
+            className={
+              hasMain
+                ? "space-y-6"
+                : "grid items-start gap-6 md:grid-cols-2 lg:grid-cols-3"
+            }
+          >
             <Reveal>
               <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 to-ink-950 p-7 text-white shadow-soft">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-500">

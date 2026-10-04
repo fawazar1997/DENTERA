@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Plus, Pencil, ExternalLink } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
@@ -12,7 +11,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { DoctorForm } from "@/components/admin/DoctorForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
-import { Avatar } from "@/components/Avatar";
+import { DoctorPhoto } from "@/components/DoctorPhoto";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -80,17 +79,12 @@ export default async function AdminDoctorsPage({
             return (
               <div key={doctor.id} className="card p-5">
                 <div className="flex flex-wrap items-center gap-4">
-                  {doctor.photoUrl ? (
-                    <Image
-                      src={doctor.photoUrl}
-                      alt=""
-                      width={96}
-                      height={96}
-                      className="h-12 w-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <Avatar name={doctor.nameEn} className="h-12 w-12 text-sm" />
-                  )}
+                  <DoctorPhoto
+              photoUrl={doctor.photoUrl}
+              name={doctor.nameEn}
+              sizes="52px"
+              className="h-16 w-[3.25rem] flex-shrink-0 rounded-lg"
+            />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold text-ink-900">
                       {doctor.nameEn}{" "}

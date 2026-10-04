@@ -62,19 +62,21 @@ const config: Config = {
         },
         paper: "#f6f5f2",
       },
+      // Almarai is the site font for both Arabic and English. It ships in
+      // 300/400/700/800, so medium (500) renders as 400 and semibold (600)
+      // as 700.
       fontFamily: {
         sans: [
-          "Poppins",
+          "Almarai",
           "-apple-system",
           "BlinkMacSystemFont",
           "Segoe UI",
-          "Roboto",
-          "Helvetica Neue",
+          "Tahoma",
           "Arial",
           "sans-serif",
         ],
         arabic: [
-          "Tajawal",
+          "Almarai",
           "Segoe UI",
           "Tahoma",
           "Geeza Pro",
