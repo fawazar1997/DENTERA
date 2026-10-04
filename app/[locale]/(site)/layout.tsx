@@ -1,7 +1,7 @@
 import "../../globals.css";
 import { isLocale, isRtl, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
-import { getActiveBranches, getActiveDepartments } from "@/lib/db";
+import { getActiveBranches, getActiveDepartments, getSettings } from "@/lib/db";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FontLinks } from "@/components/FontLinks";
@@ -24,6 +24,7 @@ export default async function SiteLayout({
   const rtl = isRtl(locale);
   const departments = await getActiveDepartments();
   const branches = await getActiveBranches();
+  const settings = await getSettings();
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>
@@ -38,6 +39,7 @@ export default async function SiteLayout({
           dict={dict}
           departments={departments}
           branches={branches}
+          social={settings.social}
         />
       </body>
     </html>

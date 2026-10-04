@@ -15,6 +15,7 @@ import type {
   SiteSettings,
 } from "./types";
 import { DEFAULT_BRANCHES } from "./defaults";
+import { DEFAULT_SOCIAL_LINKS } from "./social";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "db.local.json");
@@ -48,6 +49,7 @@ function withDefaults(db: Database): Database {
     db.settings.banners.home = db.settings.bannerUrl;
   }
   delete db.settings.bannerUrl;
+  if (!db.settings.social) db.settings.social = { ...DEFAULT_SOCIAL_LINKS };
   if (!db.partners) db.partners = [];
   if (!db.branches) db.branches = structuredClone(DEFAULT_BRANCHES);
   if (!db.content) db.content = {};
@@ -319,6 +321,15 @@ export async function deleteDoctor(id: string): Promise<boolean> {
 
 export async function getSettings(): Promise<SiteSettings> {
   return (await readDb()).settings;
+}
+
+export async function updateSettings(
+  input: Partial<SiteSettings>
+): Promise<SiteSettings> {
+  const db = await readDbForWrite();
+  db.settings = { ...db.settings, ...input };
+  await writeDb(db);
+  return db.settings;
 }
 
 export async function setPageBanner(

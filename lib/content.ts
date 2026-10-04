@@ -159,6 +159,7 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       f("qualifications", "\"Qualifications\" heading", "عنوان «المؤهلات العلمية»"),
       f("experience", "\"Experience\" heading", "عنوان «الخبرات العملية»"),
       f("services", "\"Areas of expertise\" heading", "عنوان «مجالات التخصص»"),
+      f("achievements", "\"Achievements\" heading", "عنوان «الإنجازات»"),
       f("languages", "\"Languages\" heading", "عنوان «اللغات»"),
       f("branches", "\"Available at\" heading", "عنوان «يتواجد في»"),
       f("department", "\"Department\" label", "عبارة «القسم»"),
@@ -179,9 +180,15 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       f("emailLabel", "Email label", "عنوان البريد"),
       f("emailValue", "Email address", "البريد الإلكتروني"),
       f("hoursLabel", "Working hours label", "عنوان ساعات العمل"),
-      f("hoursValue", "Working hours", "ساعات العمل"),
+      f(
+        "hoursValue",
+        "Default working hours (for a branch without its own hours)",
+        "ساعات العمل الافتراضية (للفرع الذي ليس له ساعات خاصة)"
+      ),
       f("branchesTitle", "Branches — title", "الفروع — العنوان"),
       f("openMap", "\"Open in maps\" button", "زر «افتح على الخريطة»"),
+      f("socialTitle", "Social media — title", "مواقع التواصل — العنوان"),
+      f("socialBody", "Social media — text", "مواقع التواصل — النص"),
     ],
   },
   {
@@ -193,6 +200,7 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       f("departments", "Departments — title", "الأقسام — العنوان"),
       f("branches", "Branches — title", "الفروع — العنوان"),
       f("contact", "Contact — title", "التواصل — العنوان"),
+      f("followUs", "Social media — title", "مواقع التواصل — العنوان"),
       f("rights", "Copyright text", "نص الحقوق"),
     ],
   },

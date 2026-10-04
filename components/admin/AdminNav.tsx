@@ -10,6 +10,7 @@ import {
   Handshake,
   MapPin,
   Type,
+  Share2,
   LogOut,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -49,6 +50,11 @@ export function AdminNav({
       href: `/${locale}/admin/branches`,
       label: dict.admin.branches,
       icon: MapPin,
+    },
+    {
+      href: `/${locale}/admin/social`,
+      label: dict.admin.social,
+      icon: Share2,
     },
     {
       href: `/${locale}/admin/banners`,

@@ -60,9 +60,14 @@ Open http://localhost:3000 — you'll be redirected to `/en`.
    which is not localized — one upload, shown on both languages.
 4. **Partners** and **Branches**: add/edit/remove partner logos and
    branches (paste a Google Maps "Share" link for each branch).
-5. **Banners**: upload or remove the banner image at the top of each page.
-6. **Texts & Numbers**: edit any text or number on the site, side by side
-   in English and Arabic. Clearing a field restores its original text.
+5. **Banners**: upload or remove the banner image at the top of each page,
+   show/hide the home page banner, and set the branch photo shown beside
+   the home page headline.
+6. **Social Media**: links to the clinic's accounts; each one shows as an
+   icon in the footer and on the Contact page.
+7. **Texts & Numbers**: edit any text or number on the site, side by side
+   in English and Arabic. Clearing a field restores its original text;
+   fields whose Arabic was edited without the English are flagged.
 
 ## Production
 

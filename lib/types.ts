@@ -1,3 +1,5 @@
+import type { SocialLinks } from "./social";
+
 export type Department = {
   id: string;
   nameEn: string;
@@ -28,6 +30,8 @@ export type Doctor = {
   experienceAr?: string;
   servicesEn?: string;
   servicesAr?: string;
+  achievementsEn?: string;
+  achievementsAr?: string;
   languagesEn?: string;
   languagesAr?: string;
   /** Branch ids the doctor works at. */
@@ -48,6 +52,11 @@ export type SiteSettings = {
   /** Legacy single home banner; superseded by banners.home. */
   bannerUrl?: string;
   banners?: Partial<Record<PageKey, string>>;
+  /** Show the full-width banner at the top of the home page (default on). */
+  showHomeBanner?: boolean;
+  /** Photo of a Dentera branch, shown beside the home page headline. */
+  heroImageUrl?: string;
+  social?: SocialLinks;
 };
 
 export type Partner = {

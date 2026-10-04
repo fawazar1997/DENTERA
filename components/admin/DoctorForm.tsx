@@ -168,6 +168,7 @@ export function DoctorForm({
             ["qualificationsEn", "qualificationsAr"],
             ["experienceEn", "experienceAr"],
             ["servicesEn", "servicesAr"],
+            ["achievementsEn", "achievementsAr"],
             ["languagesEn", "languagesAr"],
           ] as const
         ).map(([en, ar]) => (

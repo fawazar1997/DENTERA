@@ -87,18 +87,28 @@ export default async function AdminTextsPage({
                   const edited = Boolean(
                     overrides.en?.[key] || overrides.ar?.[key]
                   );
+                  // Arabic was changed but the English still shows the
+                  // original text — flag it so it gets translated too.
+                  const needsEnglish = Boolean(
+                    overrides.ar?.[key] && !overrides.en?.[key]
+                  );
                   return (
                     <div
                       key={key}
                       className="grid gap-3 py-4 lg:grid-cols-[minmax(0,14rem)_1fr_1fr] lg:gap-4"
                     >
-                      <div className="flex items-start gap-2 pt-2">
+                      <div className="flex flex-wrap items-start gap-2 pt-2">
                         <span className="text-sm font-semibold text-ink-800">
                           {field.label[locale]}
                         </span>
                         {edited && (
                           <span className="rounded-full bg-accent-100 px-2 py-0.5 text-[10px] font-bold text-ink-800">
                             {dict.admin.changed}
+                          </span>
+                        )}
+                        {needsEnglish && (
+                          <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold text-primary-800">
+                            {dict.admin.needsTranslation}
                           </span>
                         )}
                       </div>

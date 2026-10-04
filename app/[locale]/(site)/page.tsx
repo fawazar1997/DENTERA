@@ -43,11 +43,13 @@ export default async function HomePage({
 
   return (
     <>
-      <HomeBanner
-        bannerUrl={settings.banners?.home}
-        tagline={dict.footer.description}
-      />
-      <Hero locale={locale} dict={dict} />
+      {settings.showHomeBanner !== false && (
+        <HomeBanner
+          bannerUrl={settings.banners?.home}
+          tagline={dict.footer.description}
+        />
+      )}
+      <Hero locale={locale} dict={dict} imageUrl={settings.heroImageUrl} />
       <WhyChooseUs dict={dict} />
 
       <section className="section-y bg-ink-50/60">

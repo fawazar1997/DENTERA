@@ -16,6 +16,7 @@ import {
   getPartners,
   saveContentOverrides,
   setPageBanner,
+  updateSettings,
   updateBranch,
   updateDepartment,
   updateDoctor,
@@ -25,6 +26,7 @@ import { uploadImage } from "./blob";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
 import { PAGE_KEYS, type PageKey } from "./types";
+import { SOCIAL_PLATFORMS, type SocialLinks } from "./social";
 
 /**
  * Server actions can be invoked from any page, not just /admin (which the
@@ -93,6 +95,8 @@ function doctorFields(formData: FormData) {
     experienceAr: optStr(formData, "experienceAr"),
     servicesEn: optStr(formData, "servicesEn"),
     servicesAr: optStr(formData, "servicesAr"),
+    achievementsEn: optStr(formData, "achievementsEn"),
+    achievementsAr: optStr(formData, "achievementsAr"),
     languagesEn: optStr(formData, "languagesEn"),
     languagesAr: optStr(formData, "languagesAr"),
     branchIds: formData.getAll("branchIds").map(String),
@@ -176,6 +180,38 @@ export async function removeBannerAction(formData: FormData) {
   const page = pageKey(formData);
   if (!page) return;
   await setPageBanner(page, undefined);
+  revalidateAll();
+}
+
+export async function setHomeBannerVisibilityAction(formData: FormData) {
+  await requireAdmin();
+  await updateSettings({ showHomeBanner: formData.get("visible") === "on" });
+  revalidateAll();
+}
+
+export async function updateHeroImageAction(formData: FormData) {
+  await requireAdmin();
+  const url = await uploadImage(fileOrNull(formData, "image"), "hero");
+  if (url) await updateSettings({ heroImageUrl: url });
+  revalidateAll();
+}
+
+export async function removeHeroImageAction() {
+  await requireAdmin();
+  await updateSettings({ heroImageUrl: undefined });
+  revalidateAll();
+}
+
+// Social media
+
+export async function saveSocialAction(formData: FormData) {
+  await requireAdmin();
+  const social: SocialLinks = {};
+  for (const platform of SOCIAL_PLATFORMS) {
+    const url = optUrl(formData, platform.key);
+    if (url) social[platform.key] = url;
+  }
+  await updateSettings({ social });
   revalidateAll();
 }
 

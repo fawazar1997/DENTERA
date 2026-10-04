@@ -1,21 +1,25 @@
 import Link from "next/link";
-import { MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import type { Branch, Department } from "@/lib/types";
 import { telHref } from "@/lib/phone";
+import type { SocialLinks as Links } from "@/lib/social";
 import { Logo } from "./Logo";
+import { SocialLinks } from "./SocialLinks";
 
 export function Footer({
   locale,
   dict,
   departments,
   branches,
+  social,
 }: {
   locale: Locale;
   dict: Dictionary;
   departments: Department[];
   branches: Branch[];
+  social?: Links;
 }) {
   const year = new Date().getFullYear();
   const ar = locale === "ar";
@@ -95,6 +99,12 @@ export function Footer({
                     <span className="text-ink-300 group-hover:text-ink-100">
                       {ar ? branch.addressAr : branch.addressEn}
                     </span>
+                    {(ar ? branch.hoursAr : branch.hoursEn) && (
+                      <span className="mt-1 flex items-center gap-1.5 text-xs text-ink-400">
+                        <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                        {ar ? branch.hoursAr : branch.hoursEn}
+                      </span>
+                    )}
                   </span>
                 </a>
               </li>
@@ -128,6 +138,14 @@ export function Footer({
               </a>
             </li>
           </ul>
+          {social && Object.values(social).some(Boolean) && (
+            <>
+              <h4 className="mb-4 mt-8 text-sm font-semibold uppercase tracking-wide text-white">
+                {dict.footer.followUs}
+              </h4>
+              <SocialLinks links={social} locale={locale} />
+            </>
+          )}
         </div>
       </div>
 

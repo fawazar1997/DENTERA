@@ -7,6 +7,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { CallButton } from "@/components/CallButton";
 import { BranchCards } from "@/components/BranchCards";
 import { Reveal } from "@/components/Reveal";
+import { SocialLinks } from "@/components/SocialLinks";
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).
@@ -115,16 +116,52 @@ export default async function ContactPage({
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary-100 text-primary-700">
                   <Clock className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink-500">
                     {dict.contact.hoursLabel}
                   </p>
-                  <p className="mt-1 font-medium text-ink-900">
-                    {dict.contact.hoursValue}
-                  </p>
+                  {branches.length === 0 ? (
+                    <p className="mt-1 font-medium text-ink-900">
+                      {dict.contact.hoursValue}
+                    </p>
+                  ) : (
+                    <dl className="mt-2 space-y-2.5">
+                      {branches.map((branch) => (
+                        <div key={branch.id}>
+                          <dt className="text-sm font-bold text-ink-900">
+                            {locale === "ar" ? branch.nameAr : branch.nameEn}
+                          </dt>
+                          <dd className="text-sm text-ink-700">
+                            {(locale === "ar" ? branch.hoursAr : branch.hoursEn) ||
+                              dict.contact.hoursValue}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
                 </div>
               </div>
             </Reveal>
+            {settings.social && Object.values(settings.social).some(Boolean) && (
+              <Reveal delay={320}>
+                <div className="card p-6">
+                  <p className="font-bold text-ink-900">
+                    {dict.contact.socialTitle}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-500">
+                    {dict.contact.socialBody}
+                  </p>
+                  <div className="mt-4">
+                    <SocialLinks
+                      links={settings.social}
+                      locale={locale}
+                      variant="light"
+                      size="lg"
+                    />
+                  </div>
+                </div>
+              </Reveal>
+            )}
           </div>
         </div>
       </section>

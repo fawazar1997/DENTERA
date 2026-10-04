@@ -20,7 +20,8 @@ export function BranchCards({
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {branches.map((branch, i) => {
-        const hours = ar ? branch.hoursAr : branch.hoursEn;
+        const hours =
+          (ar ? branch.hoursAr : branch.hoursEn) || dict.contact.hoursValue;
         return (
           <Reveal key={branch.id} delay={i * 100} className="h-full">
             <div className="card group relative flex h-full flex-col overflow-hidden p-7 hover:-translate-y-1 hover:shadow-soft">

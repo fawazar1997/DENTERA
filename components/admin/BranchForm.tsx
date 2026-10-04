@@ -47,7 +47,7 @@ export function BranchForm({
         <p className="mt-1.5 text-xs text-ink-400">{dict.admin.mapUrlHint}</p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)]">
         <div>
           <label className="label">{dict.admin.phone}</label>
           <input name="phone" dir="ltr" defaultValue={branch?.phone} className="input" />
@@ -61,6 +61,7 @@ export function BranchForm({
           <input name="hoursAr" dir="rtl" defaultValue={branch?.hoursAr} className="input" />
         </div>
       </div>
+      <p className="-mt-3 text-xs text-ink-400">{dict.admin.hoursHint}</p>
 
       <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
         <input

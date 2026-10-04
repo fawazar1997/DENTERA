@@ -2,6 +2,11 @@ import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { LoginForm } from "@/components/admin/LoginForm";
 
+// Rendered on request like every other page: a statically built copy gets
+// regenerated after control-panel saves (they revalidate every path), and
+// that regeneration 404s for this locale route.
+export const dynamic = "force-dynamic";
+
 export default function AdminLoginPage({
   params,
 }: {

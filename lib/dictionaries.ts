@@ -128,6 +128,7 @@ export const dictionaries = {
       qualifications: "Qualifications",
       experience: "Experience",
       services: "Areas of Expertise",
+      achievements: "Achievements & Awards",
       languages: "Languages",
       branches: "Available at",
       department: "Department",
@@ -148,6 +149,8 @@ export const dictionaries = {
       hoursValue: "Sat – Thu: 9:00 AM – 9:00 PM",
       branchesTitle: "Our Branches",
       openMap: "Open in Maps",
+      socialTitle: "Follow Us",
+      socialBody: "Stay up to date with Dentera on social media.",
     },
     footer: {
       description:
@@ -156,6 +159,7 @@ export const dictionaries = {
       departments: "Departments",
       contact: "Contact Us",
       branches: "Branches",
+      followUs: "Follow Us",
       rights: "All rights reserved.",
     },
     admin: {
@@ -216,6 +220,8 @@ export const dictionaries = {
       servicesAr: "Areas of expertise (Arabic)",
       languagesEn: "Languages (English)",
       languagesAr: "Languages (Arabic)",
+      achievementsEn: "Achievements & awards (English)",
+      achievementsAr: "Achievements & awards (Arabic)",
       worksAt: "Works at",
       viewProfile: "View profile",
       banners: "Banners",
@@ -254,6 +260,8 @@ export const dictionaries = {
       phone: "Phone (optional)",
       hoursEn: "Working hours (English, optional)",
       hoursAr: "Working hours (Arabic, optional)",
+      hoursHint:
+        "Each branch can have its own hours. Leave empty to use the default hours from Texts & Numbers → Contact page.",
       noBranches: "No branches yet.",
       openMap: "Open map",
       texts: "Texts & Numbers",
@@ -262,6 +270,17 @@ export const dictionaries = {
       english: "English",
       arabic: "Arabic",
       changed: "Edited",
+      needsTranslation: "English not updated",
+      social: "Social Media",
+      socialSubtitle:
+        "Links to Dentera's accounts. Each filled-in link shows as an icon in the footer of every page and on the Contact page. Leave a field empty to hide that platform.",
+      showHomeBanner: "Show this banner on the home page",
+      bannerVisible: "Visible",
+      bannerHidden: "Hidden",
+      heroImage: "Home page headline photo (Dentera branch)",
+      heroImageHint:
+        "A high-quality photo of a Dentera branch, shown next to the main headline on the home page (on the left in Arabic). Portrait or square photos look best.",
+      noHeroImage: "No photo yet — a branded panel is shown in its place.",
     },
     common: {
       loading: "Loading...",
@@ -388,6 +407,7 @@ export const dictionaries = {
       qualifications: "المؤهلات العلمية",
       experience: "الخبرات العملية",
       services: "مجالات التخصص",
+      achievements: "الإنجازات والجوائز",
       languages: "اللغات",
       branches: "يتواجد في",
       department: "القسم",
@@ -408,6 +428,8 @@ export const dictionaries = {
       hoursValue: "السبت – الخميس: 9:00 صباحًا – 9:00 مساءً",
       branchesTitle: "فروعنا",
       openMap: "افتح على الخريطة",
+      socialTitle: "تابعنا",
+      socialBody: "تابع جديد دنتيرا على مواقع التواصل الاجتماعي.",
     },
     footer: {
       description:
@@ -416,6 +438,7 @@ export const dictionaries = {
       departments: "الأقسام",
       contact: "تواصل معنا",
       branches: "الفروع",
+      followUs: "تابعنا",
       rights: "جميع الحقوق محفوظة.",
     },
     admin: {
@@ -475,6 +498,8 @@ export const dictionaries = {
       servicesAr: "مجالات التخصص (عربي)",
       languagesEn: "اللغات (إنجليزي)",
       languagesAr: "اللغات (عربي)",
+      achievementsEn: "الإنجازات والجوائز (إنجليزي)",
+      achievementsAr: "الإنجازات والجوائز (عربي)",
       worksAt: "يعمل في",
       viewProfile: "عرض الصفحة",
       banners: "البنرات",
@@ -510,6 +535,8 @@ export const dictionaries = {
       phone: "الهاتف (اختياري)",
       hoursEn: "ساعات العمل (إنجليزي، اختياري)",
       hoursAr: "ساعات العمل (عربي، اختياري)",
+      hoursHint:
+        "لكل فرع ساعات عمل خاصة. اتركها فارغة لاستخدام الساعات الافتراضية من «النصوص والأرقام» ← صفحة تواصل معنا.",
       noBranches: "لا توجد فروع بعد.",
       openMap: "فتح الخريطة",
       texts: "النصوص والأرقام",
@@ -518,6 +545,17 @@ export const dictionaries = {
       english: "إنجليزي",
       arabic: "عربي",
       changed: "معدّل",
+      needsTranslation: "الإنجليزي لم يُحدّث",
+      social: "مواقع التواصل",
+      socialSubtitle:
+        "روابط حسابات دنتيرا. كل رابط تضيفه يظهر كأيقونة أسفل كل صفحة وفي صفحة تواصل معنا. اترك الحقل فارغاً لإخفاء المنصة.",
+      showHomeBanner: "إظهار هذا البنر في الصفحة الرئيسية",
+      bannerVisible: "ظاهر",
+      bannerHidden: "مخفي",
+      heroImage: "صورة القسم العلوي في الرئيسية (مقرات دنتيرا)",
+      heroImageHint:
+        "صورة نوعية لأحد مقرات دنتيرا، تظهر بجانب العنوان الرئيسي في الصفحة الرئيسية (على يسار الشاشة بالعربي). يُفضّل صورة طولية أو مربعة بجودة عالية.",
+      noHeroImage: "لا توجد صورة بعد — تظهر لوحة بألوان الهوية مكانها.",
     },
     common: {
       loading: "جارٍ التحميل...",
