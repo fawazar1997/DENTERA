@@ -14,7 +14,7 @@ import { DeleteButton } from "@/components/admin/DeleteButton";
 // revalidation-cached snapshot, so render them fresh on every request.
 export const dynamic = "force-dynamic";
 
-export default function AdminInquiriesPage({
+export default async function AdminInquiriesPage({
   params,
 }: {
   params: { locale: string };
@@ -23,8 +23,8 @@ export default function AdminInquiriesPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const inquiries = getInquiries();
-  const departments = getDepartments();
+  const inquiries = await getInquiries();
+  const departments = await getDepartments();
   const newInquiries = inquiries.filter((i) => i.status === "new").length;
 
   const dateFormatter = new Intl.DateTimeFormat(

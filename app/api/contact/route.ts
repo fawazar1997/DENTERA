@@ -11,12 +11,12 @@ export async function POST(request: NextRequest) {
     typeof body.departmentId !== "string" ||
     !body.name.trim() ||
     !body.mobile.trim() ||
-    !getDepartment(body.departmentId)
+    !(await getDepartment(body.departmentId))
   ) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  createInquiry({
+  await createInquiry({
     name: body.name.trim(),
     mobile: body.mobile.trim(),
     departmentId: body.departmentId,

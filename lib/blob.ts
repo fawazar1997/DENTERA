@@ -1,5 +1,17 @@
 import { put } from "@vercel/blob";
 
+/**
+ * Whether Vercel Blob credentials are available. Blob stores connected
+ * from the Vercel dashboard today authenticate with OIDC and only set
+ * `BLOB_STORE_ID` (no `BLOB_READ_WRITE_TOKEN`); older stores and local
+ * setups use the read-write token. The SDK handles either automatically.
+ */
+export function isBlobConfigured(): boolean {
+  return Boolean(
+    process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID
+  );
+}
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -16,9 +28,9 @@ export async function uploadImage(
 ): Promise<string | undefined> {
   if (!file || file.size === 0) return undefined;
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!isBlobConfigured()) {
     console.warn(
-      "BLOB_READ_WRITE_TOKEN is not set — skipping image upload. " +
+      "Vercel Blob is not configured — skipping image upload. " +
         "Enable Vercel Blob storage for this project to allow photo uploads."
     );
     return undefined;

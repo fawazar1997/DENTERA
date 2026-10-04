@@ -12,7 +12,11 @@ import { CtaBanner } from "@/components/CtaBanner";
 import { Testimonials } from "@/components/Testimonials";
 import { Reveal } from "@/components/Reveal";
 
-export default function HomePage({
+// Content is edited live from the control panel, so render on request
+// (the database read itself is cached until the next save).
+export const dynamic = "force-dynamic";
+
+export default async function HomePage({
   params,
 }: {
   params: { locale: string };
@@ -21,15 +25,15 @@ export default function HomePage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const departments = getActiveDepartments();
-  const doctors = getActiveDoctors();
-  const settings = getSettings();
+  const departments = await getActiveDepartments();
+  const doctors = await getActiveDoctors();
+  const settings = await getSettings();
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
   return (
     <>
-      <HomeBanner bannerUrl={settings.bannerUrl} />
+      <HomeBanner bannerUrl={settings.bannerUrl} tagline={dict.footer.description} />
       <Hero locale={locale} dict={dict} />
       <WhyChooseUs dict={dict} />
 

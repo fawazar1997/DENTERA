@@ -5,7 +5,11 @@ import { DepartmentCard } from "@/components/DepartmentCard";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
 
-export default function DepartmentsPage({
+// Content is edited live from the control panel, so render on request
+// (the database read itself is cached until the next save).
+export const dynamic = "force-dynamic";
+
+export default async function DepartmentsPage({
   params,
 }: {
   params: { locale: string };
@@ -14,7 +18,7 @@ export default function DepartmentsPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const departments = getActiveDepartments();
+  const departments = await getActiveDepartments();
 
   return (
     <>

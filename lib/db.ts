@@ -1,18 +1,95 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { del, list, put } from "@vercel/blob";
+import { revalidateTag, unstable_cache } from "next/cache";
+import { isBlobConfigured } from "./blob";
 import type { Database, Department, Doctor, Inquiry, SiteSettings } from "./types";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "db.local.json");
 const TMP_DB_PATH = path.join(os.tmpdir(), "dentera-db.json");
 
-// On a normal server the project directory is writable, so we persist
-// changes next to the source (survives restarts). On a read-only
-// deployment (e.g. Vercel's serverless functions) that directory can't be
-// written to, so we fall back to the OS temp dir. That's still writable at
-// runtime, just not shared across instances or persisted across deploys —
-// see README "Known limitations" for the real fix (a proper database).
+// Where the data lives:
+//
+// - With Vercel Blob configured (production), the whole database is one
+//   JSON blob. Serverless instances have no shared or persistent disk, so
+//   this is what lets edits made in the control panel stick and show up on
+//   every instance. Each save writes a new blob with a random suffix (so a
+//   CDN-cached copy of an old version can never be served) and removes the
+//   older ones; the random, unlisted URL also keeps patient contact
+//   requests out of reach of anyone without the store's credentials.
+// - Without Blob (local development), it's a JSON file next to the source,
+//   falling back to the OS temp dir if the project dir is read-only.
+const BLOB_DB_PREFIX = "data/dentera-db";
+const DB_CACHE_TAG = "dentera-db";
+
+function readSeed(): Database {
+  return withDefaults(
+    JSON.parse(fs.readFileSync(SEED_PATH, "utf-8")) as Database
+  );
+}
+
+function withDefaults(db: Database): Database {
+  if (!db.settings) db.settings = {};
+  if (!db.inquiries) db.inquiries = [];
+  return db;
+}
+
+// --- Blob backend ---
+
+async function listDbBlobs() {
+  const { blobs } = await list({ prefix: BLOB_DB_PREFIX });
+  return [...blobs].sort(
+    (a, b) =>
+      new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+  );
+}
+
+async function readBlobDb(): Promise<Database> {
+  const [latest] = await listDbBlobs();
+  if (!latest) return readSeed();
+  const response = await fetch(latest.url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to load database blob (${response.status})`);
+  }
+  return withDefaults((await response.json()) as Database);
+}
+
+// Page renders read through Next's data cache, so the Blob store is only
+// hit again after a save invalidates the tag (not on every page view).
+const readBlobDbCached = unstable_cache(readBlobDb, [DB_CACHE_TAG], {
+  tags: [DB_CACHE_TAG],
+});
+
+async function writeBlobDb(db: Database): Promise<void> {
+  const saved = await put(`${BLOB_DB_PREFIX}.json`, JSON.stringify(db), {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: "application/json",
+  });
+  revalidateTag(DB_CACHE_TAG);
+
+  // Clean up superseded versions. Only delete blobs older than the one we
+  // just wrote, so a concurrent save's newer version is never removed.
+  try {
+    const blobs = await listDbBlobs();
+    const savedAt = new Date(
+      blobs.find((b) => b.url === saved.url)?.uploadedAt ?? Date.now()
+    ).getTime();
+    const stale = blobs
+      .filter(
+        (b) => b.url !== saved.url && new Date(b.uploadedAt).getTime() <= savedAt
+      )
+      .map((b) => b.url);
+    if (stale.length > 0) await del(stale);
+  } catch (error) {
+    console.error("Failed to remove old database versions:", error);
+  }
+}
+
+// --- File backend (local development) ---
+
 let resolvedDbPath: string | null = null;
 let memoryDb: Database | null = null;
 
@@ -44,13 +121,7 @@ function ensureDb(dbPath: string): void {
   }
 }
 
-function withDefaults(db: Database): Database {
-  if (!db.settings) db.settings = {};
-  if (!db.inquiries) db.inquiries = [];
-  return db;
-}
-
-function readDb(): Database {
+function readFileDb(): Database {
   if (memoryDb) return memoryDb;
   try {
     const dbPath = resolveDbPath();
@@ -60,13 +131,12 @@ function readDb(): Database {
   } catch {
     // Filesystem is entirely unavailable for writing — keep an in-memory
     // copy so the app still renders instead of crashing the page.
-    const seed = fs.readFileSync(SEED_PATH, "utf-8");
-    memoryDb = withDefaults(JSON.parse(seed) as Database);
+    memoryDb = readSeed();
     return memoryDb;
   }
 }
 
-function writeDb(db: Database): void {
+function writeFileDb(db: Database): void {
   try {
     fs.writeFileSync(resolveDbPath(), JSON.stringify(db, null, 2), "utf-8");
     memoryDb = null;
@@ -75,6 +145,32 @@ function writeDb(db: Database): void {
     // least reflected for the rest of this server instance's lifetime.
     memoryDb = db;
   }
+}
+
+// --- Backend selection ---
+
+/** Read for display (may be served from the data cache). */
+async function readDb(): Promise<Database> {
+  if (!isBlobConfigured()) return readFileDb();
+  try {
+    return await readBlobDbCached();
+  } catch (error) {
+    // Keep the public site up even if the store is briefly unreachable.
+    console.error("Failed to read database from Vercel Blob:", error);
+    return readSeed();
+  }
+}
+
+/** Read the latest saved version, bypassing caches, before modifying it. */
+async function readDbForWrite(): Promise<Database> {
+  // No fallback here: saving on top of the seed after a failed read would
+  // wipe everything saved so far, so a failed read must fail the save.
+  return isBlobConfigured() ? readBlobDb() : readFileDb();
+}
+
+async function writeDb(db: Database): Promise<void> {
+  if (isBlobConfigured()) await writeBlobDb(db);
+  else writeFileDb(db);
 }
 
 function slugify(input: string): string {
@@ -98,131 +194,131 @@ function uniqueId(base: string, existingIds: string[]): string {
 
 // Departments
 
-export function getDepartments(): Department[] {
-  return readDb().departments;
+export async function getDepartments(): Promise<Department[]> {
+  return (await readDb()).departments;
 }
 
-export function getActiveDepartments(): Department[] {
-  return readDb().departments.filter((d) => d.active);
+export async function getActiveDepartments(): Promise<Department[]> {
+  return (await readDb()).departments.filter((d) => d.active);
 }
 
-export function getDepartment(id: string): Department | undefined {
-  return readDb().departments.find((d) => d.id === id);
+export async function getDepartment(id: string): Promise<Department | undefined> {
+  return (await readDb()).departments.find((d) => d.id === id);
 }
 
-export function createDepartment(
+export async function createDepartment(
   input: Omit<Department, "id">
-): Department {
-  const db = readDb();
+): Promise<Department> {
+  const db = await readDbForWrite();
   const id = uniqueId(
     input.nameEn,
     db.departments.map((d) => d.id)
   );
   const department: Department = { id, ...input };
   db.departments.push(department);
-  writeDb(db);
+  await writeDb(db);
   return department;
 }
 
-export function updateDepartment(
+export async function updateDepartment(
   id: string,
   input: Partial<Omit<Department, "id">>
-): Department | undefined {
-  const db = readDb();
+): Promise<Department | undefined> {
+  const db = await readDbForWrite();
   const index = db.departments.findIndex((d) => d.id === id);
   if (index === -1) return undefined;
   db.departments[index] = { ...db.departments[index], ...input };
-  writeDb(db);
+  await writeDb(db);
   return db.departments[index];
 }
 
-export function deleteDepartment(id: string): boolean {
-  const db = readDb();
+export async function deleteDepartment(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
   const before = db.departments.length;
   db.departments = db.departments.filter((d) => d.id !== id);
   const removed = db.departments.length !== before;
-  if (removed) writeDb(db);
+  if (removed) await writeDb(db);
   return removed;
 }
 
 // Doctors
 
-export function getDoctors(): Doctor[] {
-  return readDb().doctors;
+export async function getDoctors(): Promise<Doctor[]> {
+  return (await readDb()).doctors;
 }
 
-export function getActiveDoctors(): Doctor[] {
-  return readDb().doctors.filter((d) => d.active);
+export async function getActiveDoctors(): Promise<Doctor[]> {
+  return (await readDb()).doctors.filter((d) => d.active);
 }
 
-export function getDoctorsByDepartment(departmentId: string): Doctor[] {
-  return readDb().doctors.filter(
+export async function getDoctorsByDepartment(departmentId: string): Promise<Doctor[]> {
+  return (await readDb()).doctors.filter(
     (d) => d.departmentId === departmentId && d.active
   );
 }
 
-export function getDoctor(id: string): Doctor | undefined {
-  return readDb().doctors.find((d) => d.id === id);
+export async function getDoctor(id: string): Promise<Doctor | undefined> {
+  return (await readDb()).doctors.find((d) => d.id === id);
 }
 
-export function createDoctor(input: Omit<Doctor, "id">): Doctor {
-  const db = readDb();
+export async function createDoctor(input: Omit<Doctor, "id">): Promise<Doctor> {
+  const db = await readDbForWrite();
   const id = uniqueId(
     input.nameEn,
     db.doctors.map((d) => d.id)
   );
   const doctor: Doctor = { id, ...input };
   db.doctors.push(doctor);
-  writeDb(db);
+  await writeDb(db);
   return doctor;
 }
 
-export function updateDoctor(
+export async function updateDoctor(
   id: string,
   input: Partial<Omit<Doctor, "id">>
-): Doctor | undefined {
-  const db = readDb();
+): Promise<Doctor | undefined> {
+  const db = await readDbForWrite();
   const index = db.doctors.findIndex((d) => d.id === id);
   if (index === -1) return undefined;
   db.doctors[index] = { ...db.doctors[index], ...input };
-  writeDb(db);
+  await writeDb(db);
   return db.doctors[index];
 }
 
-export function deleteDoctor(id: string): boolean {
-  const db = readDb();
+export async function deleteDoctor(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
   const before = db.doctors.length;
   db.doctors = db.doctors.filter((d) => d.id !== id);
   const removed = db.doctors.length !== before;
-  if (removed) writeDb(db);
+  if (removed) await writeDb(db);
   return removed;
 }
 
 // Site settings
 
-export function getSettings(): SiteSettings {
-  return readDb().settings;
+export async function getSettings(): Promise<SiteSettings> {
+  return (await readDb()).settings;
 }
 
-export function updateSettings(input: Partial<SiteSettings>): SiteSettings {
-  const db = readDb();
+export async function updateSettings(input: Partial<SiteSettings>): Promise<SiteSettings> {
+  const db = await readDbForWrite();
   db.settings = { ...db.settings, ...input };
-  writeDb(db);
+  await writeDb(db);
   return db.settings;
 }
 
 // Contact / appointment inquiries
 
-export function getInquiries(): Inquiry[] {
-  return [...readDb().inquiries].sort((a, b) =>
+export async function getInquiries(): Promise<Inquiry[]> {
+  return [...(await readDb()).inquiries].sort((a, b) =>
     b.createdAt.localeCompare(a.createdAt)
   );
 }
 
-export function createInquiry(
+export async function createInquiry(
   input: Omit<Inquiry, "id" | "status" | "createdAt">
-): Inquiry {
-  const db = readDb();
+): Promise<Inquiry> {
+  const db = await readDbForWrite();
   const inquiry: Inquiry = {
     id: crypto.randomUUID(),
     ...input,
@@ -230,27 +326,27 @@ export function createInquiry(
     createdAt: new Date().toISOString(),
   };
   db.inquiries.push(inquiry);
-  writeDb(db);
+  await writeDb(db);
   return inquiry;
 }
 
-export function updateInquiryStatus(
+export async function updateInquiryStatus(
   id: string,
   status: Inquiry["status"]
-): Inquiry | undefined {
-  const db = readDb();
+): Promise<Inquiry | undefined> {
+  const db = await readDbForWrite();
   const index = db.inquiries.findIndex((i) => i.id === id);
   if (index === -1) return undefined;
   db.inquiries[index] = { ...db.inquiries[index], status };
-  writeDb(db);
+  await writeDb(db);
   return db.inquiries[index];
 }
 
-export function deleteInquiry(id: string): boolean {
-  const db = readDb();
+export async function deleteInquiry(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
   const before = db.inquiries.length;
   db.inquiries = db.inquiries.filter((i) => i.id !== id);
   const removed = db.inquiries.length !== before;
-  if (removed) writeDb(db);
+  if (removed) await writeDb(db);
   return removed;
 }

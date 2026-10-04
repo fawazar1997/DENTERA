@@ -18,7 +18,7 @@ import { Avatar } from "@/components/Avatar";
 // revalidation-cached snapshot, so render them fresh on every request.
 export const dynamic = "force-dynamic";
 
-export default function AdminDoctorsPage({
+export default async function AdminDoctorsPage({
   params,
 }: {
   params: { locale: string };
@@ -27,9 +27,9 @@ export default function AdminDoctorsPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const doctors = getDoctors();
-  const departments = getDepartments();
-  const newInquiries = getInquiries().filter((i) => i.status === "new").length;
+  const doctors = await getDoctors();
+  const departments = await getDepartments();
+  const newInquiries = (await getInquiries()).filter((i) => i.status === "new").length;
 
   return (
     <>

@@ -6,7 +6,11 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FontLinks } from "@/components/FontLinks";
 
-export default function SiteLayout({
+// Content is edited live from the control panel, so render on request
+// (the database read itself is cached until the next save).
+export const dynamic = "force-dynamic";
+
+export default async function SiteLayout({
   children,
   params,
 }: {
@@ -18,7 +22,7 @@ export default function SiteLayout({
     : defaultLocale;
   const dict = getDictionary(locale);
   const rtl = isRtl(locale);
-  const departments = getActiveDepartments();
+  const departments = await getActiveDepartments();
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>

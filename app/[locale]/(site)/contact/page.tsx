@@ -4,7 +4,11 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getActiveDepartments } from "@/lib/db";
 import { ContactForm } from "@/components/ContactForm";
 
-export default function ContactPage({
+// Content is edited live from the control panel, so render on request
+// (the database read itself is cached until the next save).
+export const dynamic = "force-dynamic";
+
+export default async function ContactPage({
   params,
 }: {
   params: { locale: string };
@@ -13,7 +17,7 @@ export default function ContactPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const departments = getActiveDepartments();
+  const departments = await getActiveDepartments();
 
   const info = [
     { icon: MapPin, label: dict.contact.addressLabel, value: dict.contact.addressValue, dir: undefined as "ltr" | undefined },

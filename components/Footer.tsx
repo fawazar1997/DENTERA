@@ -98,9 +98,6 @@ export function Footer({
           <p>
             &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
           </p>
-          <Link href={`/${locale}/admin`} className="hover:text-ink-200">
-            {dict.nav.admin}
-          </Link>
         </div>
       </div>
     </footer>

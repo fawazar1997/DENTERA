@@ -11,7 +11,7 @@ import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 // revalidation-cached snapshot, so render them fresh on every request.
 export const dynamic = "force-dynamic";
 
-export default function AdminSettingsPage({
+export default async function AdminSettingsPage({
   params,
 }: {
   params: { locale: string };
@@ -20,8 +20,8 @@ export default function AdminSettingsPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const settings = getSettings();
-  const newInquiries = getInquiries().filter((i) => i.status === "new").length;
+  const settings = await getSettings();
+  const newInquiries = (await getInquiries()).filter((i) => i.status === "new").length;
 
   return (
     <>

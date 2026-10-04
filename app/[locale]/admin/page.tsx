@@ -9,7 +9,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 // revalidation-cached snapshot, so render them fresh on every request.
 export const dynamic = "force-dynamic";
 
-export default function AdminDashboardPage({
+export default async function AdminDashboardPage({
   params,
 }: {
   params: { locale: string };
@@ -18,9 +18,9 @@ export default function AdminDashboardPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const doctors = getDoctors();
-  const departments = getDepartments();
-  const inquiries = getInquiries();
+  const doctors = await getDoctors();
+  const departments = await getDepartments();
+  const inquiries = await getInquiries();
   const newInquiries = inquiries.filter((i) => i.status === "new").length;
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;

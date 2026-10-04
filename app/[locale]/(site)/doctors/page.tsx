@@ -7,7 +7,11 @@ import { DoctorsFilter } from "@/components/DoctorsFilter";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
 
-export default function DoctorsPage({
+// Content is edited live from the control panel, so render on request
+// (the database read itself is cached until the next save).
+export const dynamic = "force-dynamic";
+
+export default async function DoctorsPage({
   params,
   searchParams,
 }: {
@@ -18,8 +22,8 @@ export default function DoctorsPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const departments = getActiveDepartments();
-  const allDoctors = getActiveDoctors();
+  const departments = await getActiveDepartments();
+  const allDoctors = await getActiveDoctors();
   const departmentId = searchParams.department;
   const doctors = departmentId
     ? allDoctors.filter((d) => d.departmentId === departmentId)

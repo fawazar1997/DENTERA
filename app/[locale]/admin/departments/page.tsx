@@ -16,7 +16,7 @@ import { DepartmentIcon } from "@/components/IconMap";
 // revalidation-cached snapshot, so render them fresh on every request.
 export const dynamic = "force-dynamic";
 
-export default function AdminDepartmentsPage({
+export default async function AdminDepartmentsPage({
   params,
 }: {
   params: { locale: string };
@@ -25,8 +25,8 @@ export default function AdminDepartmentsPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const departments = getDepartments();
-  const newInquiries = getInquiries().filter((i) => i.status === "new").length;
+  const departments = await getDepartments();
+  const newInquiries = (await getInquiries()).filter((i) => i.status === "new").length;
 
   return (
     <>

@@ -50,7 +50,7 @@ function revalidateAll(locale: string) {
 export async function createDoctorAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
   const photoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
-  createDoctor({
+  await createDoctor({
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
     titleEn: str(formData, "titleEn"),
@@ -69,8 +69,8 @@ export async function updateDoctorAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
   const id = str(formData, "id");
   const newPhotoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
-  const photoUrl = newPhotoUrl ?? getDoctor(id)?.photoUrl;
-  updateDoctor(id, {
+  const photoUrl = newPhotoUrl ?? (await getDoctor(id))?.photoUrl;
+  await updateDoctor(id, {
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
     titleEn: str(formData, "titleEn"),
@@ -87,13 +87,13 @@ export async function updateDoctorAction(formData: FormData) {
 
 export async function deleteDoctorAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  deleteDoctor(str(formData, "id"));
+  await deleteDoctor(str(formData, "id"));
   revalidateAll(locale);
 }
 
 export async function createDepartmentAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  createDepartment({
+  await createDepartment({
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
     descriptionEn: str(formData, "descriptionEn"),
@@ -107,7 +107,7 @@ export async function createDepartmentAction(formData: FormData) {
 export async function updateDepartmentAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
   const id = str(formData, "id");
-  updateDepartment(id, {
+  await updateDepartment(id, {
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
     descriptionEn: str(formData, "descriptionEn"),
@@ -120,7 +120,7 @@ export async function updateDepartmentAction(formData: FormData) {
 
 export async function deleteDepartmentAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  deleteDepartment(str(formData, "id"));
+  await deleteDepartment(str(formData, "id"));
   revalidateAll(locale);
 }
 
@@ -128,31 +128,31 @@ export async function updateBannerAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
   const newBannerUrl = await uploadImage(fileOrNull(formData, "banner"), "site");
   if (newBannerUrl) {
-    updateSettings({ bannerUrl: newBannerUrl });
+    await updateSettings({ bannerUrl: newBannerUrl });
   }
   revalidateAll(locale);
 }
 
 export async function removeBannerAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  updateSettings({ bannerUrl: undefined });
+  await updateSettings({ bannerUrl: undefined });
   revalidateAll(locale);
 }
 
 export async function markInquiryContactedAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  updateInquiryStatus(str(formData, "id"), "contacted");
+  await updateInquiryStatus(str(formData, "id"), "contacted");
   revalidateAll(locale);
 }
 
 export async function markInquiryNewAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  updateInquiryStatus(str(formData, "id"), "new");
+  await updateInquiryStatus(str(formData, "id"), "new");
   revalidateAll(locale);
 }
 
 export async function deleteInquiryAction(formData: FormData) {
   const locale = str(formData, "locale") || "en";
-  deleteInquiry(str(formData, "id"));
+  await deleteInquiry(str(formData, "id"));
   revalidateAll(locale);
 }
