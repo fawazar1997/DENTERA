@@ -13,7 +13,7 @@ export function CtaBanner({
   return (
     <section className="section-y bg-white">
       <div className="container-x">
-        <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-primary-700 to-primary-900 px-8 py-14 text-center shadow-soft sm:px-16">
+        <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 to-ink-950 px-8 py-14 text-center shadow-soft sm:px-16">
           <div
             className="bg-hero-grid absolute inset-0 opacity-10 [background-size:20px_20px]"
             aria-hidden="true"

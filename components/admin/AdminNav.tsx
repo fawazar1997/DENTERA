@@ -79,7 +79,7 @@ export function AdminNav({
               <tab.icon className="h-4 w-4" />
               {tab.label}
               {"badge" in tab && tab.badge ? (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-500 px-1.5 text-xs font-bold text-ink-900">
                   {tab.badge}
                 </span>
               ) : null}
@@ -89,7 +89,7 @@ export function AdminNav({
         <button
           type="button"
           onClick={handleSignOut}
-          className="flex flex-shrink-0 items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-red-600"
+          className="flex flex-shrink-0 items-center gap-1.5 text-sm font-semibold text-ink-500 hover:text-accent-800"
         >
           <LogOut className="h-4 w-4" />
           {dict.admin.signOut}

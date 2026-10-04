@@ -1,9 +1,9 @@
 const GRADIENTS = [
   "from-primary-500 to-primary-700",
-  "from-accent-400 to-accent-600",
-  "from-primary-400 to-accent-500",
-  "from-ink-500 to-primary-700",
-  "from-accent-500 to-primary-600",
+  "from-ink-700 to-ink-900",
+  "from-primary-600 to-ink-900",
+  "from-accent-600 to-accent-800",
+  "from-primary-700 to-accent-700",
 ];
 
 function hashString(input: string): number {

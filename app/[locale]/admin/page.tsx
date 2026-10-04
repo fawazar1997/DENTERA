@@ -31,21 +31,21 @@ export default function AdminDashboardPage({
       icon: Stethoscope,
       label: dict.admin.totalDoctors,
       value: doctors.length,
-      color: "bg-primary-600",
+      color: "bg-primary-500 text-white",
     },
     {
       href: `/${locale}/admin/departments`,
       icon: Building2,
       label: dict.admin.totalDepartments,
       value: departments.length,
-      color: "bg-accent-500",
+      color: "bg-accent-500 text-ink-900",
     },
     {
       href: `/${locale}/admin/inquiries`,
       icon: Inbox,
       label: dict.admin.inquiries,
       value: inquiries.length,
-      color: "bg-ink-700",
+      color: "bg-ink-900 text-white",
     },
   ];
 
@@ -78,7 +78,7 @@ export default function AdminDashboardPage({
                 </span>
               </div>
               <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl text-white ${card.color}`}
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${card.color}`}
               >
                 <card.icon className="h-7 w-7" />
               </div>

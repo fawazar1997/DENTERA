@@ -61,7 +61,7 @@ export function LoginForm({
           className="input"
         />
         {error && (
-          <p className="mt-2 text-sm font-medium text-red-600">
+          <p className="mt-2 text-sm font-medium text-accent-800">
             {dict.admin.invalidPassword}
           </p>
         )}

@@ -40,7 +40,7 @@ body {
 }
 
 .btn-primary {
-  @apply btn bg-primary-900 text-white shadow-inset hover:bg-primary-800 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
+  @apply btn bg-ink-900 text-white shadow-inset hover:bg-ink-800 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
 }
 
 .btn-outline {
@@ -48,7 +48,7 @@ body {
 }
 
 .btn-accent {
-  @apply btn bg-accent-500 text-white shadow-inset hover:bg-accent-600 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
+  @apply btn bg-accent-500 text-ink-900 shadow-inset hover:bg-accent-400 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
 }
 
 .card {

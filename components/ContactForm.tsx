@@ -83,7 +83,7 @@ export function ContactForm({
         </select>
       </div>
       {status === "error" && (
-        <p className="text-sm font-medium text-red-600">
+        <p className="text-sm font-medium text-accent-800">
           {dict.common.errorTryAgain}
         </p>
       )}

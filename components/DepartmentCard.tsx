@@ -19,7 +19,7 @@ export function DepartmentCard({
 
   return (
     <div className="card group flex flex-col p-7 hover:-translate-y-1 hover:shadow-soft">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-white transition group-hover:bg-accent-500">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 text-white transition group-hover:bg-ink-900">
         <DepartmentIcon name={department.icon} className="h-7 w-7" />
       </div>
       <h3 className="mt-5 text-lg font-semibold text-ink-900">
