@@ -338,6 +338,9 @@ export const dictionaries = {
       hiddenOnSite: "Hidden on website",
       showInDirectory: "Show in the coordination directory",
       notInDirectory: "Not in directory",
+      lowResPhoto: "Low-resolution photo",
+      photoQualityHint:
+        "For sharp photos upload at least 1000px wide (ideally 1500–2000px), JPG, PNG or WebP under 4MB. Cut-out portraits (transparent background) look best.",
       texts: "Texts & Numbers",
       textsSubtitle:
         "Every text and number on the website, in English and Arabic. Change a field and press Save for that section. Clear a field to bring back its original text.",
@@ -686,6 +689,9 @@ export const dictionaries = {
       hiddenOnSite: "مخفي في الموقع",
       showInDirectory: "إظهار الطبيب في دليل التنسيق",
       notInDirectory: "غير ظاهر في الدليل",
+      lowResPhoto: "دقة الصورة منخفضة",
+      photoQualityHint:
+        "لصور واضحة ارفع صورة بعرض 1000 بكسل على الأقل (والأفضل 1500–2000 بكسل)، بصيغة JPG أو PNG أو WebP وبحجم أقل من 4 ميجابايت. الصور المقصوصة بدون خلفية تظهر بأفضل شكل.",
       texts: "النصوص والأرقام",
       textsSubtitle:
         "كل نصوص وأرقام الموقع بالعربي والإنجليزي. عدّل الحقل واضغط «حفظ» الخاص بالقسم. امسح الحقل لإرجاع النص الأصلي.",

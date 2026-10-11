@@ -3,6 +3,7 @@ import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { SubmitButton } from "./SubmitButton";
+import { PhotoQualityBadge } from "./PhotoQualityBadge";
 
 export function DoctorForm({
   action,
@@ -45,7 +46,12 @@ export function DoctorForm({
             className="input"
           />
         </div>
-        <p className="mt-1.5 text-xs text-ink-400">{dict.admin.photoHint}</p>
+        <p className="mt-1.5 text-xs text-ink-400">{dict.admin.photoQualityHint}</p>
+        {doctor?.photoUrl && (
+          <div className="mt-2">
+            <PhotoQualityBadge src={doctor.photoUrl} label={dict.admin.lowResPhoto} />
+          </div>
+        )}
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">

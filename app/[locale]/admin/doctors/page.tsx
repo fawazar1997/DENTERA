@@ -10,6 +10,7 @@ import {
 import { AdminNav } from "@/components/admin/AdminNav";
 import { DoctorForm } from "@/components/admin/DoctorForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
+import { PhotoQualityBadge } from "@/components/admin/PhotoQualityBadge";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 
@@ -100,6 +101,10 @@ export default async function AdminDoctorsPage({
                         ` · ${doctor.yearsExperience}y`}
                     </p>
                   </div>
+                  <PhotoQualityBadge
+                    src={doctor.photoUrl}
+                    label={dict.admin.lowResPhoto}
+                  />
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                       doctor.active

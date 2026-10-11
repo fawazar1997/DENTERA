@@ -74,7 +74,12 @@ export default async function HomePage({
             tagline={dict.footer.description}
           />
         ))}
-      <Hero locale={locale} dict={dict} imageUrl={settings.heroImageUrl} />
+      <Hero
+        locale={locale}
+        dict={dict}
+        imageUrl={settings.heroImageUrl}
+        branchNames={branches.map((b) => (rtl ? b.nameAr : b.nameEn))}
+      />
       <WhyChooseUs dict={dict} />
 
       <section className="section-y bg-ink-50/60">

@@ -14,6 +14,7 @@ import { PAGE_KEYS, type PageKey } from "@/lib/types";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 import { ToggleSwitch } from "@/components/admin/ToggleSwitch";
+import { PhotoQualityBadge } from "@/components/admin/PhotoQualityBadge";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -93,6 +94,12 @@ export default async function AdminBannersPage({
                   {dict.admin.uploadBanner}
                 </button>
               </form>
+              <p className="mt-2 text-xs text-ink-400">{dict.admin.photoQualityHint}</p>
+              {settings.heroImageUrl && (
+                <div className="mt-2">
+                  <PhotoQualityBadge src={settings.heroImageUrl} label={dict.admin.lowResPhoto} />
+                </div>
+              )}
               {settings.heroImageUrl && (
                 <form action={removeHeroImageAction} className="mt-3">
                   <button

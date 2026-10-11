@@ -1,21 +1,23 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { MapPin, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { CallButton } from "./CallButton";
 import { StatsStrip } from "./StatsStrip";
 import { DoctorPhoto } from "./DoctorPhoto";
-import { BrandRings } from "./BrandRings";
 
 export function Hero({
   locale,
   dict,
   imageUrl,
+  branchNames = [],
 }: {
   locale: Locale;
   dict: Dictionary;
   /** Branch photo from Control Panel → Banners; brand panel if absent. */
   imageUrl?: string;
+  /** Branch names shown on the photo. */
+  branchNames?: string[];
 }) {
   const stats = [
     { value: dict.stats.yearsValue, label: dict.stats.yearsLabel },
@@ -67,44 +69,69 @@ export function Hero({
             </div>
           </div>
 
-          {/* Branch photo in a brand frame: the second column, so it sits
-              on the left in Arabic (RTL) and on the right in English. The
-              arch echoes the crown of the logo's tooth; the rings are its
-              spiral. */}
+          {/* Branch photo: the second column, so it sits on the left in
+              Arabic (RTL) and on the right in English. Layered brand cards
+              (beige, cyan) give it depth; branch names sit on the photo and
+              a small card carries the tooth mark and a key number. */}
           <div
-            className="relative mx-auto w-full max-w-sm animate-fade-up opacity-0 sm:max-w-md lg:max-w-[28rem]"
+            className="relative mx-auto w-full max-w-md animate-fade-up opacity-0 lg:max-w-none lg:ps-10"
             style={{ animationDelay: "150ms" }}
           >
-            <BrandRings className="absolute -start-20 -top-16 w-56 text-primary-400/70 sm:-start-24 sm:w-64" strokeWidth={2.5} />
-            <div
-              className="absolute inset-0 translate-x-5 translate-y-5 rounded-b-[2.5rem] rounded-t-full border-2 border-sand-400 rtl:-translate-x-5"
-              aria-hidden="true"
-            />
-            <div
-              className="absolute -bottom-8 -end-8 h-40 w-40 rounded-full bg-accent-200/70 blur-2xl"
-              aria-hidden="true"
-            />
-            <DoctorPhoto
-              photoUrl={imageUrl}
-              name={dict.meta.siteName}
-              priority
-              sizes="(min-width: 1024px) 28rem, 90vw"
-              className="relative aspect-[4/5] w-full rounded-b-[2.5rem] rounded-t-full shadow-soft ring-[6px] ring-white"
-            />
-            <div className="absolute -bottom-6 start-1/2 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur rtl:translate-x-1/2">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-900">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/dentera-mark.svg" alt="" className="h-6 w-auto" />
-              </span>
-              <div>
-                <p className="text-sm font-extrabold text-ink-950">{dict.meta.siteName}</p>
-                <p className="text-xs text-primary-700">{dict.meta.tagline}</p>
+            <div className="relative">
+              <div
+                className="absolute inset-0 -rotate-6 scale-[0.96] rounded-[2.25rem] bg-sand-300/70 rtl:rotate-6"
+                aria-hidden="true"
+              />
+              <div
+                className="absolute inset-0 rotate-3 scale-[0.98] rounded-[2.25rem] bg-primary-200/80 rtl:-rotate-3"
+                aria-hidden="true"
+              />
+              <div
+                className="absolute -end-6 -top-6 h-28 w-28 rounded-2xl opacity-60 [background-image:radial-gradient(circle_at_1.5px_1.5px,#0cb8cd_1.5px,transparent_0)] [background-size:14px_14px]"
+                aria-hidden="true"
+              />
+              <div className="relative overflow-hidden rounded-[2.25rem] shadow-soft">
+                <DoctorPhoto
+                  photoUrl={imageUrl}
+                  name={dict.meta.siteName}
+                  priority
+                  sizes="(min-width: 1024px) 40vw, 90vw"
+                  className="aspect-[4/5] w-full lg:aspect-[5/6]"
+                />
+                {branchNames.length > 0 && (
+                  <>
+                    <div
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-950/70 to-transparent"
+                      aria-hidden="true"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 p-5">
+                      {branchNames.map((branch) => (
+                        <span
+                          key={branch}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/25 backdrop-blur-md"
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                          {branch}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="absolute -start-4 top-10 flex items-center gap-3 rounded-2xl bg-white/95 p-3 pe-5 shadow-soft backdrop-blur sm:-start-8 lg:-start-12">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink-900">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/dentera-mark.svg" alt="" className="h-7 w-auto" />
+                </span>
+                <div>
+                  <p className="text-lg font-extrabold leading-none text-ink-950">
+                    {dict.stats.patientsValue}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-500">{dict.stats.patientsLabel}</p>
+                </div>
               </div>
             </div>
-            <span
-              className="absolute -end-3 top-1/3 h-5 w-5 rounded-full bg-primary-500 ring-4 ring-white"
-              aria-hidden="true"
-            />
           </div>
         </div>
       </section>
