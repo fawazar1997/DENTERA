@@ -16,6 +16,7 @@ import type {
   SiteSettings,
 } from "./types";
 import { DEFAULT_BRANCHES } from "./defaults";
+import { migrate } from "./migrations";
 import { DEFAULT_SOCIAL_LINKS } from "./social";
 
 const SEED_PATH = path.join(process.cwd(), "data", "seed.json");
@@ -58,7 +59,7 @@ function withDefaults(db: Database): Database {
   // The contact form (and its saved requests) was removed; booking is by
   // phone now. Drop any leftover requests so they aren't kept around.
   delete (db as Database & { inquiries?: unknown }).inquiries;
-  return db;
+  return migrate(db);
 }
 
 // --- Blob backend ---

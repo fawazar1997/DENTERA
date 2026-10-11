@@ -336,6 +336,8 @@ export const dictionaries = {
       callNumber: "Call",
       notSet: "—",
       hiddenOnSite: "Hidden on website",
+      showInDirectory: "Show in the coordination directory",
+      notInDirectory: "Not in directory",
       texts: "Texts & Numbers",
       textsSubtitle:
         "Every text and number on the website, in English and Arabic. Change a field and press Save for that section. Clear a field to bring back its original text.",
@@ -682,6 +684,8 @@ export const dictionaries = {
       callNumber: "اتصال",
       notSet: "—",
       hiddenOnSite: "مخفي في الموقع",
+      showInDirectory: "إظهار الطبيب في دليل التنسيق",
+      notInDirectory: "غير ظاهر في الدليل",
       texts: "النصوص والأرقام",
       textsSubtitle:
         "كل نصوص وأرقام الموقع بالعربي والإنجليزي. عدّل الحقل واضغط «حفظ» الخاص بالقسم. امسح الحقل لإرجاع النص الأصلي.",

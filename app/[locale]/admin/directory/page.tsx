@@ -21,7 +21,7 @@ export default async function AdminDirectoryPage({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  const data = await getDirectoryData(locale);
+  const data = await getDirectoryData(locale, { includeExcluded: true });
   const { dict } = data;
   const key = (await getSettings()).directoryKey;
 

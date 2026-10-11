@@ -38,6 +38,8 @@ export type Doctor = {
   branchIds?: string[];
   /** Internal coordination number — shown only in the staff directory. */
   coordinationNumber?: string;
+  /** List the doctor in the staff coordination directory (default yes). */
+  showInDirectory?: boolean;
   active: boolean;
 };
 
@@ -133,4 +135,6 @@ export type Database = {
   branches: Branch[];
   content: ContentOverrides;
   offers: Offer[];
+  /** Last one-time data update applied (see lib/migrations.ts). */
+  dataVersion?: number;
 };

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BrandRings } from "./BrandRings";
 
 /**
  * A doctor's portrait in a rounded rectangle. Fills its container, so
@@ -27,14 +28,25 @@ export function DoctorPhoto({
   return (
     <div className={`relative isolate overflow-hidden ${className}`}>
       {photoUrl ? (
-        <Image
-          src={photoUrl}
-          alt={name}
-          fill
-          sizes={sizes}
-          priority={priority}
-          className={`object-cover object-top ${zoom}`}
-        />
+        <>
+          {/* Brand backdrop: shows through cut-out (transparent) photos;
+              ordinary photos simply cover it. */}
+          <div
+            className="absolute inset-0 bg-gradient-to-b from-sand-100 via-primary-50 to-primary-200"
+            aria-hidden="true"
+          >
+            <BrandRings className="absolute -end-[18%] -top-[12%] w-[85%] text-primary-300/60" strokeWidth={2.5} />
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-primary-300/40 to-transparent" />
+          </div>
+          <Image
+            src={photoUrl}
+            alt={name}
+            fill
+            sizes={sizes}
+            priority={priority}
+            className={`object-cover object-[50%_62%] ${zoom}`}
+          />
+        </>
       ) : (
         <div
           role="img"

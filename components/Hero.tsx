@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -5,6 +6,7 @@ import type { Dictionary } from "@/lib/dictionaries";
 import { CallButton } from "./CallButton";
 import { StatsStrip } from "./StatsStrip";
 import { DoctorPhoto } from "./DoctorPhoto";
+import { BrandRings } from "./BrandRings";
 
 export function Hero({
   locale,
@@ -66,26 +68,46 @@ export function Hero({
             </div>
           </div>
 
-          {/* Branch photo: the second column, so it sits on the left in
-              Arabic (RTL) and on the right in English. */}
+          {/* Branch photo in a brand frame: the second column, so it sits
+              on the left in Arabic (RTL) and on the right in English. The
+              arch echoes the crown of the logo's tooth; the rings are its
+              spiral. */}
           <div
-            className="relative mx-auto w-full max-w-md animate-fade-up opacity-0 lg:max-w-none"
+            className="relative mx-auto w-full max-w-sm animate-fade-up opacity-0 sm:max-w-md lg:max-w-[28rem]"
             style={{ animationDelay: "150ms" }}
           >
+            <BrandRings className="absolute -start-20 -top-16 w-56 text-primary-400/70 sm:-start-24 sm:w-64" strokeWidth={2.5} />
             <div
-              className="absolute -bottom-5 -end-5 top-8 start-8 rounded-[2rem] bg-sand-300/60"
+              className="absolute inset-0 translate-x-5 translate-y-5 rounded-b-[2.5rem] rounded-t-full border-2 border-sand-400 rtl:-translate-x-5"
               aria-hidden="true"
             />
             <div
-              className="absolute -start-4 -top-4 h-24 w-24 rounded-3xl bg-primary-500/90"
+              className="absolute -bottom-8 -end-8 h-40 w-40 rounded-full bg-accent-200/70 blur-2xl"
               aria-hidden="true"
             />
             <DoctorPhoto
               photoUrl={imageUrl}
               name={dict.meta.siteName}
               priority
-              sizes="(min-width: 1024px) 40vw, 90vw"
-              className="relative aspect-[4/5] w-full rounded-[2rem] shadow-soft ring-8 ring-white sm:aspect-[5/5] lg:aspect-[4/5] lg:max-h-[36rem]"
+              sizes="(min-width: 1024px) 28rem, 90vw"
+              className="relative aspect-[4/5] w-full rounded-b-[2.5rem] rounded-t-full shadow-soft ring-[6px] ring-white"
+            />
+            <div className="absolute -bottom-6 start-1/2 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur rtl:translate-x-1/2">
+              <Image
+                src="/brand/dentera-icon.png"
+                alt=""
+                width={80}
+                height={80}
+                className="h-10 w-10 rounded-xl bg-ink-900 p-1"
+              />
+              <div>
+                <p className="text-sm font-extrabold text-ink-950">{dict.meta.siteName}</p>
+                <p className="text-xs text-primary-700">{dict.meta.tagline}</p>
+              </div>
+            </div>
+            <span
+              className="absolute -end-3 top-1/3 h-5 w-5 rounded-full bg-primary-500 ring-4 ring-white"
+              aria-hidden="true"
             />
           </div>
         </div>

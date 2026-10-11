@@ -105,6 +105,7 @@ function doctorFields(formData: FormData) {
     languagesAr: optStr(formData, "languagesAr"),
     branchIds: formData.getAll("branchIds").map(String),
     coordinationNumber: optStr(formData, "coordinationNumber"),
+    showInDirectory: formData.get("showInDirectory") === "on",
     active: formData.get("active") === "on",
   };
 }

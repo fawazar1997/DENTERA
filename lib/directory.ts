@@ -13,8 +13,15 @@ export async function isValidDirectoryKey(key: string): Promise<boolean> {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Everything the staff directory needs — and nothing more. */
-export async function getDirectoryData(locale: Locale) {
+/**
+ * Everything the staff directory needs — and nothing more. The staff page
+ * lists only doctors set to show in the directory; the control panel's
+ * copy passes includeExcluded to list everyone (excluded ones flagged).
+ */
+export async function getDirectoryData(
+  locale: Locale,
+  { includeExcluded = false }: { includeExcluded?: boolean } = {}
+) {
   const dict = getDictionary(locale);
   const [doctors, departments, branches] = await Promise.all([
     getDoctors(),
@@ -22,7 +29,9 @@ export async function getDirectoryData(locale: Locale) {
     getBranches(),
   ]);
 
-  const list: DirectoryDoctor[] = doctors.map((d) => ({
+  const list: DirectoryDoctor[] = doctors
+    .filter((d) => includeExcluded || d.showInDirectory !== false)
+    .map((d) => ({
     id: d.id,
     nameEn: d.nameEn,
     nameAr: d.nameAr,
@@ -33,6 +42,7 @@ export async function getDirectoryData(locale: Locale) {
     coordinationNumber: d.coordinationNumber,
     photoUrl: d.photoUrl,
     active: d.active,
+    inDirectory: d.showInDirectory !== false,
   }));
 
   const labels: DirectoryLabels = {
@@ -52,6 +62,7 @@ export async function getDirectoryData(locale: Locale) {
     copied: dict.admin.copied,
     notSet: dict.admin.notSet,
     hiddenOnSite: dict.admin.hiddenOnSite,
+    notInDirectory: dict.admin.notInDirectory,
   };
 
   return {

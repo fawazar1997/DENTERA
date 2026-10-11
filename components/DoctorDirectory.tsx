@@ -17,6 +17,8 @@ export type DirectoryDoctor = {
   coordinationNumber?: string;
   photoUrl?: string;
   active: boolean;
+  /** False when the doctor is set not to show in the staff directory. */
+  inDirectory: boolean;
 };
 
 type Option = { id: string; nameEn: string; nameAr: string };
@@ -38,6 +40,7 @@ export type DirectoryLabels = {
   copied: string;
   notSet: string;
   hiddenOnSite: string;
+  notInDirectory: string;
 };
 
 /**
@@ -257,6 +260,12 @@ export function DoctorDirectory({
                         .map((id) => branchName.get(id))
                         .filter(Boolean)
                         .join("، ")}
+                    </span>
+                  )}
+                  {!doctor.inDirectory && (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-accent-100 px-1.5 py-0.5 font-semibold text-ink-800">
+                      <EyeOff className="h-3 w-3" />
+                      {labels.notInDirectory}
                     </span>
                   )}
                   {!doctor.active && (
