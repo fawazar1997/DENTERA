@@ -14,12 +14,14 @@ export function Footer({
   departments,
   branches,
   social,
+  showOffers = false,
 }: {
   locale: Locale;
   dict: Dictionary;
   departments: Department[];
   branches: Branch[];
   social?: Links;
+  showOffers?: boolean;
 }) {
   const year = new Date().getFullYear();
   const ar = locale === "ar";
@@ -54,6 +56,13 @@ export function Footer({
                 {dict.nav.doctors}
               </Link>
             </li>
+            {showOffers && (
+              <li>
+                <Link href={`/${locale}/offers`} className="hover:text-white">
+                  {dict.nav.offers}
+                </Link>
+              </li>
+            )}
             <li>
               <Link href={`/${locale}/contact`} className="hover:text-white">
                 {dict.nav.contact}

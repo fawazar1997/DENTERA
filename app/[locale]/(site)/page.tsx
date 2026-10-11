@@ -7,10 +7,12 @@ import {
   getActiveDepartments,
   getActiveDoctors,
   getActivePartners,
+  getLiveOffers,
   getSettings,
 } from "@/lib/db";
 import { Hero } from "@/components/Hero";
 import { HomeBanner } from "@/components/HomeBanner";
+import { OfferCarousel } from "@/components/OfferCarousel";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
 import { DepartmentCard } from "@/components/DepartmentCard";
 import { DoctorCard } from "@/components/DoctorCard";
@@ -38,17 +40,40 @@ export default async function HomePage({
   const settings = await getSettings();
   const partners = await getActivePartners();
   const branches = await getActiveBranches();
+  const offers = await getLiveOffers();
   const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
   return (
     <>
-      {settings.showHomeBanner !== false && (
-        <HomeBanner
-          bannerUrl={settings.banners?.home}
-          tagline={dict.footer.description}
-        />
-      )}
+      {settings.showHomeBanner !== false &&
+        (offers.length > 0 ? (
+          // The home banner is the promotions carousel; each slide opens
+          // its offer page. Without live offers, the plain banner shows.
+          <OfferCarousel
+            locale={locale}
+            slides={offers.map((offer) => ({
+              id: offer.id,
+              title: rtl ? offer.titleAr : offer.titleEn,
+              summary: rtl ? offer.summaryAr : offer.summaryEn,
+              imageUrl: offer.imageUrl,
+              priceNow: offer.priceNow,
+              priceWas: offer.priceWas,
+            }))}
+            labels={{
+              viewOffer: dict.offers.viewOffer,
+              currency: dict.offers.currency,
+              save: dict.offers.save,
+              previous: rtl ? "السابق" : "Previous",
+              next: rtl ? "التالي" : "Next",
+            }}
+          />
+        ) : (
+          <HomeBanner
+            bannerUrl={settings.banners?.home}
+            tagline={dict.footer.description}
+          />
+        ))}
       <Hero locale={locale} dict={dict} imageUrl={settings.heroImageUrl} />
       <WhyChooseUs dict={dict} />
 

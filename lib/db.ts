@@ -10,6 +10,7 @@ import type {
   Database,
   Department,
   Doctor,
+  Offer,
   PageKey,
   Partner,
   SiteSettings,
@@ -53,6 +54,7 @@ function withDefaults(db: Database): Database {
   if (!db.partners) db.partners = [];
   if (!db.branches) db.branches = structuredClone(DEFAULT_BRANCHES);
   if (!db.content) db.content = {};
+  if (!db.offers) db.offers = [];
   // The contact form (and its saved requests) was removed; booking is by
   // phone now. Drop any leftover requests so they aren't kept around.
   delete (db as Database & { inquiries?: unknown }).inquiries;
@@ -457,4 +459,65 @@ export async function saveContentOverrides(
   }
   db.content = content;
   await writeDb(db);
+}
+
+// Offers
+
+/** Today's date in Saudi Arabia (YYYY-MM-DD), for offer expiry. */
+function todayInRiyadh(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" });
+}
+
+export function isOfferExpired(offer: Offer): boolean {
+  return Boolean(offer.endsAt && offer.endsAt < todayInRiyadh());
+}
+
+function byOrder(a: Offer, b: Offer): number {
+  return (a.order ?? 0) - (b.order ?? 0);
+}
+
+export async function getOffers(): Promise<Offer[]> {
+  return [...(await readDb()).offers].sort(byOrder);
+}
+
+/** Active offers that haven't ended, in display order. */
+export async function getLiveOffers(): Promise<Offer[]> {
+  return (await getOffers()).filter((o) => o.active && !isOfferExpired(o));
+}
+
+export async function getOffer(id: string): Promise<Offer | undefined> {
+  return (await readDb()).offers.find((o) => o.id === id);
+}
+
+export async function createOffer(input: Omit<Offer, "id">): Promise<Offer> {
+  const db = await readDbForWrite();
+  const id = uniqueId(
+    input.titleEn || "offer",
+    db.offers.map((o) => o.id)
+  );
+  const offer: Offer = { id, ...input };
+  db.offers.push(offer);
+  await writeDb(db);
+  return offer;
+}
+
+export async function updateOffer(
+  id: string,
+  input: Partial<Omit<Offer, "id">>
+): Promise<Offer | undefined> {
+  const db = await readDbForWrite();
+  const index = db.offers.findIndex((o) => o.id === id);
+  if (index === -1) return undefined;
+  db.offers[index] = { ...db.offers[index], ...input };
+  await writeDb(db);
+  return db.offers[index];
+}
+
+export async function deleteOffer(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
+  const before = db.offers.length;
+  db.offers = db.offers.filter((o) => o.id !== id);
+  const removed = db.offers.length !== before;
+  if (removed) await writeDb(db);
+  return removed;
 }

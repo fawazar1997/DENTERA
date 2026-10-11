@@ -35,6 +35,7 @@ export default async function AdminBannersPage({
     about: dict.admin.pageAbout,
     departments: dict.admin.pageDepartments,
     doctors: dict.admin.pageDoctors,
+    offers: dict.admin.pageOffers,
     contact: dict.admin.pageContact,
   };
 

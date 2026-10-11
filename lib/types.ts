@@ -36,6 +36,8 @@ export type Doctor = {
   languagesAr?: string;
   /** Branch ids the doctor works at. */
   branchIds?: string[];
+  /** Internal coordination number — shown only in the staff directory. */
+  coordinationNumber?: string;
   active: boolean;
 };
 
@@ -44,6 +46,7 @@ export const PAGE_KEYS = [
   "about",
   "departments",
   "doctors",
+  "offers",
   "contact",
 ] as const;
 export type PageKey = (typeof PAGE_KEYS)[number];
@@ -57,6 +60,40 @@ export type SiteSettings = {
   /** Photo of a Dentera branch, shown beside the home page headline. */
   heroImageUrl?: string;
   social?: SocialLinks;
+  /**
+   * Secret part of the staff directory link (/{locale}/directory/{key}).
+   * Unset until generated in the control panel; regenerating revokes
+   * the old link.
+   */
+  directoryKey?: string;
+};
+
+/** A promotional offer: a home page banner that opens its own page. */
+export type Offer = {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  /** One-line summary shown on the banner and offer cards. */
+  summaryEn?: string;
+  summaryAr?: string;
+  /** What's included — one item per line. */
+  detailsEn?: string;
+  detailsAr?: string;
+  /** Terms & conditions — one item per line. */
+  termsEn?: string;
+  termsAr?: string;
+  /** Wide banner image (also the offer page header). */
+  imageUrl?: string;
+  /** Prices in SAR; priceWas shows struck through with the discount. */
+  priceNow?: number;
+  priceWas?: number;
+  /** Last day of the offer (YYYY-MM-DD); hidden from the site after it. */
+  endsAt?: string;
+  departmentId?: string;
+  branchIds?: string[];
+  active: boolean;
+  /** Display order (lower first). */
+  order?: number;
 };
 
 export type Partner = {
@@ -95,4 +132,5 @@ export type Database = {
   partners: Partner[];
   branches: Branch[];
   content: ContentOverrides;
+  offers: Offer[];
 };

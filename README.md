@@ -25,6 +25,15 @@ Built with Next.js 14 (App Router), TypeScript and Tailwind CSS.
   branches, a banner image for each page, and **every text and number on
   the site** in both languages (Texts & Numbers). Changes show on the
   public site immediately; images are shared by both languages.
+- **Promotional offers**: live offers rotate in the home page banner;
+  each opens its own page (details, price, terms, end date, branches).
+  Offers past their end date disappear automatically.
+- **Staff coordination directory** (internal): every doctor with their
+  coordination number, searchable and filterable by department, branch
+  and number. Not linked from the site and marked noindex; it opens only
+  through a private link created in Control Panel → Coordination
+  Directory (regenerating the link revokes the old one). Coordination
+  numbers are never sent to public pages.
 - **Department icons**: drawn dental icons, chosen automatically from the
   department name (or picked manually in the department form).
 - Data is stored in a local JSON file (`data/db.local.json`, generated

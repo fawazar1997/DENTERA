@@ -103,6 +103,17 @@ export function DoctorForm({
           </select>
         </div>
         <div>
+          <label className="label">{dict.admin.coordinationNumber}</label>
+          <input
+            name="coordinationNumber"
+            dir="ltr"
+            inputMode="tel"
+            defaultValue={doctor?.coordinationNumber}
+            className="input"
+          />
+          <p className="mt-1 text-xs text-ink-400">{dict.admin.coordinationHint}</p>
+        </div>
+        <div>
           <label className="label">{dict.admin.yearsExperience}</label>
           <input
             name="yearsExperience"

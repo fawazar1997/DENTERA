@@ -14,9 +14,12 @@ import { telHref } from "@/lib/phone";
 export function Header({
   locale,
   dict,
+  showOffers = false,
 }: {
   locale: Locale;
   dict: Dictionary;
+  /** Show the Offers menu link (only while there are live offers). */
+  showOffers?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -26,6 +29,9 @@ export function Header({
     { href: `/${locale}/about`, label: dict.nav.about },
     { href: `/${locale}/departments`, label: dict.nav.departments },
     { href: `/${locale}/doctors`, label: dict.nav.doctors },
+    ...(showOffers
+      ? [{ href: `/${locale}/offers`, label: dict.nav.offers }]
+      : []),
     { href: `/${locale}/contact`, label: dict.nav.contact },
   ];
 

@@ -5,19 +5,23 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySessionToken } from "./auth";
 import {
   createBranch,
+  createOffer,
   createDepartment,
   createDoctor,
   createPartner,
   deleteBranch,
+  deleteOffer,
   deleteDepartment,
   deleteDoctor,
   deletePartner,
   getDoctor,
+  getOffer,
   getPartners,
   saveContentOverrides,
   setPageBanner,
   updateSettings,
   updateBranch,
+  updateOffer,
   updateDepartment,
   updateDoctor,
   updatePartner,
@@ -100,6 +104,7 @@ function doctorFields(formData: FormData) {
     languagesEn: optStr(formData, "languagesEn"),
     languagesAr: optStr(formData, "languagesAr"),
     branchIds: formData.getAll("branchIds").map(String),
+    coordinationNumber: optStr(formData, "coordinationNumber"),
     active: formData.get("active") === "on",
   };
 }
@@ -311,5 +316,70 @@ export async function saveContentAction(formData: FormData) {
     })
   );
   await saveContentOverrides(values);
+  revalidateAll();
+}
+
+// Offers
+
+/** A YYYY-MM-DD date from a date input, or undefined. */
+function optDate(formData: FormData, key: string): string | undefined {
+  const value = str(formData, key);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : undefined;
+}
+
+function offerFields(formData: FormData) {
+  return {
+    titleEn: str(formData, "titleEn"),
+    titleAr: str(formData, "titleAr"),
+    summaryEn: optStr(formData, "summaryEn"),
+    summaryAr: optStr(formData, "summaryAr"),
+    detailsEn: optStr(formData, "detailsEn"),
+    detailsAr: optStr(formData, "detailsAr"),
+    termsEn: optStr(formData, "termsEn"),
+    termsAr: optStr(formData, "termsAr"),
+    priceNow: optNum(formData, "priceNow"),
+    priceWas: optNum(formData, "priceWas"),
+    endsAt: optDate(formData, "endsAt"),
+    departmentId: optStr(formData, "departmentId"),
+    branchIds: formData.getAll("branchIds").map(String),
+    order: optNum(formData, "order"),
+    active: formData.get("active") === "on",
+  };
+}
+
+export async function createOfferAction(formData: FormData) {
+  await requireAdmin();
+  const imageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
+  await createOffer({ ...offerFields(formData), imageUrl });
+  revalidateAll();
+}
+
+export async function updateOfferAction(formData: FormData) {
+  await requireAdmin();
+  const id = str(formData, "id");
+  const newImageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
+  const imageUrl = newImageUrl ?? (await getOffer(id))?.imageUrl;
+  await updateOffer(id, { ...offerFields(formData), imageUrl });
+  revalidateAll();
+}
+
+export async function deleteOfferAction(formData: FormData) {
+  await requireAdmin();
+  await deleteOffer(str(formData, "id"));
+  revalidateAll();
+}
+
+// Staff coordination directory
+
+/** Creates (or replaces, revoking the old one) the private directory link. */
+export async function generateDirectoryKeyAction() {
+  await requireAdmin();
+  // 24 random bytes → 32 URL-safe characters; not guessable.
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  const key = btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  await updateSettings({ directoryKey: key });
   revalidateAll();
 }

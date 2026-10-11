@@ -11,6 +11,8 @@ import {
   MapPin,
   Type,
   Share2,
+  Tag,
+  BookUser,
   LogOut,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -42,6 +44,11 @@ export function AdminNav({
       icon: Building2,
     },
     {
+      href: `/${locale}/admin/offers`,
+      label: dict.admin.offers,
+      icon: Tag,
+    },
+    {
       href: `/${locale}/admin/partners`,
       label: dict.admin.partners,
       icon: Handshake,
@@ -60,6 +67,11 @@ export function AdminNav({
       href: `/${locale}/admin/banners`,
       label: dict.admin.banners,
       icon: ImageIcon,
+    },
+    {
+      href: `/${locale}/admin/directory`,
+      label: dict.admin.directory,
+      icon: BookUser,
     },
     {
       href: `/${locale}/admin/texts`,
