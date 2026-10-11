@@ -31,6 +31,7 @@ export function DoctorCard({
           photoUrl={doctor.photoUrl}
           name={name}
           zoomOnHover
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="aspect-[4/5] w-full rounded-xl"
         />
       </div>

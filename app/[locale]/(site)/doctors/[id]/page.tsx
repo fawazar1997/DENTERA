@@ -245,7 +245,6 @@ export default async function DoctorProfilePage({
                   </div>
                 )}
 
-                <CallButton dict={dict} className="mt-6 w-full" />
               </div>
             </div>
           </aside>

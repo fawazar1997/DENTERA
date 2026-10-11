@@ -44,6 +44,7 @@ export function DoctorPhoto({
             fill
             sizes={sizes}
             priority={priority}
+            quality={90}
             className={`object-cover object-[50%_62%] ${zoom}`}
           />
         </>
@@ -65,12 +66,12 @@ export function DoctorPhoto({
             className="absolute -start-1/4 -top-1/4 h-1/2 w-1/2 rounded-full bg-accent-500/20 blur-3xl"
             aria-hidden="true"
           />
-          <Image
-            src="/brand/dentera-icon.png"
+          {/* Vector mark: stays sharp at any size. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/dentera-mark.svg"
             alt=""
-            fill
-            sizes="200px"
-            className="object-contain p-[12%] opacity-90"
+            className="absolute inset-0 m-auto h-[46%] w-auto opacity-90"
           />
         </div>
       )}

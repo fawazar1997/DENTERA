@@ -81,6 +81,7 @@ export function OfferCarousel({
                 alt=""
                 fill
                 priority={i === 0}
+                quality={90}
                 sizes="100vw"
                 className={`object-cover transition-transform duration-[7000ms] ease-out ${
                   active ? "scale-105" : "scale-100"
@@ -92,12 +93,11 @@ export function OfferCarousel({
                   className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,#0cb8cd_1px,transparent_0)] [background-size:22px_22px]"
                   aria-hidden="true"
                 />
-                <Image
-                  src="/brand/dentera-icon.png"
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/brand/dentera-mark.svg"
                   alt=""
-                  width={500}
-                  height={500}
-                  className="absolute -end-10 top-1/2 h-[26rem] w-[26rem] -translate-y-1/2 opacity-20"
+                  className="absolute end-[6%] top-1/2 h-[80%] w-auto -translate-y-1/2 opacity-20"
                 />
               </div>
             )}

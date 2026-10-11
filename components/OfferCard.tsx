@@ -36,12 +36,11 @@ export function OfferCard({
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <Image
-            src="/brand/dentera-icon.png"
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/brand/dentera-mark.svg"
             alt=""
-            fill
-            sizes="200px"
-            className="object-contain p-6 opacity-40"
+            className="absolute inset-0 m-auto h-[62%] w-auto opacity-40"
           />
         )}
         {discount && (

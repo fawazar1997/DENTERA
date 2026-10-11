@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -93,13 +92,10 @@ export function Hero({
               className="relative aspect-[4/5] w-full rounded-b-[2.5rem] rounded-t-full shadow-soft ring-[6px] ring-white"
             />
             <div className="absolute -bottom-6 start-1/2 flex -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-2xl bg-white/95 px-4 py-3 shadow-soft backdrop-blur rtl:translate-x-1/2">
-              <Image
-                src="/brand/dentera-icon.png"
-                alt=""
-                width={80}
-                height={80}
-                className="h-10 w-10 rounded-xl bg-ink-900 p-1"
-              />
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-900">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/dentera-mark.svg" alt="" className="h-6 w-auto" />
+              </span>
               <div>
                 <p className="text-sm font-extrabold text-ink-950">{dict.meta.siteName}</p>
                 <p className="text-xs text-primary-700">{dict.meta.tagline}</p>

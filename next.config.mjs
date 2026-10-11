@@ -11,6 +11,8 @@ const nextConfig = {
     },
   },
   images: {
+    // AVIF first: noticeably sharper than WebP at the same file size.
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
         protocol: "https",
