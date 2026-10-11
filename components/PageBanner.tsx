@@ -18,6 +18,7 @@ export function PageBanner({
     return (
       <section className="relative isolate flex min-h-[18rem] items-center overflow-hidden sm:min-h-[22rem] lg:min-h-[26rem]">
         <Image
+          unoptimized
           src={imageUrl}
           alt=""
           fill

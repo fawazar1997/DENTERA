@@ -81,7 +81,7 @@ export function OfferCarousel({
                 alt=""
                 fill
                 priority={i === 0}
-                quality={90}
+                unoptimized
                 sizes="100vw"
                 className={`object-cover transition-transform duration-[7000ms] ease-out ${
                   active ? "scale-105" : "scale-100"

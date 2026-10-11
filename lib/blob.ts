@@ -46,13 +46,35 @@ export async function uploadImage(
     return undefined;
   }
 
-  const extension = file.name.split(".").pop() || "jpg";
+  // Prepare the image once, at upload: upright (phone EXIF rotation),
+  // at most 2000px on its longest side, high-quality WebP that keeps
+  // transparency. The site then serves this file as-is (no further
+  // re-compression), so what's uploaded is what visitors see.
+  let body: Blob | Buffer = file;
+  let extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  let contentType = file.type || undefined;
+  if (file.type !== "image/gif") {
+    try {
+      const sharp = (await import("sharp")).default;
+      body = await sharp(Buffer.from(await file.arrayBuffer()))
+        .rotate()
+        .resize({ width: 2000, height: 2000, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 90, alphaQuality: 100, effort: 5 })
+        .toBuffer();
+      extension = "webp";
+      contentType = "image/webp";
+    } catch (error) {
+      // Couldn't process (unusual file) — upload the original instead.
+      console.warn("Image processing failed; uploading original:", error);
+    }
+  }
   const pathname = `${folder}/${crypto.randomUUID()}.${extension}`;
 
   try {
-    const blob = await put(pathname, file, {
+    const blob = await put(pathname, body, {
       access: "public",
       addRandomSuffix: false,
+      contentType,
     });
     return blob.url;
   } catch (error) {

@@ -85,6 +85,7 @@ export default async function OfferPage({ params }: { params: Params }) {
       <section className="relative isolate overflow-hidden bg-ink-950">
         {offer.imageUrl ? (
           <Image
+          unoptimized
             src={offer.imageUrl}
             alt=""
             fill

@@ -44,7 +44,8 @@ export function DoctorPhoto({
             fill
             sizes={sizes}
             priority={priority}
-            quality={90}
+            // Served as uploaded (already sized at upload) — no re-compression.
+            unoptimized
             className={`object-cover object-[50%_62%] ${zoom}`}
           />
         </>

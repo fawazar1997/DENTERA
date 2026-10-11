@@ -29,6 +29,7 @@ export function OfferCard({
       <div className="relative aspect-[16/7] overflow-hidden bg-gradient-to-br from-ink-900 to-primary-800">
         {offer.imageUrl ? (
           <Image
+          unoptimized
             src={offer.imageUrl}
             alt=""
             fill

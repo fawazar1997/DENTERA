@@ -17,6 +17,7 @@ export function HomeBanner({
     return (
       <div className="relative h-56 w-full overflow-hidden bg-ink-100 sm:h-72 lg:h-[28rem]">
         <Image
+          unoptimized
           src={bannerUrl}
           alt=""
           fill

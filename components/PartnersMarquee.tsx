@@ -7,6 +7,7 @@ function PartnerLogo({ partner, locale }: { partner: Partner; locale: Locale }) 
   const name = locale === "ar" ? partner.nameAr : partner.nameEn;
   const content = partner.logoUrl ? (
     <Image
+          unoptimized
       src={partner.logoUrl}
       alt={name}
       width={320}
