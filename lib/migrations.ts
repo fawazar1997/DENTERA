@@ -85,11 +85,69 @@ const BUNDLED_PHOTOS: Record<string, string> = {
   "ibrahim-alshahrani": "/doctors/ibrahim-alshahrani.webp",
 };
 
-export const DATA_VERSION = 1;
+/**
+ * Coordinator mobile numbers, Oct 2026 sheet ("Coordinator Mobile no").
+ * The sheet lists 9 digits; the leading 0 is added (05XXXXXXXX). Dr.
+ * Abdulellah Alamodi and Dr. Ryan Al Mezher have no number in the sheet.
+ */
+const COORDINATION_NUMBERS: Record<string, string> = {
+  "ibrahim-alshahrani": "0564522222",
+  "mohammed-almagbol": "0502051555",
+  "manea-musa-al-ahmari": "0565258899",
+  "abdulaziz-al-shahrani": "0548828899",
+  "abdulaziz-abu-melha": "0558136665",
+  "mohammad-al-wadaei": "0565458899",
+  "mohammed-nimer-alqahtani": "0565258899",
+  "abdulmajeed-al-shahrani": "0558136665",
+  "waleed-saeed-asiri": "0565958899",
+  "faisal-ali-abboud": "0565058899",
+  "nasser-mesfer-al-ahmari": "0535222433",
+  "raed-abdullah-al-manea": "0558136665",
+  "ghadeer-saleh-al-wadaei": "0565958899",
+  "malek-abo-zeed": "0565958899",
+  "ola-daoud": "0565958899",
+  "amel-shaiban": "0537888761",
+  "mohammed-alamri": "0565958899",
+  "ali-alhaizaey": "0530195783",
+  "alhanuf-almoghamer": "0548828899",
+  "lujain-aldossari": "0565258899",
+  "nadaa-alamoudi": "0565958899",
+  "abdullah-awn": "0502057971",
+  "mansour-alamri": "0566653192",
+  "ali-alqahtani": "0569228410",
+  "atheer-al-ghanem": "0548828899",
+  "abdulmajeed-alqahtani": "0566653192",
+  "lujain-alasiri": "0566653192",
+  "ahmed-alelyani": "0568313003",
+  "khalid-alhindi": "0568313003",
+  "saad-sabrah": "0538008145",
+  "abdulrahman-alasiri": "0568313003",
+  "mohammed-thamer-alqahtani": "0538008145",
+  "mohammed-alsharif": "0566653192",
+  "nasser-alshehri": "0538008145",
+  "abdulelah-daghriri": "0568313003",
+  "rawan-saddah": "0566653192",
+  "waleed-alhogban": "0566653192",
+  "sanaa-alshahrani": "0566653192",
+  "amal-alzaydani": "0558136665",
+  "meelaf-alshahrani": "0548828899",
+  "shaden-bander": "0548828899",
+  "nahar-abdullah-alqahtani": "0566653192",
+  "rima-othman-albishri": "0548828899",
+};
+
+export const DATA_VERSION = 2;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
-  if ((db.dataVersion ?? 0) >= DATA_VERSION) return db;
+  const version = db.dataVersion ?? 0;
+  if (version >= DATA_VERSION) return db;
+  if (version < 1) migrateV1(db);
+  if (version < 2) migrateV2(db);
+  db.dataVersion = DATA_VERSION;
+  return db;
+}
 
+function migrateV1(db: Database): void {
   // v1 — Oct 2026 doctor roster: add new doctors, set each doctor's
   // branches (only where none were chosen yet), bundled photos.
   const ids = new Set(db.doctors.map((d) => d.id));
@@ -107,7 +165,14 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
     }
     return next;
   });
+}
 
-  db.dataVersion = 1;
-  return db;
+/** v2 — coordinator numbers, only where none was entered in the panel. */
+function migrateV2(db: Database): void {
+  db.doctors = db.doctors.map((doctor) => {
+    const number = COORDINATION_NUMBERS[doctor.id];
+    return number && !doctor.coordinationNumber?.trim()
+      ? { ...doctor, coordinationNumber: number }
+      : doctor;
+  });
 }
