@@ -72,21 +72,37 @@ async function listDbBlobs() {
   );
 }
 
-async function readBlobDb(): Promise<Database> {
+/** The stored database exactly as saved (null when nothing is saved yet). */
+async function readBlobDbRaw(): Promise<Database | null> {
   const [latest] = await listDbBlobs();
-  if (!latest) return readSeed();
+  if (!latest) return null;
   const response = await fetch(latest.url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Failed to load database blob (${response.status})`);
   }
-  return withDefaults((await response.json()) as Database);
+  return (await response.json()) as Database;
+}
+
+async function readBlobDb(): Promise<Database> {
+  const raw = await readBlobDbRaw();
+  return raw ? withDefaults(raw) : readSeed();
 }
 
 // Page renders read through Next's data cache, so the Blob store is only
 // hit again after a save invalidates the tag (not on every page view).
-const readBlobDbCached = unstable_cache(readBlobDb, [DB_CACHE_TAG], {
+// Only the raw saved data is cached: Vercel keeps this cache across
+// deployments, so defaults and migrations must run after it, on every
+// read, or a new deployment's data updates would never show up.
+const readBlobDbRawCached = unstable_cache(readBlobDbRaw, [DB_CACHE_TAG, "raw"], {
   tags: [DB_CACHE_TAG],
 });
+
+async function readBlobDbCached(): Promise<Database> {
+  const raw = await readBlobDbRawCached();
+  // Copy first: migrations edit in place and the cache may hand back a
+  // shared object.
+  return raw ? withDefaults(structuredClone(raw)) : readSeed();
+}
 
 async function writeBlobDb(db: Database): Promise<void> {
   const saved = await put(`${BLOB_DB_PREFIX}.json`, JSON.stringify(db), {
