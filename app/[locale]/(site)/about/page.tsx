@@ -3,6 +3,7 @@ import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { getSettings } from "@/lib/db";
 import { PageBanner } from "@/components/PageBanner";
+import { AboutTabs } from "@/components/AboutTabs";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
 
@@ -35,6 +36,7 @@ export default async function AboutPage({
         subtitle={dict.about.subtitle}
         imageUrl={settings.banners?.about}
       />
+      <AboutTabs locale={locale} dict={dict} active="about" />
 
       <section className="section-y bg-white">
         <div className="container-x grid gap-12 lg:grid-cols-2 lg:items-center">

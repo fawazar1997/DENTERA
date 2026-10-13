@@ -48,7 +48,12 @@ export function Footer({
             </li>
             <li>
               <Link href={`/${locale}/about`} className="hover:text-white">
-                {dict.nav.about}
+                {dict.nav.aboutUs}
+              </Link>
+            </li>
+            <li>
+              <Link href={`/${locale}/about/identity`} className="hover:text-white">
+                {dict.nav.identity}
               </Link>
             </li>
             <li>
