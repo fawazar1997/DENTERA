@@ -136,13 +136,25 @@ const COORDINATION_NUMBERS: Record<string, string> = {
   "rima-othman-albishri": "0548828899",
 };
 
-export const DATA_VERSION = 2;
+/**
+ * Studio portraits (transparent cutouts, Oct 2026), bundled in
+ * public/doctors. These are the official photos, so they replace
+ * whatever photo the doctor had.
+ */
+const STUDIO_PHOTOS: Record<string, string> = {
+  "abdulelah-daghriri": "/doctors/abdulelah-daghriri.webp",
+  "abdulmajeed-alqahtani": "/doctors/abdulmajeed-alqahtani.webp",
+  "abdulrahman-alasiri": "/doctors/abdulrahman-alasiri.webp",
+};
+
+export const DATA_VERSION = 3;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
   if (version >= DATA_VERSION) return db;
   if (version < 1) migrateV1(db);
   if (version < 2) migrateV2(db);
+  if (version < 3) migrateV3(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -175,4 +187,11 @@ function migrateV2(db: Database): void {
       ? { ...doctor, coordinationNumber: number }
       : doctor;
   });
+}
+
+/** v3 — studio portraits for doctors who have one. */
+function migrateV3(db: Database): void {
+  db.doctors = db.doctors.map((doctor) =>
+    STUDIO_PHOTOS[doctor.id] ? { ...doctor, photoUrl: STUDIO_PHOTOS[doctor.id] } : doctor
+  );
 }
