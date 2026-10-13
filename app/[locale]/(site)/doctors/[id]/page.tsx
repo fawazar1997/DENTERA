@@ -17,6 +17,7 @@ import type { LucideIcon } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { getActiveBranches, getDepartment, getDoctor } from "@/lib/db";
+import { BranchHours } from "@/components/BranchHours";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { DepartmentIcon } from "@/components/IconMap";
 import { CallButton } from "@/components/CallButton";
@@ -220,6 +221,15 @@ export default async function DoctorProfilePage({
                               </span>
                             </span>
                           </a>
+                          {doctor.hours?.[branch.id] && (
+                            <BranchHours
+                              branch={branch}
+                              locale={locale}
+                              dict={dict}
+                              doctorSchedule={doctor.hours[branch.id]}
+                              className="mt-1"
+                            />
+                          )}
                         </li>
                       ))}
                     </ul>

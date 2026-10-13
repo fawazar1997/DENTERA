@@ -204,6 +204,9 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       f("yearsExperience", "\"Years of experience\" label", "عبارة «سنوات الخبرة»"),
       f("bookTitle", "Booking box — title", "مربع الحجز — العنوان"),
       f("bookBody", "Booking box — text", "مربع الحجز — النص"),
+      f("availableNow", "\"In clinic now\" badge", "شارة «متواجد الآن»"),
+      f("notAvailableNow", "\"Not in clinic now\" badge", "شارة «غير متواجد الآن»"),
+      f("offDay", "Day the doctor isn't in", "اليوم الذي لا يتواجد فيه الطبيب"),
     ],
   },
   {

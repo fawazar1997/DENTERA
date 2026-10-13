@@ -179,6 +179,9 @@ export const dictionaries = {
       yearsExperience: "Years of Experience",
       bookTitle: "Book with this doctor",
       bookBody: "Call us and mention the doctor's name to book your visit.",
+      availableNow: "In clinic now",
+      notAvailableNow: "Not in clinic now",
+      offDay: "Not in clinic",
     },
     offers: {
       title: "Offers & Promotions",
@@ -336,6 +339,9 @@ export const dictionaries = {
       copyToAllDays: "Same for all open days",
       oldHoursNotice:
         "The site shows the old hours text until you save this form:",
+      doctorHours: "Set the doctor's hours",
+      doctorHoursHint:
+        "Optional. When set, the doctor's profile shows when they're in this branch.",
       hoursNoteEn: "Note under the hours (English, optional)",
       hoursNoteAr: "Note under the hours (Arabic, optional)",
       noBranches: "No branches yet.",
@@ -593,6 +599,9 @@ export const dictionaries = {
       yearsExperience: "سنوات الخبرة",
       bookTitle: "احجز موعدك مع الطبيب",
       bookBody: "اتصل بنا واذكر اسم الطبيب لحجز زيارتك.",
+      availableNow: "متواجد الآن",
+      notAvailableNow: "غير متواجد الآن",
+      offDay: "غير متواجد",
     },
     offers: {
       title: "العروض الترويجية",
@@ -745,6 +754,8 @@ export const dictionaries = {
       removePeriod: "حذف الفترة",
       copyToAllDays: "نفس الوقت لكل أيام العمل",
       oldHoursNotice: "يعرض الموقع نص الساعات القديم حتى تحفظ هذا النموذج:",
+      doctorHours: "تحديد ساعات الطبيب",
+      doctorHoursHint: "اختياري. عند تحديدها تظهر في صفحة الطبيب أوقات تواجده في هذا الفرع.",
       hoursNoteEn: "ملاحظة تحت الساعات (إنجليزي، اختياري)",
       hoursNoteAr: "ملاحظة تحت الساعات (عربي، اختياري)",
       noBranches: "لا توجد فروع بعد.",

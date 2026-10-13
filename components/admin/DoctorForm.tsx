@@ -4,6 +4,8 @@ import type { Dictionary } from "@/lib/dictionaries";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { SubmitButton } from "./SubmitButton";
 import { PhotoQualityBadge } from "./PhotoQualityBadge";
+import { DoctorBranchesField } from "./DoctorBranchesField";
+import { branchSchedule, defaultSchedule } from "@/lib/hours";
 
 export function DoctorForm({
   action,
@@ -161,26 +163,31 @@ export function DoctorForm({
       </div>
 
       {branches.length > 0 && (
-        <fieldset>
-          <legend className="label">{dict.admin.worksAt}</legend>
-          <div className="flex flex-wrap gap-4">
-            {branches.map((branch) => (
-              <label
-                key={branch.id}
-                className="flex items-center gap-2 text-sm text-ink-700"
-              >
-                <input
-                  type="checkbox"
-                  name="branchIds"
-                  value={branch.id}
-                  defaultChecked={doctor?.branchIds?.includes(branch.id)}
-                  className="h-4 w-4 rounded border-ink-300"
-                />
-                {locale === "ar" ? branch.nameAr : branch.nameEn}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <DoctorBranchesField
+          locale={locale}
+          branches={branches.map((branch) => ({
+            id: branch.id,
+            name: locale === "ar" ? branch.nameAr : branch.nameEn,
+            initialHours:
+              doctor?.hours?.[branch.id] ?? branchSchedule(branch) ?? defaultSchedule(),
+            hasOwnHours: !!doctor?.hours?.[branch.id],
+            checked: !!doctor?.branchIds?.includes(branch.id),
+          }))}
+          labels={{
+            worksAt: dict.admin.worksAt,
+            setHours: dict.admin.doctorHours,
+            hoursHint: dict.admin.doctorHoursHint,
+            schedule: {
+              open: dict.admin.dayOpen,
+              closed: dict.doctorProfile.offDay,
+              from: dict.admin.timeFrom,
+              to: dict.admin.timeTo,
+              addPeriod: dict.admin.addPeriod,
+              removePeriod: dict.admin.removePeriod,
+              copyToAll: dict.admin.copyToAllDays,
+            },
+          }}
+        />
       )}
 
       <fieldset className="space-y-5 rounded-xl2 border border-ink-100 bg-ink-50/50 p-5">

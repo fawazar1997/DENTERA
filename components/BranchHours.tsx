@@ -1,7 +1,7 @@
 import { Clock, ChevronDown } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
-import type { Branch } from "@/lib/types";
+import type { Branch, WeekSchedule } from "@/lib/types";
 import {
   DAY_NAMES,
   WEEK_ORDER,
@@ -16,6 +16,7 @@ import {
  * A branch's working hours as a dropdown: the summary shows today's hours
  * and whether the branch is open now (Saudi time); opening it lists the
  * whole week. Branches still on the old free-text hours show that text.
+ * With doctorSchedule it shows a doctor's own hours in the branch instead.
  */
 export function BranchHours({
   branch,
@@ -23,18 +24,41 @@ export function BranchHours({
   dict,
   variant = "light",
   className = "",
+  doctorSchedule,
 }: {
   branch: Branch;
   locale: Locale;
   dict: Dictionary;
   variant?: "light" | "dark";
   className?: string;
+  /** A doctor's own hours in this branch, shown instead of the branch's. */
+  doctorSchedule?: WeekSchedule;
 }) {
   const ar = locale === "ar";
   const dark = variant === "dark";
-  const note = ar ? branch.hoursNoteAr || branch.hoursNoteEn : branch.hoursNoteEn || branch.hoursNoteAr;
-  const legacy = ar ? branch.hoursAr || branch.hoursEn : branch.hoursEn || branch.hoursAr;
-  const own = branchSchedule(branch);
+  const forDoctor = !!doctorSchedule;
+  const note = forDoctor
+    ? undefined
+    : ar
+      ? branch.hoursNoteAr || branch.hoursNoteEn
+      : branch.hoursNoteEn || branch.hoursNoteAr;
+  const legacy = forDoctor
+    ? undefined
+    : ar
+      ? branch.hoursAr || branch.hoursEn
+      : branch.hoursEn || branch.hoursAr;
+  const own = doctorSchedule ?? branchSchedule(branch);
+  const labels = forDoctor
+    ? {
+        openNow: dict.doctorProfile.availableNow,
+        closedNow: dict.doctorProfile.notAvailableNow,
+        closedDay: dict.doctorProfile.offDay,
+      }
+    : {
+        openNow: dict.contact.openNow,
+        closedNow: dict.contact.closedNow,
+        closedDay: dict.contact.closedDay,
+      };
 
   if (!own && legacy) {
     return (
@@ -63,7 +87,7 @@ export function BranchHours({
         <span className="min-w-0 flex-1">
           <span className="font-semibold">{dict.contact.hoursToday}:</span>{" "}
           {todayPeriods.length === 0
-            ? dict.contact.closedDay
+            ? labels.closedDay
             : todayPeriods.map((text, i) => (
                 <span key={i} className="whitespace-nowrap tabular-nums">
                   {i > 0 && (ar ? "، " : ", ")}
@@ -83,7 +107,7 @@ export function BranchHours({
           }`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${open ? "bg-primary-500" : "bg-ink-400"}`} />
-          {open ? dict.contact.openNow : dict.contact.closedNow}
+          {open ? labels.openNow : labels.closedNow}
         </span>
         <ChevronDown className="h-4 w-4 flex-shrink-0 transition group-open:rotate-180" />
       </summary>
@@ -112,7 +136,7 @@ export function BranchHours({
                 </span>
               ) : (
                 <span className={dark ? "text-accent-300" : "font-semibold text-accent-700"}>
-                  {dict.contact.closedDay}
+                  {labels.closedDay}
                 </span>
               )}
             </li>

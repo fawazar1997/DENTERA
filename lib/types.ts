@@ -36,6 +36,8 @@ export type Doctor = {
   languagesAr?: string;
   /** Branch ids the doctor works at. */
   branchIds?: string[];
+  /** Optional hours the doctor is in, per branch id (subset of branchIds). */
+  hours?: Record<string, WeekSchedule>;
   /** Internal coordination number — shown only in the staff directory. */
   coordinationNumber?: string;
   /** List the doctor in the staff coordination directory (default yes). */

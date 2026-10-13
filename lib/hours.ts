@@ -94,18 +94,21 @@ export function isOpenNow(schedule: WeekSchedule, now = saudiNow()): boolean {
   return false;
 }
 
-/** Reads the schedule editor's fields (day{d}Open, day{d}From{n}, day{d}To{n}). */
-export function scheduleFromForm(formData: FormData): WeekSchedule {
+/**
+ * Reads the schedule editor's fields (day{d}Open, day{d}From{n},
+ * day{d}To{n}), each name starting with `prefix`.
+ */
+export function scheduleFromForm(formData: FormData, prefix = ""): WeekSchedule {
   return Array.from({ length: 7 }, (_, day) => {
     const periods = [];
     for (let n = 1; n <= MAX_PERIODS; n++) {
-      const from = formData.get(`day${day}From${n}`);
-      const to = formData.get(`day${day}To${n}`);
+      const from = formData.get(`${prefix}day${day}From${n}`);
+      const to = formData.get(`${prefix}day${day}To${n}`);
       if (typeof from === "string" && typeof to === "string" && isTime(from) && isTime(to) && from !== to) {
         periods.push({ from, to });
       }
     }
-    const closed = formData.get(`day${day}Open`) !== "on" || periods.length === 0;
+    const closed = formData.get(`${prefix}day${day}Open`) !== "on" || periods.length === 0;
     return { closed, periods };
   });
 }

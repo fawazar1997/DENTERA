@@ -30,7 +30,7 @@ import { deleteImage, uploadImage } from "./blob";
 import { scheduleFromForm } from "./hours";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
-import { PAGE_KEYS, type PageKey } from "./types";
+import { PAGE_KEYS, type PageKey, type WeekSchedule } from "./types";
 import { SOCIAL_PLATFORMS, type SocialLinks } from "./social";
 
 /**
@@ -84,6 +84,16 @@ function revalidateAll() {
   revalidatePath("/", "layout");
 }
 
+/** The doctor's own hours, for the branches ticked both to work at and to set hours for. */
+function doctorHours(formData: FormData) {
+  const branchIds = new Set(formData.getAll("branchIds").map(String));
+  const hours: Record<string, WeekSchedule> = {};
+  for (const id of formData.getAll("hoursFor").map(String)) {
+    if (branchIds.has(id)) hours[id] = scheduleFromForm(formData, `hours_${id}_`);
+  }
+  return Object.keys(hours).length > 0 ? hours : undefined;
+}
+
 function doctorFields(formData: FormData) {
   return {
     nameEn: str(formData, "nameEn"),
@@ -105,6 +115,7 @@ function doctorFields(formData: FormData) {
     languagesEn: optStr(formData, "languagesEn"),
     languagesAr: optStr(formData, "languagesAr"),
     branchIds: formData.getAll("branchIds").map(String),
+    hours: doctorHours(formData),
     coordinationNumber: optStr(formData, "coordinationNumber"),
     showInDirectory: formData.get("showInDirectory") === "on",
     active: formData.get("active") === "on",

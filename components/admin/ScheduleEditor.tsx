@@ -21,10 +21,13 @@ export function ScheduleEditor({
   initial,
   locale,
   labels,
+  namePrefix = "",
 }: {
   initial: WeekSchedule;
   locale: Locale;
   labels: ScheduleLabels;
+  /** Prefix for the field names, when a form holds more than one schedule. */
+  namePrefix?: string;
 }) {
   const [days, setDays] = useState(() =>
     initial.map((d) => ({
@@ -50,7 +53,7 @@ export function ScheduleEditor({
             <label className="flex w-36 flex-shrink-0 items-center gap-2 text-sm font-bold text-ink-900">
               <input
                 type="checkbox"
-                name={`day${day}Open`}
+                name={`${namePrefix}day${day}Open`}
                 checked={!d.closed}
                 onChange={(e) => update(day, (x) => ({ ...x, closed: !e.target.checked }))}
                 className="h-4 w-4 rounded border-ink-300"
@@ -68,7 +71,7 @@ export function ScheduleEditor({
                 <div key={n} className="flex items-center gap-1.5">
                   <input
                     type="time"
-                    name={`day${day}From${n + 1}`}
+                    name={`${namePrefix}day${day}From${n + 1}`}
                     value={p.from}
                     aria-label={`${DAY_NAMES[locale][day]} ${labels.from}`}
                     onChange={(e) =>
@@ -83,7 +86,7 @@ export function ScheduleEditor({
                   <span className="text-ink-400">–</span>
                   <input
                     type="time"
-                    name={`day${day}To${n + 1}`}
+                    name={`${namePrefix}day${day}To${n + 1}`}
                     value={p.to}
                     aria-label={`${DAY_NAMES[locale][day]} ${labels.to}`}
                     onChange={(e) =>
