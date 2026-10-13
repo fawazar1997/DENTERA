@@ -1,4 +1,5 @@
 import type { Database, Doctor } from "./types";
+import { ABHA_SCHEDULE, KHAMIS_SCHEDULE } from "./defaults";
 
 // One-time data updates applied to the saved database. Each runs once:
 // it's applied whenever the data is read (so the site shows it right
@@ -147,7 +148,7 @@ const STUDIO_PHOTOS: Record<string, string> = {
   "abdulrahman-alasiri": "/doctors/abdulrahman-alasiri.webp",
 };
 
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -155,6 +156,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 1) migrateV1(db);
   if (version < 2) migrateV2(db);
   if (version < 3) migrateV3(db);
+  if (version < 4) migrateV4(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -193,5 +195,23 @@ function migrateV2(db: Database): void {
 function migrateV3(db: Database): void {
   db.doctors = db.doctors.map((doctor) =>
     STUDIO_PHOTOS[doctor.id] ? { ...doctor, photoUrl: STUDIO_PHOTOS[doctor.id] } : doctor
+  );
+}
+
+/** v4 — branch working hours from Google Maps (replace the old hours text). */
+function migrateV4(db: Database): void {
+  const schedules: Record<string, typeof ABHA_SCHEDULE> = {
+    abha: ABHA_SCHEDULE,
+    "khamis-mushait": KHAMIS_SCHEDULE,
+  };
+  db.branches = db.branches.map((branch) =>
+    schedules[branch.id]
+      ? {
+          ...branch,
+          schedule: schedules[branch.id].map((d) => ({ ...d, periods: [...d.periods] })),
+          hoursEn: undefined,
+          hoursAr: undefined,
+        }
+      : branch
   );
 }
