@@ -42,7 +42,7 @@ export default async function AdminBranchesPage({
             {dict.admin.addBranch}
           </summary>
           <div className="mt-6 max-w-3xl">
-            <BranchForm action={createBranchAction} dict={dict} />
+            <BranchForm action={createBranchAction} dict={dict} locale={locale} />
           </div>
         </details>
 
@@ -99,6 +99,7 @@ export default async function AdminBranchesPage({
                   <BranchForm
                     action={updateBranchAction}
                     dict={dict}
+                    locale={locale}
                     branch={branch}
                   />
                 </div>

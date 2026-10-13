@@ -7,6 +7,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { CallButton } from "@/components/CallButton";
 import { BranchCards } from "@/components/BranchCards";
 import { Reveal } from "@/components/Reveal";
+import { BranchHours } from "@/components/BranchHours";
 import { SocialLinks } from "@/components/SocialLinks";
 
 // Content is edited live from the control panel, so render on request
@@ -125,19 +126,16 @@ export default async function ContactPage({
                       {dict.contact.hoursValue}
                     </p>
                   ) : (
-                    <dl className="mt-2 space-y-2.5">
+                    <div className="mt-2 space-y-3">
                       {branches.map((branch) => (
                         <div key={branch.id}>
-                          <dt className="text-sm font-bold text-ink-900">
+                          <p className="mb-1.5 text-sm font-bold text-ink-900">
                             {locale === "ar" ? branch.nameAr : branch.nameEn}
-                          </dt>
-                          <dd className="text-sm text-ink-700">
-                            {(locale === "ar" ? branch.hoursAr : branch.hoursEn) ||
-                              dict.contact.hoursValue}
-                          </dd>
+                          </p>
+                          <BranchHours branch={branch} locale={locale} dict={dict} />
                         </div>
                       ))}
-                    </dl>
+                    </div>
                   )}
                 </div>
               </div>
@@ -173,7 +171,7 @@ export default async function ContactPage({
               {dict.contact.branchesTitle}
             </h2>
             <div className="mx-auto mt-10 max-w-4xl">
-              <BranchCards branches={branches} locale={locale} dict={dict} />
+              <BranchCards branches={branches} locale={locale} dict={dict} showHours={false} />
             </div>
           </div>
         </section>

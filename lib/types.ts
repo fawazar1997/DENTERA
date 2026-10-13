@@ -107,6 +107,15 @@ export type Partner = {
   active: boolean;
 };
 
+/** One day's opening periods; times are "HH:MM" (24h). */
+export type DayHours = {
+  closed: boolean;
+  periods: { from: string; to: string }[];
+};
+
+/** Seven days, indexed like Date.getDay() (0 = Sunday … 6 = Saturday). */
+export type WeekSchedule = DayHours[];
+
 export type Branch = {
   id: string;
   nameEn: string;
@@ -116,6 +125,12 @@ export type Branch = {
   /** Google Maps link opened when the branch is clicked. */
   mapUrl: string;
   phone?: string;
+  /** Weekly working hours, edited day by day in the control panel. */
+  schedule?: WeekSchedule;
+  /** Optional note under the hours, e.g. "Ramadan hours may differ". */
+  hoursNoteEn?: string;
+  hoursNoteAr?: string;
+  /** Old free-text hours; shown only until a schedule is saved. */
   hoursEn?: string;
   hoursAr?: string;
   active: boolean;

@@ -1,14 +1,19 @@
 import type { Branch } from "@/lib/types";
 import type { Dictionary } from "@/lib/dictionaries";
+import type { Locale } from "@/lib/i18n";
+import { branchSchedule, defaultSchedule } from "@/lib/hours";
+import { ScheduleEditor } from "./ScheduleEditor";
 import { SubmitButton } from "./SubmitButton";
 
 export function BranchForm({
   action,
   dict,
+  locale,
   branch,
 }: {
   action: (formData: FormData) => Promise<void>;
   dict: Dictionary;
+  locale: Locale;
   branch?: Branch;
 }) {
   return (
@@ -47,21 +52,45 @@ export function BranchForm({
         <p className="mt-1.5 text-xs text-ink-400">{dict.admin.mapUrlHint}</p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)]">
+      <div className="max-w-xs">
+        <label className="label">{dict.admin.phone}</label>
+        <input name="phone" dir="ltr" defaultValue={branch?.phone} className="input" />
+      </div>
+
+      <div>
+        <label className="label">{dict.admin.workingHours}</label>
+        <p className="mb-3 text-xs text-ink-400">{dict.admin.workingHoursHint}</p>
+        <ScheduleEditor
+          initial={(branch && branchSchedule(branch)) ?? defaultSchedule()}
+          locale={locale}
+          labels={{
+            open: dict.admin.dayOpen,
+            closed: dict.admin.dayClosed,
+            from: dict.admin.timeFrom,
+            to: dict.admin.timeTo,
+            addPeriod: dict.admin.addPeriod,
+            removePeriod: dict.admin.removePeriod,
+            copyToAll: dict.admin.copyToAllDays,
+          }}
+        />
+        {branch && !branchSchedule(branch) && (branch.hoursAr || branch.hoursEn) && (
+          <p className="mt-2 rounded-xl bg-accent-100 px-3 py-2 text-xs text-ink-800">
+            {dict.admin.oldHoursNotice}{" "}
+            <span className="font-semibold">{locale === "ar" ? branch.hoursAr || branch.hoursEn : branch.hoursEn || branch.hoursAr}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label className="label">{dict.admin.phone}</label>
-          <input name="phone" dir="ltr" defaultValue={branch?.phone} className="input" />
+          <label className="label">{dict.admin.hoursNoteEn}</label>
+          <input name="hoursNoteEn" defaultValue={branch?.hoursNoteEn} className="input" />
         </div>
         <div>
-          <label className="label">{dict.admin.hoursEn}</label>
-          <input name="hoursEn" defaultValue={branch?.hoursEn} className="input" />
-        </div>
-        <div>
-          <label className="label">{dict.admin.hoursAr}</label>
-          <input name="hoursAr" dir="rtl" defaultValue={branch?.hoursAr} className="input" />
+          <label className="label">{dict.admin.hoursNoteAr}</label>
+          <input name="hoursNoteAr" dir="rtl" defaultValue={branch?.hoursNoteAr} className="input" />
         </div>
       </div>
-      <p className="-mt-3 text-xs text-ink-400">{dict.admin.hoursHint}</p>
 
       <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
         <input

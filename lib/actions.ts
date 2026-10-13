@@ -27,6 +27,7 @@ import {
   updatePartner,
 } from "./db";
 import { deleteImage, uploadImage } from "./blob";
+import { scheduleFromForm } from "./hours";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
 import { PAGE_KEYS, type PageKey } from "./types";
@@ -275,8 +276,12 @@ function branchFields(formData: FormData) {
       optUrl(formData, "mapUrl") ??
       googleMapsSearchUrl(`عيادات دنتيرا ${nameAr} ${addressAr}`),
     phone: optStr(formData, "phone"),
-    hoursEn: optStr(formData, "hoursEn"),
-    hoursAr: optStr(formData, "hoursAr"),
+    schedule: scheduleFromForm(formData),
+    hoursNoteEn: optStr(formData, "hoursNoteEn"),
+    hoursNoteAr: optStr(formData, "hoursNoteAr"),
+    // The old free-text hours are replaced by the schedule once saved.
+    hoursEn: undefined,
+    hoursAr: undefined,
     active: formData.get("active") === "on",
   };
 }

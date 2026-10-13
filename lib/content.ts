@@ -241,9 +241,13 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       f("hoursLabel", "Working hours label", "عنوان ساعات العمل"),
       f(
         "hoursValue",
-        "Default working hours (for a branch without its own hours)",
-        "ساعات العمل الافتراضية (للفرع الذي ليس له ساعات خاصة)"
+        "Working hours (shown only when no branch is listed)",
+        "ساعات العمل (تظهر فقط عند عدم وجود فروع)"
       ),
+      f("hoursToday", "\"Today\" label in branch hours", "عبارة «اليوم» في ساعات الفروع"),
+      f("openNow", "\"Open now\" badge", "شارة «مفتوح الآن»"),
+      f("closedNow", "\"Closed now\" badge", "شارة «مغلق الآن»"),
+      f("closedDay", "\"Closed\" (day off)", "عبارة «مغلق» ليوم الإجازة"),
       f("branchesTitle", "Branches — title", "الفروع — العنوان"),
       f("openMap", "\"Open in maps\" button", "زر «افتح على الخريطة»"),
       f("socialTitle", "Social media — title", "مواقع التواصل — العنوان"),

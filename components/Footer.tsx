@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, Phone, Mail, Clock } from "lucide-react";
+import { MapPin, Phone, Mail } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import type { Branch, Department } from "@/lib/types";
@@ -7,6 +7,7 @@ import { telHref } from "@/lib/phone";
 import type { SocialLinks as Links } from "@/lib/social";
 import { Logo } from "./Logo";
 import { SocialLinks } from "./SocialLinks";
+import { BranchHours } from "./BranchHours";
 
 export function Footer({
   locale,
@@ -96,7 +97,7 @@ export function Footer({
           <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white">
             {dict.footer.branches}
           </h4>
-          <ul className="space-y-4 text-sm">
+          <ul className="space-y-5 text-sm">
             {branches.map((branch) => (
               <li key={branch.id}>
                 <a
@@ -113,14 +114,15 @@ export function Footer({
                     <span className="text-ink-300 group-hover:text-ink-100">
                       {ar ? branch.addressAr : branch.addressEn}
                     </span>
-                    {(ar ? branch.hoursAr : branch.hoursEn) && (
-                      <span className="mt-1 flex items-center gap-1.5 text-xs text-ink-400">
-                        <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                        {ar ? branch.hoursAr : branch.hoursEn}
-                      </span>
-                    )}
                   </span>
                 </a>
+                <BranchHours
+                  branch={branch}
+                  locale={locale}
+                  dict={dict}
+                  variant="dark"
+                  className="mt-2"
+                />
               </li>
             ))}
           </ul>
