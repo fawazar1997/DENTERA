@@ -235,76 +235,82 @@ export function DoctorDirectory({
       {results.length === 0 ? (
         <p className="py-16 text-center text-ink-500">{labels.noResults}</p>
       ) : (
-        <ul className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <ul className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {results.map((doctor) => (
-            <li key={doctor.id} className="card flex items-center gap-4 p-4">
-              <DoctorPhoto
-                photoUrl={doctor.photoUrl}
-                name={nameOf(doctor)}
-                sizes="64px"
-                className="h-20 w-16 flex-shrink-0 rounded-lg"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold text-ink-900">{nameOf(doctor)}</p>
-                <p className="truncate text-xs text-ink-500" dir={ar ? "ltr" : "rtl"}>
-                  {ar ? doctor.nameEn : doctor.nameAr}
-                </p>
-                <p className="mt-0.5 truncate text-xs text-primary-700">
-                  {ar ? doctor.titleAr : doctor.titleEn}
-                </p>
-                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink-500">
-                  <span>{departmentName.get(doctor.departmentId) ?? labels.notSet}</span>
-                  {doctor.branchIds.length > 0 && (
-                    <span>
-                      ·{" "}
-                      {doctor.branchIds
-                        .map((id) => branchName.get(id))
-                        .filter(Boolean)
-                        .join("، ")}
-                    </span>
-                  )}
-                  {!doctor.inDirectory && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-accent-100 px-1.5 py-0.5 font-semibold text-ink-800">
-                      <EyeOff className="h-3 w-3" />
-                      {labels.notInDirectory}
-                    </span>
-                  )}
-                  {!doctor.active && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-ink-100 px-1.5 py-0.5 font-semibold">
-                      <EyeOff className="h-3 w-3" />
-                      {labels.hiddenOnSite}
-                    </span>
-                  )}
-                </p>
+            <li key={doctor.id} className="card min-w-0 p-4">
+              <div className="flex items-start gap-3">
+                <DoctorPhoto
+                  photoUrl={doctor.photoUrl}
+                  name={nameOf(doctor)}
+                  sizes="56px"
+                  className="h-[4.5rem] w-14 flex-shrink-0 rounded-lg"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold text-ink-900">{nameOf(doctor)}</p>
+                  <p className="truncate text-xs text-ink-500 ltr:text-left rtl:text-right" dir={ar ? "ltr" : "rtl"}>
+                    {ar ? doctor.nameEn : doctor.nameAr}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-primary-700">
+                    {ar ? doctor.titleAr : doctor.titleEn}
+                  </p>
+                  <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-500">
+                    <span>{departmentName.get(doctor.departmentId) ?? labels.notSet}</span>
+                    {doctor.branchIds.length > 0 && (
+                      <span>
+                        ·{" "}
+                        {doctor.branchIds
+                          .map((id) => branchName.get(id))
+                          .filter(Boolean)
+                          .join("، ")}
+                      </span>
+                    )}
+                    {!doctor.inDirectory && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-accent-100 px-1.5 py-0.5 font-semibold text-ink-800">
+                        <EyeOff className="h-3 w-3" />
+                        {labels.notInDirectory}
+                      </span>
+                    )}
+                    {!doctor.active && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-ink-100 px-1.5 py-0.5 font-semibold">
+                        <EyeOff className="h-3 w-3" />
+                        {labels.hiddenOnSite}
+                      </span>
+                    )}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-shrink-0 flex-col items-end gap-1 text-end">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-ink-400">
-                  {labels.coordinationNumber}
-                </span>
-                {doctor.coordinationNumber ? (
-                  <>
-                    <span dir="ltr" className="text-lg font-extrabold tabular-nums text-ink-950">
+
+              {/* Number row: always its own line, so it fits any phone. */}
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-ink-50 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold text-ink-400">
+                    {labels.coordinationNumber}
+                  </p>
+                  {doctor.coordinationNumber ? (
+                    <p dir="ltr" className="truncate text-start text-lg font-extrabold tabular-nums text-ink-950 rtl:text-end">
                       {doctor.coordinationNumber}
-                    </span>
-                    <span className="flex gap-1">
-                      <a
-                        href={whatsappHref(doctor.coordinationNumber)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={labels.callNumber}
-                        aria-label={`${labels.callNumber} ${doctor.coordinationNumber}`}
-                        className="flex h-8 items-center gap-1.5 rounded-lg bg-primary-500 px-2.5 text-xs font-bold text-white transition hover:bg-primary-600"
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
-                          <path d={SOCIAL_ICON_PATHS.whatsapp} />
-                        </svg>
-                        {labels.callNumber}
-                      </a>
-                      <CopyButton value={doctor.coordinationNumber} labels={labels} />
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-lg font-bold text-ink-300">{labels.notSet}</span>
+                    </p>
+                  ) : (
+                    <p className="text-lg font-bold text-ink-300">{labels.notSet}</p>
+                  )}
+                </div>
+                {doctor.coordinationNumber && (
+                  <div className="flex flex-shrink-0 items-center gap-1">
+                    <a
+                      href={whatsappHref(doctor.coordinationNumber)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={labels.callNumber}
+                      aria-label={`${labels.callNumber} ${doctor.coordinationNumber}`}
+                      className="flex h-9 items-center gap-1.5 rounded-lg bg-primary-500 px-3 text-xs font-bold text-white transition hover:bg-primary-600"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+                        <path d={SOCIAL_ICON_PATHS.whatsapp} />
+                      </svg>
+                      {labels.callNumber}
+                    </a>
+                    <CopyButton value={doctor.coordinationNumber} labels={labels} />
+                  </div>
                 )}
               </div>
             </li>

@@ -36,28 +36,28 @@ export default async function StaffDirectoryPage({
   return (
     <div className="min-h-screen">
       <header className="bg-ink-950">
-        <div className="container-x flex flex-wrap items-center justify-between gap-3 py-4">
-          <div className="flex items-center gap-3">
-            <Logo className="h-9 w-auto" />
-            <span className="text-lg font-bold text-white">
-              {data.dict.admin.directory}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sand-200">
-              <Lock className="h-3.5 w-3.5" />
-              {data.dict.admin.internalOnly}
-            </span>
+        <div className="container-x py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Logo className="h-8 w-auto flex-shrink-0 sm:h-9" />
+              <span className="truncate text-base font-bold text-white sm:text-lg">
+                {data.dict.admin.directory}
+              </span>
+            </div>
             <Link
               href={`/${other}/directory/${params.key}`}
-              className="rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-ink-100 hover:border-primary-400 hover:text-white"
+              className="flex-shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-ink-100 hover:border-primary-400 hover:text-white"
             >
               {other === "ar" ? "العربية" : "English"}
             </Link>
           </div>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sand-200">
+            <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+            {data.dict.admin.internalOnly}
+          </span>
         </div>
       </header>
-      <main className="container-x py-6">
+      <main className="container-x min-w-0 py-5 sm:py-6">
         <DoctorDirectory
           doctors={data.doctors}
           departments={data.departments}
