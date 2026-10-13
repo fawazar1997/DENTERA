@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 
 /**
  * Whether Vercel Blob credentials are available. Blob stores connected
@@ -80,5 +80,20 @@ export async function uploadImage(
   } catch (error) {
     console.error("Image upload to Vercel Blob failed:", error);
     return undefined;
+  }
+}
+
+/**
+ * Delete an image that was uploaded to Vercel Blob (no-op for anything
+ * else, e.g. photos shipped with the site). Failures are only logged:
+ * the record is already updated, a leftover file is harmless.
+ */
+export async function deleteImage(url: string | undefined): Promise<void> {
+  if (!url || !isBlobConfigured()) return;
+  if (!/^https:\/\/[^/]+\.blob\.vercel-storage\.com\//.test(url)) return;
+  try {
+    await del(url);
+  } catch (error) {
+    console.error("Failed to delete image from Vercel Blob:", error);
   }
 }

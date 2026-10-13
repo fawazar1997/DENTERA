@@ -382,6 +382,7 @@ export const dictionaries = {
       showInDirectory: "Show in the coordination directory",
       notInDirectory: "Not in directory",
       lowResPhoto: "Low-resolution photo",
+      removePhoto: "Remove current photo (on save)",
       photoQualityHint:
         "For sharp photos upload at least 1000px wide (ideally 1500–2000px), JPG, PNG or WebP under 4MB. Cut-out portraits (transparent background) look best.",
       texts: "Texts & Numbers",
@@ -776,6 +777,7 @@ export const dictionaries = {
       showInDirectory: "إظهار الطبيب في دليل التنسيق",
       notInDirectory: "غير ظاهر في الدليل",
       lowResPhoto: "دقة الصورة منخفضة",
+      removePhoto: "حذف الصورة الحالية (عند الحفظ)",
       photoQualityHint:
         "لصور واضحة ارفع صورة بعرض 1000 بكسل على الأقل (والأفضل 1500–2000 بكسل)، بصيغة JPG أو PNG أو WebP وبحجم أقل من 4 ميجابايت. الصور المقصوصة بدون خلفية تظهر بأفضل شكل.",
       texts: "النصوص والأرقام",

@@ -26,7 +26,7 @@ import {
   updateDoctor,
   updatePartner,
 } from "./db";
-import { uploadImage } from "./blob";
+import { deleteImage, uploadImage } from "./blob";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
 import { PAGE_KEYS, type PageKey } from "./types";
@@ -120,15 +120,21 @@ export async function createDoctorAction(formData: FormData) {
 export async function updateDoctorAction(formData: FormData) {
   await requireAdmin();
   const id = str(formData, "id");
+  const oldPhotoUrl = (await getDoctor(id))?.photoUrl;
   const newPhotoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
-  const photoUrl = newPhotoUrl ?? (await getDoctor(id))?.photoUrl;
+  const removePhoto = formData.get("removePhoto") === "on";
+  // A new upload replaces the photo; "remove" clears it; otherwise keep it.
+  const photoUrl = newPhotoUrl ?? (removePhoto ? undefined : oldPhotoUrl);
   await updateDoctor(id, { ...doctorFields(formData), photoUrl });
+  if (oldPhotoUrl && oldPhotoUrl !== photoUrl) await deleteImage(oldPhotoUrl);
   revalidateAll();
 }
 
 export async function deleteDoctorAction(formData: FormData) {
   await requireAdmin();
-  await deleteDoctor(str(formData, "id"));
+  const id = str(formData, "id");
+  const photoUrl = (await getDoctor(id))?.photoUrl;
+  if (await deleteDoctor(id)) await deleteImage(photoUrl);
   revalidateAll();
 }
 

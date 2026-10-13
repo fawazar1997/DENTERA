@@ -48,8 +48,16 @@ export function DoctorForm({
         </div>
         <p className="mt-1.5 text-xs text-ink-400">{dict.admin.photoQualityHint}</p>
         {doctor?.photoUrl && (
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap items-center gap-3">
             <PhotoQualityBadge src={doctor.photoUrl} label={dict.admin.lowResPhoto} />
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-accent-50 px-3 py-1.5 text-xs font-bold text-accent-800">
+              <input
+                type="checkbox"
+                name="removePhoto"
+                className="h-4 w-4 rounded border-ink-300"
+              />
+              {dict.admin.removePhoto}
+            </label>
           </div>
         )}
       </div>
