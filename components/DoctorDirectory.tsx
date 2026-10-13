@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Phone, Copy, Check, X, EyeOff } from "lucide-react";
+import { Search, Copy, Check, X, EyeOff } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
-import { telHref } from "@/lib/phone";
+import { whatsappHref } from "@/lib/phone";
+import { SOCIAL_ICON_PATHS } from "@/lib/socialIconPaths";
 import { DoctorPhoto } from "./DoctorPhoto";
 
 export type DirectoryDoctor = {
@@ -287,12 +288,17 @@ export function DoctorDirectory({
                     </span>
                     <span className="flex gap-1">
                       <a
-                        href={telHref(doctor.coordinationNumber)}
+                        href={whatsappHref(doctor.coordinationNumber)}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         title={labels.callNumber}
                         aria-label={`${labels.callNumber} ${doctor.coordinationNumber}`}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500 text-white transition hover:bg-primary-600"
+                        className="flex h-8 items-center gap-1.5 rounded-lg bg-primary-500 px-2.5 text-xs font-bold text-white transition hover:bg-primary-600"
                       >
-                        <Phone className="h-4 w-4" />
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+                          <path d={SOCIAL_ICON_PATHS.whatsapp} />
+                        </svg>
+                        {labels.callNumber}
                       </a>
                       <CopyButton value={doctor.coordinationNumber} labels={labels} />
                     </span>
