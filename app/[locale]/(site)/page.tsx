@@ -19,7 +19,8 @@ import { DoctorCard } from "@/components/DoctorCard";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Testimonials } from "@/components/Testimonials";
 import { Reveal } from "@/components/Reveal";
-import { PartnersMarquee } from "@/components/PartnersMarquee";
+import { LogoGallery } from "@/components/LogoGallery";
+import { PaymentMethods } from "@/components/PaymentMethods";
 import { BranchCards } from "@/components/BranchCards";
 
 // Content is edited live from the control panel, so render on request
@@ -38,7 +39,9 @@ export default async function HomePage({
   const departments = await getActiveDepartments();
   const doctors = await getActiveDoctors();
   const settings = await getSettings();
-  const partners = await getActivePartners();
+  const partners = await getActivePartners("partners");
+  const brands = await getActivePartners("brands");
+  const payments = await getActivePartners("payments");
   const branches = await getActiveBranches();
   const offers = await getLiveOffers();
   const rtl = locale === "ar";
@@ -153,7 +156,25 @@ export default async function HomePage({
         </div>
       </section>
 
-      <PartnersMarquee partners={partners} locale={locale} dict={dict} />
+      <PaymentMethods
+        methods={payments}
+        locale={locale}
+        title={dict.home.paymentsTitle}
+        body={dict.home.paymentsBody}
+      />
+      <LogoGallery
+        logos={brands}
+        locale={locale}
+        title={dict.home.brandsTitle}
+        subtitle={dict.home.brandsSubtitle}
+        className="bg-ink-50/60"
+      />
+      <LogoGallery
+        logos={partners}
+        locale={locale}
+        title={dict.home.partnersTitle}
+        subtitle={dict.home.partnersSubtitle}
+      />
 
       {branches.length > 0 && (
         <section className="section-y bg-ink-50/60">

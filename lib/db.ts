@@ -13,6 +13,7 @@ import type {
   Offer,
   PageKey,
   Partner,
+  LogoGroup,
   SiteSettings,
 } from "./types";
 import { DEFAULT_BRANCHES } from "./defaults";
@@ -369,8 +370,12 @@ export async function getPartners(): Promise<Partner[]> {
   return (await readDb()).partners;
 }
 
-export async function getActivePartners(): Promise<Partner[]> {
-  return (await readDb()).partners.filter((p) => p.active);
+export async function getActivePartners(
+  group: LogoGroup = "partners"
+): Promise<Partner[]> {
+  return (await readDb()).partners.filter(
+    (p) => p.active && (p.group ?? "partners") === group
+  );
 }
 
 export async function createPartner(

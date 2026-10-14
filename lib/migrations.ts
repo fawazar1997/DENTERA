@@ -1,4 +1,4 @@
-import type { Database, Doctor } from "./types";
+import type { Database, Doctor, Partner } from "./types";
 import { ABHA_SCHEDULE, KHAMIS_SCHEDULE } from "./defaults";
 
 // One-time data updates applied to the saved database. Each runs once:
@@ -148,7 +148,26 @@ const STUDIO_PHOTOS: Record<string, string> = {
   "abdulrahman-alasiri": "/doctors/abdulrahman-alasiri.webp",
 };
 
-export const DATA_VERSION = 4;
+/**
+ * Payment methods and featured brands for the home page galleries. Apple
+ * Pay and Tamara ship with their official marks; the rest show their name
+ * until a logo is uploaded. Brands other than Invisalign start hidden:
+ * suggestions to switch on from the control panel if the clinic uses them.
+ */
+const SEED_LOGOS: Partner[] = [
+  { id: "pay-apple-pay", group: "payments", nameEn: "Apple Pay", nameAr: "Apple Pay", logoUrl: "/brand/payments/apple-pay.svg", active: true },
+  { id: "pay-tamara", group: "payments", nameEn: "Tamara", nameAr: "تمارا", logoUrl: "/brand/payments/tamara.svg", active: true },
+  { id: "pay-tabby", group: "payments", nameEn: "Tabby", nameAr: "تابي", active: true },
+  { id: "pay-emkan", group: "payments", nameEn: "Emkan", nameAr: "إمكان", active: true },
+  { id: "brand-invisalign", group: "brands", nameEn: "Invisalign", nameAr: "Invisalign", active: true },
+  { id: "brand-itero", group: "brands", nameEn: "iTero", nameAr: "iTero", active: false },
+  { id: "brand-straumann", group: "brands", nameEn: "Straumann", nameAr: "Straumann", active: false },
+  { id: "brand-nobel-biocare", group: "brands", nameEn: "Nobel Biocare", nameAr: "Nobel Biocare", active: false },
+  { id: "brand-ivoclar", group: "brands", nameEn: "Ivoclar", nameAr: "Ivoclar", active: false },
+  { id: "brand-3shape", group: "brands", nameEn: "3Shape", nameAr: "3Shape", active: false },
+];
+
+export const DATA_VERSION = 5;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -157,6 +176,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 2) migrateV2(db);
   if (version < 3) migrateV3(db);
   if (version < 4) migrateV4(db);
+  if (version < 5) migrateV5(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -214,4 +234,12 @@ function migrateV4(db: Database): void {
         }
       : branch
   );
+}
+
+/** v5 — payment methods and featured brands galleries. */
+function migrateV5(db: Database): void {
+  const ids = new Set(db.partners.map((p) => p.id));
+  for (const logo of SEED_LOGOS) {
+    if (!ids.has(logo.id)) db.partners.push({ ...logo });
+  }
 }

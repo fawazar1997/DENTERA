@@ -30,7 +30,13 @@ import { deleteImage, uploadImage } from "./blob";
 import { scheduleFromForm } from "./hours";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
-import { PAGE_KEYS, type PageKey, type WeekSchedule } from "./types";
+import {
+  LOGO_GROUPS,
+  PAGE_KEYS,
+  type LogoGroup,
+  type PageKey,
+  type WeekSchedule,
+} from "./types";
 import { SOCIAL_PLATFORMS, type SocialLinks } from "./social";
 
 /**
@@ -242,7 +248,11 @@ export async function saveSocialAction(formData: FormData) {
 // Partners
 
 function partnerFields(formData: FormData) {
+  const group = str(formData, "group");
   return {
+    group: (LOGO_GROUPS as readonly string[]).includes(group)
+      ? (group as LogoGroup)
+      : undefined,
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
     websiteUrl: optUrl(formData, "websiteUrl"),

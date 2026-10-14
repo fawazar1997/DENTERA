@@ -1,5 +1,5 @@
 import Image from "next/image";
-import type { Partner } from "@/lib/types";
+import type { LogoGroup, Partner } from "@/lib/types";
 import type { Dictionary } from "@/lib/dictionaries";
 import { SubmitButton } from "./SubmitButton";
 
@@ -7,14 +7,17 @@ export function PartnerForm({
   action,
   dict,
   partner,
+  group,
 }: {
   action: (formData: FormData) => Promise<void>;
   dict: Dictionary;
   partner?: Partner;
+  group: LogoGroup;
 }) {
   return (
     <form action={action} encType="multipart/form-data" className="space-y-5">
       {partner && <input type="hidden" name="id" value={partner.id} />}
+      <input type="hidden" name="group" value={group} />
 
       <div>
         <label className="label">{dict.admin.logo}</label>

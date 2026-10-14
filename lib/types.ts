@@ -100,8 +100,14 @@ export type Offer = {
   order?: number;
 };
 
+/** Home-page logo galleries a logo can belong to. */
+export const LOGO_GROUPS = ["partners", "brands", "payments"] as const;
+export type LogoGroup = (typeof LOGO_GROUPS)[number];
+
 export type Partner = {
   id: string;
+  /** Gallery the logo shows in (no value = partners). */
+  group?: LogoGroup;
   nameEn: string;
   nameAr: string;
   logoUrl?: string;

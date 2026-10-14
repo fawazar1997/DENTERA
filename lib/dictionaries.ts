@@ -71,6 +71,12 @@ export const dictionaries = {
       doctorsCta: "View All Doctors",
       partnersTitle: "Our Partners",
       partnersSubtitle: "Trusted organizations we proudly work with.",
+      brandsTitle: "World-Class Brands We Trust",
+      brandsSubtitle:
+        "We treat with the latest technology and materials from the world's leading dental brands.",
+      paymentsTitle: "Your smile now — pay your way",
+      paymentsBody:
+        "Split the cost of your treatment into easy instalments with Tamara, Tabby or Emkan, or pay in a single tap with Apple Pay.",
       branchesTitle: "Our Branches",
       branchesSubtitle: "Tap a branch to open its location on the map.",
       ctaTitle: "Ready for Your Best Smile?",
@@ -306,9 +312,16 @@ export const dictionaries = {
       pageContact: "Contact",
       blobNotEnabled:
         "Photo uploads are currently disabled: Vercel Blob storage isn't set up for this project yet. Everything else on this page still saves normally. To enable uploads: Vercel dashboard → your project → Storage → Create Database → Blob, then redeploy.",
-      partners: "Partners",
+      partners: "Logos",
       partnersSubtitle:
-        "Partner logos scroll across the home page in an animated gallery.",
+        "The logo galleries on the home page: partners, featured brands and payment methods. Logos sit still in rows; each one added goes on the next row.",
+      logoGroupPartners: "Partners",
+      logoGroupBrands: "Featured brands",
+      logoGroupPayments: "Payment methods",
+      logoGroupPartnersHint: "Organizations Dentera partners with.",
+      logoGroupBrandsHint: "Leading brands the clinic works with (e.g. Invisalign).",
+      logoGroupPaymentsHint: "Shown in the payment methods band with its marketing line (edit it in Texts → Home page).",
+      addLogo: "Add logo",
       addPartner: "Add Partner",
       logo: "Logo",
       logoHint:
@@ -493,6 +506,11 @@ export const dictionaries = {
       doctorsCta: "عرض جميع الأطباء",
       partnersTitle: "شركاؤنا",
       partnersSubtitle: "جهات موثوقة نعتز بالشراكة معها.",
+      brandsTitle: "علامات عالمية نثق بها",
+      brandsSubtitle: "نعالجك بأحدث التقنيات والمواد من أبرز العلامات التجارية العالمية في طب الأسنان.",
+      paymentsTitle: "ابتسامتك الآن… وادفع براحتك",
+      paymentsBody:
+        "قسّط تكلفة علاجك على دفعات ميسّرة مع تمارا وتابي وإمكان، أو ادفع بلمسة واحدة عبر Apple Pay.",
       branchesTitle: "فروعنا",
       branchesSubtitle: "اضغط على الفرع لفتح موقعه على الخريطة.",
       ctaTitle: "هل أنت مستعد لأفضل ابتسامة؟",
@@ -725,8 +743,16 @@ export const dictionaries = {
       pageContact: "تواصل معنا",
       blobNotEnabled:
         "رفع الصور معطّل حالياً: لم يتم تفعيل خدمة Vercel Blob لهذا المشروع بعد. باقي الحقول في هذه الصفحة تُحفظ بشكل طبيعي. لتفعيل رفع الصور: من لوحة Vercel ← مشروعك ← Storage ← Create Database ← Blob، ثم أعد النشر.",
-      partners: "الشركاء",
-      partnersSubtitle: "تظهر شعارات الشركاء في الصفحة الرئيسية بمعرض متحرك.",
+      partners: "الشعارات",
+      partnersSubtitle:
+        "معارض الشعارات في الصفحة الرئيسية: الشركاء، العلامات المتميزة، وطرق الدفع. الشعارات ثابتة في صفوف، وكل شعار جديد ينزل في الصف التالي.",
+      logoGroupPartners: "الشركاء",
+      logoGroupBrands: "العلامات المتميزة",
+      logoGroupPayments: "طرق الدفع",
+      logoGroupPartnersHint: "الجهات التي تتعاون معها دنتيرا.",
+      logoGroupBrandsHint: "العلامات العالمية التي تتعامل معها العيادة (مثل Invisalign).",
+      logoGroupPaymentsHint: "تظهر في شريط طرق الدفع مع العبارة التسويقية (تعديلها من النصوص ← الصفحة الرئيسية).",
+      addLogo: "إضافة شعار",
       addPartner: "إضافة شريك",
       logo: "الشعار",
       logoHint: "يُفضّل شعار PNG بخلفية شفافة (بحد أقصى 5 ميجابايت).",
