@@ -16,11 +16,12 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
-import { getActiveBranches, getDepartment, getDoctor } from "@/lib/db";
+import { getActiveBranches, getActiveDepartments, getDepartment, getDoctor } from "@/lib/db";
+import { bookingFormLabels } from "@/lib/bookingLabels";
 import { BranchHours } from "@/components/BranchHours";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { DepartmentIcon } from "@/components/IconMap";
-import { CallButton } from "@/components/CallButton";
+import { BookingForm } from "@/components/BookingForm";
 import { Reveal } from "@/components/Reveal";
 
 // Content is edited live from the control panel, so render on request
@@ -107,6 +108,7 @@ export default async function DoctorProfilePage({
 
   const dict = await getSiteDictionary(locale);
   const department = await getDepartment(doctor.departmentId);
+  const allDepartments = await getActiveDepartments();
   const branches = (await getActiveBranches()).filter((b) =>
     doctor.branchIds?.includes(b.id)
   );
@@ -325,16 +327,24 @@ export default async function DoctorProfilePage({
                   className="absolute -bottom-16 -end-16 h-48 w-48 rounded-full bg-primary-500/25 blur-3xl"
                   aria-hidden="true"
                 />
-                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold">
-                      {dict.doctorProfile.bookTitle}
-                    </h2>
-                    <p className="mt-1 text-sm text-sand-200">
-                      {dict.doctorProfile.bookBody}
-                    </p>
-                  </div>
-                  <CallButton dict={dict} variant="accent" className="flex-shrink-0" />
+                <div className="relative">
+                  <h2 className="text-xl font-bold">
+                    {dict.doctorProfile.bookTitle}
+                  </h2>
+                  <p className="mt-1 text-sm text-sand-200">
+                    {dict.doctorProfile.bookBody}
+                  </p>
+                  <BookingForm
+                    source="doctor"
+                    doctorId={doctor.id}
+                    defaultDepartmentId={doctor.departmentId}
+                    labels={bookingFormLabels(dict)}
+                    departments={allDepartments.map((d) => ({
+                      id: d.id,
+                      name: ar ? d.nameAr : d.nameEn,
+                    }))}
+                    className="mt-5 text-ink-900"
+                  />
                 </div>
               </section>
             </Reveal>

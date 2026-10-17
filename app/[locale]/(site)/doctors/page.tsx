@@ -72,7 +72,7 @@ export default async function DoctorsPage({
         </div>
       </section>
 
-      <CtaBanner locale={locale} dict={dict} />
+      <CtaBanner locale={locale} dict={dict} source="doctors" />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CalendarCheck,
   LayoutDashboard,
   Stethoscope,
   Building2,
@@ -32,6 +33,11 @@ export function AdminNav({
       href: `/${locale}/admin`,
       label: dict.admin.dashboardTitle,
       icon: LayoutDashboard,
+    },
+    {
+      href: `/${locale}/admin/bookings`,
+      label: dict.admin.bookings,
+      icon: CalendarCheck,
     },
     {
       href: `/${locale}/admin/doctors`,

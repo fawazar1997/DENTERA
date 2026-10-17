@@ -52,7 +52,7 @@ export default async function DepartmentsPage({
         </div>
       </section>
 
-      <CtaBanner locale={locale} dict={dict} />
+      <CtaBanner locale={locale} dict={dict} source="departments" />
     </>
   );
 }

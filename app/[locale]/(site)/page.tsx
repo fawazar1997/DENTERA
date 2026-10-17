@@ -195,7 +195,7 @@ export default async function HomePage({
       )}
 
       <Testimonials locale={locale} dict={dict} />
-      <CtaBanner locale={locale} dict={dict} />
+      <CtaBanner locale={locale} dict={dict} source="home" />
     </>
   );
 }

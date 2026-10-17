@@ -2,9 +2,10 @@ import { Phone, Mail, Clock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { telHref } from "@/lib/phone";
-import { getActiveBranches, getSettings } from "@/lib/db";
+import { getActiveBranches, getActiveDepartments, getSettings } from "@/lib/db";
+import { bookingFormLabels } from "@/lib/bookingLabels";
 import { PageBanner } from "@/components/PageBanner";
-import { CallButton } from "@/components/CallButton";
+import { BookingForm } from "@/components/BookingForm";
 import { BranchCards } from "@/components/BranchCards";
 import { Reveal } from "@/components/Reveal";
 import { BranchHours } from "@/components/BranchHours";
@@ -25,6 +26,7 @@ export default async function ContactPage({
   const dict = await getSiteDictionary(locale);
   const settings = await getSettings();
   const branches = await getActiveBranches();
+  const departments = await getActiveDepartments();
 
   return (
     <>
@@ -56,21 +58,15 @@ export default async function ContactPage({
                 <p className="mt-3 max-w-lg text-sand-200">
                   {dict.contact.bookingBody}
                 </p>
-                <a
-                  href={telHref(dict.booking.phone)}
-                  dir="ltr"
-                  className="mt-8 inline-block text-4xl font-bold tracking-tight text-primary-300 transition hover:text-primary-200 sm:text-5xl"
-                >
-                  {dict.booking.phone}
-                </a>
-                <div>
-                  <CallButton
-                    dict={dict}
-                    variant="accent"
-                    showNumber={false}
-                    className="mt-8 px-8 py-4 text-base"
-                  />
-                </div>
+                <BookingForm
+                  source="contact"
+                  labels={bookingFormLabels(dict)}
+                  departments={departments.map((d) => ({
+                    id: d.id,
+                    name: locale === "ar" ? d.nameAr : d.nameEn,
+                  }))}
+                  className="mt-8 text-ink-900"
+                />
               </div>
             </div>
           </Reveal>

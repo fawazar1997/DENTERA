@@ -44,7 +44,7 @@ export default async function OffersPage({
           )}
         </div>
       </section>
-      <CtaBanner locale={locale} dict={dict} />
+      <CtaBanner locale={locale} dict={dict} source="offers" />
     </>
   );
 }

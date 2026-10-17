@@ -8,11 +8,13 @@ import {
   Type,
   ArrowRight,
   ArrowLeft,
+  CalendarCheck,
 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getDepartments, getDoctors, getPartners } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { getBookings } from "@/lib/bookings";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -27,15 +29,23 @@ export default async function AdminDashboardPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const [doctors, departments, partners, branches] = await Promise.all([
+  const [doctors, departments, partners, branches, bookings] = await Promise.all([
     getDoctors(),
     getDepartments(),
     getPartners(),
     getBranches(),
+    getBookings().catch(() => []),
   ]);
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
 
   const cards = [
+    {
+      href: `/${locale}/admin/bookings`,
+      icon: CalendarCheck,
+      label: `${dict.admin.bookings} — ${dict.admin.statusNew}`,
+      value: bookings.filter((b) => b.status === "new").length,
+      color: "bg-primary-600 text-white",
+    },
     {
       href: `/${locale}/admin/doctors`,
       icon: Stethoscope,
@@ -90,7 +100,7 @@ export default async function AdminDashboardPage({
         </h1>
         <p className="mt-1 text-ink-500">{dict.admin.dashboardSubtitle}</p>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
           {cards.map((card) => (
             <Link
               key={card.href}

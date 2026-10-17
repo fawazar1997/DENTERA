@@ -70,6 +70,8 @@ export type SiteSettings = {
    * the old link.
    */
   directoryKey?: string;
+  /** Secret part of the call center's private bookings link. */
+  bookingsKey?: string;
 };
 
 /** A promotional offer: a home page banner that opens its own page. */
@@ -160,4 +162,34 @@ export type Database = {
   offers: Offer[];
   /** Last one-time data update applied (see lib/migrations.ts). */
   dataVersion?: number;
+};
+
+/** Where a booking request stands, as updated by the call center. */
+export type BookingStatus =
+  | "new"
+  | "no_answer"
+  | "contacted"
+  | "callback"
+  | "booked"
+  | "cancelled";
+
+/** An online appointment request from the website. */
+export type Booking = {
+  id: string;
+  createdAt: string;
+  name: string;
+  /** Saudi mobile, 05XXXXXXXX. */
+  phone: string;
+  /** Requested department ("" when the patient isn't sure). */
+  departmentId: string;
+  /** Set when booked from a doctor's page. */
+  doctorId?: string;
+  /** Page the request was sent from, e.g. "home", "contact", "doctor". */
+  source?: string;
+  status: BookingStatus;
+  note?: string;
+  /** Name of the call-center agent who last updated it. */
+  agent?: string;
+  updatedAt?: string;
+  history?: { status: BookingStatus; at: string; agent?: string }[];
 };

@@ -25,16 +25,27 @@ const f = (key: string, en: string, ar: string): FieldDef => ({
 export const CONTENT_SECTIONS: ContentSection[] = [
   {
     id: "booking",
-    label: { en: "Booking phone", ar: "رقم الحجز" },
+    label: { en: "Booking", ar: "الحجز" },
     hint: {
-      en: "Every booking button on the website calls this number.",
-      ar: "كل أزرار الحجز في الموقع تتصل على هذا الرقم.",
+      en: "The booking phone number (every call button uses it) and the appointment request form.",
+      ar: "رقم الحجز (تستخدمه كل أزرار الاتصال) ونموذج طلب الموعد.",
     },
     fields: [
       f("phone", "Booking phone number", "رقم الحجز"),
       f("button", "Booking button text", "نص زر الحجز"),
       f("buttonShort", "Short booking button text (mobile)", "نص زر الحجز المختصر (الجوال)"),
       f("note", "Booking note", "ملاحظة الحجز"),
+      f("formTitle", "Request form — title", "نموذج الطلب — العنوان"),
+      f("formBody", "Request form — text", "نموذج الطلب — النص"),
+      f("formName", "\"Name\" field", "حقل «الاسم»"),
+      f("formPhone", "\"Mobile\" field", "حقل «رقم الجوال»"),
+      f("formDepartment", "\"Department\" field", "حقل «القسم»"),
+      f("formDepartmentAny", "\"Not sure\" department option", "خيار «غير متأكد» في القسم"),
+      f("formSubmit", "Send button", "زر الإرسال"),
+      f("formSuccessTitle", "After sending — title", "بعد الإرسال — العنوان"),
+      f("formSuccessBody", "After sending — text", "بعد الإرسال — النص"),
+      f("formOrCall", "\"Or call us\" line", "عبارة «أو اتصل بنا»"),
+      f("formPrivacy", "Privacy line under the form", "سطر الخصوصية تحت النموذج"),
     ],
   },
   {

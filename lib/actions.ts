@@ -404,15 +404,25 @@ export async function deleteOfferAction(formData: FormData) {
 
 // Staff coordination directory
 
-/** Creates (or replaces, revoking the old one) the private directory link. */
-export async function generateDirectoryKeyAction() {
-  await requireAdmin();
-  // 24 random bytes → 32 URL-safe characters; not guessable.
+/** 24 random bytes → 32 URL-safe characters; not guessable. */
+function randomKey(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
-  const key = btoa(String.fromCharCode(...bytes))
+  return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/, "");
-  await updateSettings({ directoryKey: key });
+}
+
+/** Creates (or replaces, revoking the old one) the private directory link. */
+export async function generateDirectoryKeyAction() {
+  await requireAdmin();
+  await updateSettings({ directoryKey: randomKey() });
+  revalidateAll();
+}
+
+/** Creates (or replaces, revoking the old one) the call center's bookings link. */
+export async function generateBookingsKeyAction() {
+  await requireAdmin();
+  await updateSettings({ bookingsKey: randomKey() });
   revalidateAll();
 }
