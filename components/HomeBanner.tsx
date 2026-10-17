@@ -32,10 +32,6 @@ export function HomeBanner({
   return (
     <div className="relative flex h-56 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-ink-900 to-ink-950 sm:h-72 lg:h-[28rem]">
       <div
-        className="absolute inset-0 bg-brand-pattern bg-primary-400 opacity-[0.14]"
-        aria-hidden="true"
-      />
-      <div
         className="absolute -top-24 start-1/4 h-72 w-72 rounded-full bg-primary-500/25 blur-3xl"
         aria-hidden="true"
       />

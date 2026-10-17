@@ -90,10 +90,6 @@ export function OfferCarousel({
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-ink-900 via-ink-900 to-primary-800">
-                <div
-                  className="absolute inset-0 bg-brand-pattern bg-primary-400 opacity-[0.14]"
-                  aria-hidden="true"
-                />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/brand/dentera-mark.svg"

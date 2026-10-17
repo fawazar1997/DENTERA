@@ -46,10 +46,6 @@ export function PageBanner({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 to-paper">
-      <div
-        className="bg-brand-pattern bg-primary-500 opacity-[0.12] absolute inset-0"
-        aria-hidden="true"
-      />
       <div className="container-x section-y relative animate-fade-up text-center opacity-0">
         <h1 className="text-4xl font-semibold tracking-tight text-ink-950 sm:text-5xl">
           {title}

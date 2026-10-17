@@ -92,28 +92,3 @@ body {
     transform: none;
   }
 }
-
-
-/*
- * Brand pattern: the Dentera tooth mark repeated in staggered rows, used
- * in place of dot grids. It's a seamless tile applied as a mask, so the
- * element's background colour is the pattern colour:
- *   <div class="bg-brand-pattern bg-primary-400 opacity-20" />
- * Tile width: [--pattern-size:120px].
- */
-.bg-brand-pattern {
-  --pattern-default: 180px;
-  -webkit-mask-image: url("/brand/pattern.svg");
-  mask-image: url("/brand/pattern.svg");
-  -webkit-mask-size: var(--pattern-size, var(--pattern-default));
-  mask-size: var(--pattern-size, var(--pattern-default));
-  -webkit-mask-repeat: repeat;
-  mask-repeat: repeat;
-}
-
-/* Smaller marks on phones, so they stay a texture rather than a motif. */
-@media (max-width: 640px) {
-  .bg-brand-pattern {
-    --pattern-default: 120px;
-  }
-}

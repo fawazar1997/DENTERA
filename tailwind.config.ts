@@ -101,10 +101,6 @@ const config: Config = {
         tighter: "-0.035em",
         tight: "-0.02em",
       },
-      backgroundImage: {
-        "hero-grid":
-          "radial-gradient(circle at 1px 1px, rgba(20,20,128,0.07) 1px, transparent 0)",
-      },
       keyframes: {
         "fade-up": {
           "0%": { opacity: "0", transform: "translateY(16px)" },

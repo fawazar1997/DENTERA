@@ -52,10 +52,6 @@ export function DoctorPhoto({
           className={`absolute inset-0 bg-gradient-to-br from-ink-900 via-ink-900 to-primary-800 ${zoom}`}
         >
           <div
-            className="absolute inset-0 bg-brand-pattern bg-primary-400 opacity-20 [--pattern-size:130px]"
-            aria-hidden="true"
-          />
-          <div
             className="absolute -bottom-1/4 -end-1/4 h-3/4 w-3/4 rounded-full bg-primary-500/30 blur-3xl"
             aria-hidden="true"
           />

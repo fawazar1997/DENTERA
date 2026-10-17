@@ -100,10 +100,6 @@ export default async function IdentityPage({
           <Reveal delay={120}>
             <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-ink-900 to-ink-950 shadow-soft">
               <div
-                className="absolute inset-0 bg-brand-pattern bg-primary-400 opacity-[0.14]"
-                aria-hidden="true"
-              />
-              <div
                 className="absolute -bottom-16 -end-16 h-64 w-64 rounded-full bg-primary-500/30 blur-3xl"
                 aria-hidden="true"
               />

@@ -24,10 +24,6 @@ export async function CtaBanner({
       <div className="container-x">
         <div className="relative overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 to-ink-950 px-6 py-10 shadow-soft sm:px-12 sm:py-14">
           <div
-            className="bg-brand-pattern bg-primary-400 opacity-[0.14] absolute inset-0"
-            aria-hidden="true"
-          />
-          <div
             className="absolute -bottom-24 -start-24 h-72 w-72 rounded-full bg-primary-500/20 blur-3xl"
             aria-hidden="true"
           />

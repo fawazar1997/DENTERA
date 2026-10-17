@@ -150,10 +150,6 @@ export default async function DoctorProfilePage({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
-      <div
-        className="bg-brand-pattern bg-primary-500 opacity-[0.12] absolute inset-x-0 top-0 h-96"
-        aria-hidden="true"
-      />
       <div className="container-x relative py-8 sm:py-10 lg:py-12">
         <Link
           href={localePath(locale, `/doctors`)}

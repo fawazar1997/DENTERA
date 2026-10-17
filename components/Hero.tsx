@@ -31,10 +31,6 @@ export function Hero({
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
         <div
-          className="bg-brand-pattern bg-primary-500 opacity-[0.12] absolute inset-0"
-          aria-hidden="true"
-        />
-        <div
           className="absolute -top-24 start-[5%] h-72 w-72 rounded-full bg-primary-200/50 blur-3xl"
           aria-hidden="true"
         />
@@ -85,10 +81,6 @@ export function Hero({
               />
               <div
                 className="absolute inset-0 rotate-3 scale-[0.98] rounded-[2.25rem] bg-primary-200/80 rtl:-rotate-3"
-                aria-hidden="true"
-              />
-              <div
-                className="absolute -end-6 -top-6 h-28 w-28 rounded-2xl bg-brand-pattern bg-primary-500 opacity-50 [--pattern-size:110px]"
                 aria-hidden="true"
               />
               <div className="relative overflow-hidden rounded-[2.25rem] shadow-soft">

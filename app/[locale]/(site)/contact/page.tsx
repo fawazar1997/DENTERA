@@ -41,10 +41,6 @@ export default async function ContactPage({
           <Reveal className="lg:col-span-3">
             <div className="relative h-full overflow-hidden rounded-xl2 bg-gradient-to-br from-ink-900 to-ink-950 p-8 text-white shadow-soft sm:p-12">
               <div
-                className="bg-brand-pattern bg-primary-400 opacity-[0.14] absolute inset-0"
-                aria-hidden="true"
-              />
-              <div
                 className="absolute -bottom-20 -end-20 h-64 w-64 rounded-full bg-primary-500/25 blur-3xl"
                 aria-hidden="true"
               />
