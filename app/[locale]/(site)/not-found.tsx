@@ -16,7 +16,7 @@ export default function SiteNotFound() {
         </h1>
         <p className="mt-1 text-lg text-ink-600">Page not found</p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href="/ar" className="btn-primary">
+          <Link href="/" className="btn-primary">
             {ar.nav.home}
           </Link>
           <Link href="/en" className="btn-outline">

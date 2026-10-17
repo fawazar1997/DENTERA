@@ -100,7 +100,7 @@ export default async function IdentityPage({
           <Reveal delay={120}>
             <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-ink-900 to-ink-950 shadow-soft">
               <div
-                className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1.5px_1.5px,#0cb8cd_1.5px,transparent_0)] [background-size:18px_18px]"
+                className="absolute inset-0 bg-fingerprint bg-primary-400 opacity-[0.14]"
                 aria-hidden="true"
               />
               <div

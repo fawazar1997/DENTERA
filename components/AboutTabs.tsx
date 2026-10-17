@@ -1,3 +1,4 @@
+import { localePath } from "@/lib/i18n";
 import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
@@ -13,8 +14,8 @@ export function AboutTabs({
   active: "about" | "identity";
 }) {
   const tabs = [
-    { key: "about", href: `/${locale}/about`, label: dict.nav.aboutUs },
-    { key: "identity", href: `/${locale}/about/identity`, label: dict.nav.identity },
+    { key: "about", href: localePath(locale, `/about`), label: dict.nav.aboutUs },
+    { key: "identity", href: localePath(locale, `/about/identity`), label: dict.nav.identity },
   ] as const;
 
   return (

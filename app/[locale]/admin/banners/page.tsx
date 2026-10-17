@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Upload, Trash2 } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getSettings } from "@/lib/db";
 import {
@@ -123,7 +123,7 @@ export default async function AdminBannersPage({
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="font-bold text-ink-900">{pageLabels[page]}</h2>
                   <a
-                    href={`/${locale}${page === "home" ? "" : `/${page}`}`}
+                    href={localePath(locale, page === "home" ? "" : `/${page}`)}
                     target="_blank"
                     className="text-xs font-semibold text-primary-700 hover:underline"
                   >

@@ -1,3 +1,4 @@
+import { localePath } from "@/lib/i18n";
 import Link from "next/link";
 import { MapPin, Phone, Mail } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -43,34 +44,34 @@ export function Footer({
           </h4>
           <ul className="space-y-2.5 text-sm">
             <li>
-              <Link href={`/${locale}`} className="hover:text-white">
+              <Link href={localePath(locale)} className="hover:text-white">
                 {dict.nav.home}
               </Link>
             </li>
             <li>
-              <Link href={`/${locale}/about`} className="hover:text-white">
+              <Link href={localePath(locale, `/about`)} className="hover:text-white">
                 {dict.nav.aboutUs}
               </Link>
             </li>
             <li>
-              <Link href={`/${locale}/about/identity`} className="hover:text-white">
+              <Link href={localePath(locale, `/about/identity`)} className="hover:text-white">
                 {dict.nav.identity}
               </Link>
             </li>
             <li>
-              <Link href={`/${locale}/doctors`} className="hover:text-white">
+              <Link href={localePath(locale, `/doctors`)} className="hover:text-white">
                 {dict.nav.doctors}
               </Link>
             </li>
             {showOffers && (
               <li>
-                <Link href={`/${locale}/offers`} className="hover:text-white">
+                <Link href={localePath(locale, `/offers`)} className="hover:text-white">
                   {dict.nav.offers}
                 </Link>
               </li>
             )}
             <li>
-              <Link href={`/${locale}/contact`} className="hover:text-white">
+              <Link href={localePath(locale, `/contact`)} className="hover:text-white">
                 {dict.nav.contact}
               </Link>
             </li>
@@ -83,7 +84,7 @@ export function Footer({
             {departments.slice(0, 5).map((department) => (
               <li key={department.id}>
                 <Link
-                  href={`/${locale}/doctors?department=${department.id}`}
+                  href={localePath(locale, `/doctors?department=${department.id}`)}
                   className="hover:text-white"
                 >
                   {ar ? department.nameAr : department.nameEn}

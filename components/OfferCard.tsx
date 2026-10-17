@@ -1,3 +1,4 @@
+import { localePath } from "@/lib/i18n";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarClock, Tag } from "lucide-react";
@@ -23,7 +24,7 @@ export function OfferCard({
 
   return (
     <Link
-      href={`/${locale}/offers/${offer.id}`}
+      href={localePath(locale, `/offers/${offer.id}`)}
       className="card group flex h-full flex-col overflow-hidden hover:-translate-y-1 hover:shadow-soft"
     >
       <div className="relative aspect-[16/7] overflow-hidden bg-gradient-to-br from-ink-900 to-primary-800">

@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { ExternalLink, Link2 } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSettings } from "@/lib/db";
 import { getDirectoryData } from "@/lib/directory";
 import { generateDirectoryKeyAction } from "@/lib/actions";
@@ -29,7 +29,7 @@ export default async function AdminDirectoryPage({
   const h = headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const path = key ? `/${locale}/directory/${key}` : "";
+  const path = key ? localePath(locale, `/directory/${key}`) : "";
   const link = key ? `${proto}://${host}${path}` : "";
 
   return (

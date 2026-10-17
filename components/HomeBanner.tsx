@@ -32,7 +32,7 @@ export function HomeBanner({
   return (
     <div className="relative flex h-56 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-ink-900 to-ink-950 sm:h-72 lg:h-[28rem]">
       <div
-        className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,#0cb8cd_1px,transparent_0)] [background-size:22px_22px]"
+        className="absolute inset-0 bg-fingerprint bg-primary-400 opacity-[0.14]"
         aria-hidden="true"
       />
       <div

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import "../../globals.css";
-import { isLocale, isRtl, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, isRtl, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { FontLinks } from "@/components/FontLinks";
@@ -27,7 +27,7 @@ export default function AdminLayout({
       <body className={`bg-ink-50 ${rtl ? "font-arabic" : "font-sans"}`}>
         <div className="border-b border-ink-200 bg-ink-950">
           <div className="container-x flex items-center justify-between py-3.5">
-            <Link href={`/${locale}/admin`} className="flex items-center gap-3">
+            <Link href={localePath(locale, `/admin`)} className="flex items-center gap-3">
               <Logo variant="color" className="h-8 w-auto" />
               <span className="rounded-full bg-primary-800 px-2.5 py-0.5 text-xs font-semibold text-primary-100">
                 {dict.admin.badge}
@@ -39,7 +39,7 @@ export default function AdminLayout({
                 className="border-ink-700 text-ink-200 hover:border-primary-400 hover:text-white"
               />
               <Link
-                href={`/${locale}`}
+                href={localePath(locale)}
                 className="text-sm font-medium text-ink-300 hover:text-white"
               >
                 {dict.admin.viewSite}

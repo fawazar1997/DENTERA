@@ -1,3 +1,4 @@
+import { localePath } from "@/lib/i18n";
 import Link from "next/link";
 import { MapPin, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -30,7 +31,7 @@ export function Hero({
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
         <div
-          className="bg-hero-grid absolute inset-0 opacity-40 [background-size:22px_22px]"
+          className="bg-fingerprint bg-primary-500 opacity-[0.09] absolute inset-0"
           aria-hidden="true"
         />
         <div
@@ -61,7 +62,7 @@ export function Hero({
                 className="px-7 py-3.5 text-base"
               />
               <Link
-                href={`/${locale}/departments`}
+                href={localePath(locale, `/departments`)}
                 className="btn-outline px-7 py-3.5 text-base"
               >
                 {dict.hero.ctaSecondary}
@@ -87,7 +88,7 @@ export function Hero({
                 aria-hidden="true"
               />
               <div
-                className="absolute -end-6 -top-6 h-28 w-28 rounded-2xl opacity-60 [background-image:radial-gradient(circle_at_1.5px_1.5px,#0cb8cd_1.5px,transparent_0)] [background-size:14px_14px]"
+                className="absolute -end-6 -top-6 h-28 w-28 rounded-2xl bg-fingerprint bg-primary-500 opacity-50 [--fp-size:160px]"
                 aria-hidden="true"
               />
               <div className="relative overflow-hidden rounded-[2.25rem] shadow-soft">

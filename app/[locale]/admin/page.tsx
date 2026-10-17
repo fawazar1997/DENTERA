@@ -10,7 +10,7 @@ import {
   ArrowLeft,
   CalendarCheck,
 } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getDepartments, getDoctors, getPartners } from "@/lib/db";
 import { AdminNav } from "@/components/admin/AdminNav";
@@ -40,35 +40,35 @@ export default async function AdminDashboardPage({
 
   const cards = [
     {
-      href: `/${locale}/admin/bookings`,
+      href: localePath(locale, `/admin/bookings`),
       icon: CalendarCheck,
       label: `${dict.admin.bookings} — ${dict.admin.statusNew}`,
       value: bookings.filter((b) => b.status === "new").length,
       color: "bg-primary-600 text-white",
     },
     {
-      href: `/${locale}/admin/doctors`,
+      href: localePath(locale, `/admin/doctors`),
       icon: Stethoscope,
       label: dict.admin.totalDoctors,
       value: doctors.length,
       color: "bg-primary-500 text-white",
     },
     {
-      href: `/${locale}/admin/departments`,
+      href: localePath(locale, `/admin/departments`),
       icon: Building2,
       label: dict.admin.totalDepartments,
       value: departments.length,
       color: "bg-accent-500 text-ink-900",
     },
     {
-      href: `/${locale}/admin/partners`,
+      href: localePath(locale, `/admin/partners`),
       icon: Handshake,
       label: dict.admin.totalPartners,
       value: partners.length,
       color: "bg-ink-900 text-white",
     },
     {
-      href: `/${locale}/admin/branches`,
+      href: localePath(locale, `/admin/branches`),
       icon: MapPin,
       label: dict.admin.branches,
       value: branches.length,
@@ -78,13 +78,13 @@ export default async function AdminDashboardPage({
 
   const shortcuts = [
     {
-      href: `/${locale}/admin/texts`,
+      href: localePath(locale, `/admin/texts`),
       icon: Type,
       label: dict.admin.texts,
       body: dict.admin.textsSubtitle,
     },
     {
-      href: `/${locale}/admin/banners`,
+      href: localePath(locale, `/admin/banners`),
       icon: ImageIcon,
       label: dict.admin.banners,
       body: dict.admin.bannersSubtitle,

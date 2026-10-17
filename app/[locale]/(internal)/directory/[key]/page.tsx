@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Lock } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDirectoryData, isValidDirectoryKey } from "@/lib/directory";
 import { DoctorDirectory } from "@/components/DoctorDirectory";
 import { Logo } from "@/components/Logo";
@@ -45,7 +45,7 @@ export default async function StaffDirectoryPage({
               </span>
             </div>
             <Link
-              href={`/${other}/directory/${params.key}`}
+              href={localePath(other, `/directory/${params.key}`)}
               className="flex-shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-ink-100 hover:border-primary-400 hover:text-white"
             >
               {other === "ar" ? "العربية" : "English"}

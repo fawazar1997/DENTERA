@@ -93,3 +93,20 @@ body {
   }
 }
 
+
+/*
+ * Brand fingerprint pattern (the ridges of the Dentera mark), used in
+ * place of dot grids. It's a seamless tile applied as a mask, so the
+ * element's background colour is the line colour:
+ *   <div class="bg-fingerprint bg-primary-400 opacity-20" />
+ * Tile size: [--fp-size:240px].
+ */
+.bg-fingerprint {
+  --fp-size: 360px;
+  -webkit-mask-image: url("/brand/fingerprint.svg");
+  mask-image: url("/brand/fingerprint.svg");
+  -webkit-mask-size: var(--fp-size);
+  mask-size: var(--fp-size);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+}

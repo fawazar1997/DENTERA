@@ -47,7 +47,7 @@ export function PageBanner({
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 to-paper">
       <div
-        className="bg-hero-grid absolute inset-0 opacity-40 [background-size:22px_22px]"
+        className="bg-fingerprint bg-primary-500 opacity-[0.09] absolute inset-0"
         aria-hidden="true"
       />
       <div className="container-x section-y relative animate-fade-up text-center opacity-0">

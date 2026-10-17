@@ -1,3 +1,4 @@
+import { localePath } from "@/lib/i18n";
 import Link from "next/link";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import type { Doctor, Department } from "@/lib/types";
@@ -23,7 +24,7 @@ export function DoctorCard({
 
   return (
     <Link
-      href={`/${locale}/doctors/${doctor.id}`}
+      href={localePath(locale, `/doctors/${doctor.id}`)}
       className="card group flex h-full flex-col overflow-hidden hover:-translate-y-1 hover:shadow-soft"
     >
       <div className="p-3 pb-0">

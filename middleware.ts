@@ -1,41 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import { defaultLocale, isLocale } from "./lib/i18n";
+import { defaultLocale, isLocale, localePath } from "./lib/i18n";
 import { SESSION_COOKIE, verifySessionToken } from "./lib/auth";
 
 export const config = {
   matcher: ["/((?!_next|api|favicon.ico|.*\\..*).*)"],
 };
 
-function getPreferredLocale(request: NextRequest): string {
-  const header = request.headers.get("accept-language");
-  if (header?.toLowerCase().includes("ar")) return "ar";
-  return defaultLocale;
-}
-
+/**
+ * Arabic is served at the site root ("/doctors"), English under "/en".
+ * Internally every page lives under /[locale], so root paths are rewritten
+ * to /ar (the address bar keeps the clean URL) and old /ar/... links are
+ * redirected to their clean form.
+ */
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+  const [first, ...rest] = pathname.split("/").filter(Boolean);
 
-  const segments = pathname.split("/").filter(Boolean);
-  const [maybeLocale, ...rest] = segments;
-
-  if (!maybeLocale || !isLocale(maybeLocale)) {
-    const locale = getPreferredLocale(request);
+  if (first === defaultLocale) {
     const url = request.nextUrl.clone();
-    url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
-    return NextResponse.redirect(url);
+    url.pathname = `/${rest.join("/")}`;
+    url.search = search;
+    return NextResponse.redirect(url, 308);
   }
 
-  const isAdminRoute = rest[0] === "admin";
-  const isLoginRoute = rest[0] === "admin" && rest[1] === "login";
+  const explicit = first !== undefined && isLocale(first);
+  const locale = explicit ? first : defaultLocale;
+  const route = explicit ? rest : pathname.split("/").filter(Boolean);
 
+  const isAdminRoute = route[0] === "admin";
+  const isLoginRoute = isAdminRoute && route[1] === "login";
   if (isAdminRoute && !isLoginRoute) {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
-    const valid = await verifySessionToken(token);
-    if (!valid) {
+    if (!(await verifySessionToken(token))) {
       const url = request.nextUrl.clone();
-      url.pathname = `/${maybeLocale}/admin/login`;
+      url.pathname = localePath(locale, "/admin/login");
       return NextResponse.redirect(url);
     }
+  }
+
+  if (!explicit) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${defaultLocale}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   return NextResponse.next();

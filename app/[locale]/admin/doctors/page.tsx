@@ -1,5 +1,5 @@
 import { Plus, Pencil, ExternalLink } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getDepartments, getDoctors } from "@/lib/db";
 import {
@@ -117,7 +117,7 @@ export default async function AdminDoctorsPage({
                       : dict.admin.statusHidden}
                   </span>
                   <a
-                    href={`/${locale}/doctors/${doctor.id}`}
+                    href={localePath(locale, `/doctors/${doctor.id}`)}
                     target="_blank"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline"
                   >

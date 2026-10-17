@@ -52,7 +52,7 @@ export function DoctorPhoto({
           className={`absolute inset-0 bg-gradient-to-br from-ink-900 via-ink-900 to-primary-800 ${zoom}`}
         >
           <div
-            className="absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_1px_1px,#0cb8cd_1px,transparent_0)] [background-size:16px_16px]"
+            className="absolute inset-0 bg-fingerprint bg-primary-400 opacity-20 [--fp-size:220px]"
             aria-hidden="true"
           />
           <div

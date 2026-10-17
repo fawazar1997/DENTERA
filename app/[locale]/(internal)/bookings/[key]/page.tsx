@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Lock } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { isValidBookingsKey } from "@/lib/bookings";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { BookingsBoard } from "@/components/BookingsBoard";
@@ -46,7 +46,7 @@ export default async function CallCenterBookingsPage({
               </span>
             </div>
             <Link
-              href={`/${other}/bookings/${params.key}`}
+              href={localePath(other, `/bookings/${params.key}`)}
               className="flex-shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-ink-100 hover:border-primary-400 hover:text-white"
             >
               {other === "ar" ? "العربية" : "English"}

@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { ExternalLink, Link2 } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSettings } from "@/lib/db";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { generateBookingsKeyAction } from "@/lib/actions";
@@ -29,7 +29,7 @@ export default async function AdminBookingsPage({
   const h = headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const path = key ? `/${locale}/bookings/${key}` : "";
+  const path = key ? localePath(locale, `/bookings/${key}`) : "";
   const link = key ? `${proto}://${host}${path}` : "";
 
   return (

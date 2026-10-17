@@ -1,5 +1,6 @@
 "use client";
 
+import { localePath } from "@/lib/i18n";
 import { useState, type FormEvent } from "react";
 import { Lock, LogIn } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -29,7 +30,7 @@ export function LoginForm({
       // Full page load, not router.push: the client router may hold a
       // prefetched copy of /admin from before sign-in (a redirect back to
       // this login page) and would replay it.
-      window.location.assign(`/${locale}/admin`);
+      window.location.assign(localePath(locale, `/admin`));
     } else {
       setError(true);
       setLoading(false);

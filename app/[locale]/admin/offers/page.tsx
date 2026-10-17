@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Plus, Pencil, ExternalLink, CalendarClock } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getDepartments, getOffers, isOfferExpired } from "@/lib/db";
 import { createOfferAction, deleteOfferAction, updateOfferAction } from "@/lib/actions";
@@ -104,7 +104,7 @@ export default async function AdminOffersPage({
                   </span>
                   {offer.active && (
                     <a
-                      href={`/${locale}/offers/${offer.id}`}
+                      href={localePath(locale, `/offers/${offer.id}`)}
                       target="_blank"
                       className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline"
                     >

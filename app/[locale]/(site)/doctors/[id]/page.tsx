@@ -14,7 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { getActiveBranches, getActiveDepartments, getDepartment, getDoctor } from "@/lib/db";
 import { bookingFormLabels } from "@/lib/bookingLabels";
@@ -151,12 +151,12 @@ export default async function DoctorProfilePage({
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
       <div
-        className="bg-hero-grid absolute inset-x-0 top-0 h-96 opacity-40 [background-size:22px_22px]"
+        className="bg-fingerprint bg-primary-500 opacity-[0.09] absolute inset-x-0 top-0 h-96"
         aria-hidden="true"
       />
       <div className="container-x relative py-8 sm:py-10 lg:py-12">
         <Link
-          href={`/${locale}/doctors`}
+          href={localePath(locale, `/doctors`)}
           className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-primary-800"
         >
           <BackArrow className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default async function DoctorProfilePage({
                 <div className="mt-4 flex flex-wrap gap-2">
                   {department && (
                     <Link
-                      href={`/${locale}/doctors?department=${department.id}`}
+                      href={localePath(locale, `/doctors?department=${department.id}`)}
                       className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700 hover:bg-primary-100"
                     >
                       <DepartmentIcon department={department} className="h-4 w-4" />
@@ -311,7 +311,7 @@ export default async function DoctorProfilePage({
                     </p>
                   </div>
                   <Link
-                    href={`/${locale}/doctors?department=${department.id}`}
+                    href={localePath(locale, `/doctors?department=${department.id}`)}
                     className="inline-flex flex-shrink-0 items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-primary-800"
                   >
                     {dict.departments.viewDoctors}

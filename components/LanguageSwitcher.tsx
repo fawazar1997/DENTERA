@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
-import { otherLocale } from "@/lib/i18n";
+import { otherLocale, switchLocalePath } from "@/lib/i18n";
 
 export function LanguageSwitcher({
   locale,
@@ -15,8 +15,7 @@ export function LanguageSwitcher({
 }) {
   const pathname = usePathname();
   const target = otherLocale(locale);
-  const rest = pathname.split("/").slice(2).join("/");
-  const href = `/${target}${rest ? `/${rest}` : ""}`;
+  const href = switchLocalePath(pathname, target);
 
   return (
     <Link

@@ -1,5 +1,6 @@
 "use client";
 
+import { localePath } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -68,7 +69,7 @@ export function OfferCarousel({
         return (
           <Link
             key={slide.id}
-            href={`/${locale}/offers/${slide.id}`}
+            href={localePath(locale, `/offers/${slide.id}`)}
             aria-hidden={!active}
             tabIndex={active ? 0 : -1}
             className={`group absolute inset-0 transition-opacity duration-700 ease-out ${
@@ -90,7 +91,7 @@ export function OfferCarousel({
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-ink-900 via-ink-900 to-primary-800">
                 <div
-                  className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,#0cb8cd_1px,transparent_0)] [background-size:22px_22px]"
+                  className="absolute inset-0 bg-fingerprint bg-primary-400 opacity-[0.14]"
                   aria-hidden="true"
                 />
                 {/* eslint-disable-next-line @next/next/no-img-element */}

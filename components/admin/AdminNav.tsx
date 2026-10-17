@@ -1,5 +1,6 @@
 "use client";
 
+import { localePath } from "@/lib/i18n";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -30,69 +31,69 @@ export function AdminNav({
 
   const tabs = [
     {
-      href: `/${locale}/admin`,
+      href: localePath(locale, `/admin`),
       label: dict.admin.dashboardTitle,
       icon: LayoutDashboard,
     },
     {
-      href: `/${locale}/admin/bookings`,
+      href: localePath(locale, `/admin/bookings`),
       label: dict.admin.bookings,
       icon: CalendarCheck,
     },
     {
-      href: `/${locale}/admin/doctors`,
+      href: localePath(locale, `/admin/doctors`),
       label: dict.admin.doctors,
       icon: Stethoscope,
     },
     {
-      href: `/${locale}/admin/departments`,
+      href: localePath(locale, `/admin/departments`),
       label: dict.admin.departments,
       icon: Building2,
     },
     {
-      href: `/${locale}/admin/offers`,
+      href: localePath(locale, `/admin/offers`),
       label: dict.admin.offers,
       icon: Tag,
     },
     {
-      href: `/${locale}/admin/partners`,
+      href: localePath(locale, `/admin/partners`),
       label: dict.admin.partners,
       icon: Handshake,
     },
     {
-      href: `/${locale}/admin/branches`,
+      href: localePath(locale, `/admin/branches`),
       label: dict.admin.branches,
       icon: MapPin,
     },
     {
-      href: `/${locale}/admin/social`,
+      href: localePath(locale, `/admin/social`),
       label: dict.admin.social,
       icon: Share2,
     },
     {
-      href: `/${locale}/admin/banners`,
+      href: localePath(locale, `/admin/banners`),
       label: dict.admin.banners,
       icon: ImageIcon,
     },
     {
-      href: `/${locale}/admin/directory`,
+      href: localePath(locale, `/admin/directory`),
       label: dict.admin.directory,
       icon: BookUser,
     },
     {
-      href: `/${locale}/admin/texts`,
+      href: localePath(locale, `/admin/texts`),
       label: dict.admin.texts,
       icon: Type,
     },
   ];
 
   const isActive = (href: string) =>
-    href === `/${locale}/admin` ? pathname === href : pathname.startsWith(href);
+    href === localePath(locale, `/admin`) ? pathname === href : pathname.startsWith(href);
 
   async function handleSignOut() {
     await fetch("/api/admin/logout", { method: "POST" });
     // Full page load so no signed-in pages stay in the client cache.
-    window.location.assign(`/${locale}/admin/login`);
+    window.location.assign(localePath(locale, `/admin/login`));
   }
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { localePath } from "@/lib/i18n";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,32 +31,32 @@ export function Header({
     children?: { href: string; label: string }[];
   };
   const links: NavLink[] = [
-    { href: `/${locale}`, label: dict.nav.home },
+    { href: localePath(locale), label: dict.nav.home },
     {
-      href: `/${locale}/about`,
+      href: localePath(locale, `/about`),
       label: dict.nav.about,
       children: [
-        { href: `/${locale}/about`, label: dict.nav.aboutUs },
-        { href: `/${locale}/about/identity`, label: dict.nav.identity },
+        { href: localePath(locale, `/about`), label: dict.nav.aboutUs },
+        { href: localePath(locale, `/about/identity`), label: dict.nav.identity },
       ],
     },
-    { href: `/${locale}/departments`, label: dict.nav.departments },
-    { href: `/${locale}/doctors`, label: dict.nav.doctors },
+    { href: localePath(locale, `/departments`), label: dict.nav.departments },
+    { href: localePath(locale, `/doctors`), label: dict.nav.doctors },
     ...(showOffers
-      ? [{ href: `/${locale}/offers`, label: dict.nav.offers }]
+      ? [{ href: localePath(locale, `/offers`), label: dict.nav.offers }]
       : []),
-    { href: `/${locale}/contact`, label: dict.nav.contact },
+    { href: localePath(locale, `/contact`), label: dict.nav.contact },
   ];
 
   const isActive = (href: string) =>
-    href === `/${locale}` ? pathname === href : pathname.startsWith(href);
+    href === localePath(locale) ? pathname === href : pathname.startsWith(href);
   // Sub-pages match exactly, so "About Us" isn't lit on "Our Identity".
   const isExact = (href: string) => pathname === href;
 
   return (
     <header className="sticky top-0 z-50 border-b border-ink-100 bg-paper/85 backdrop-blur">
       <div className="container-x flex items-center justify-between py-3">
-        <Link href={`/${locale}`}>
+        <Link href={localePath(locale)}>
           <Logo variant="color" className="h-10 w-auto" priority />
         </Link>
 

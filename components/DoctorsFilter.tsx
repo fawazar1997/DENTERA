@@ -1,5 +1,6 @@
 "use client";
 
+import { localePath } from "@/lib/i18n";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Department } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
@@ -24,8 +25,8 @@ export function DoctorsFilter({
       onChange={(e) => {
         const value = e.target.value;
         const url = value
-          ? `/${locale}/doctors?department=${value}`
-          : `/${locale}/doctors`;
+          ? localePath(locale, `/doctors?department=${value}`)
+          : localePath(locale, `/doctors`);
         router.push(url);
       }}
       className="input max-w-xs"

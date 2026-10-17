@@ -81,7 +81,7 @@ export function StatsStrip({ stats }: { stats: Stat[] }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-ink-900 to-ink-950">
       <div
-        className="absolute inset-0 opacity-15 [background-image:radial-gradient(circle_at_1px_1px,#0cb8cd_1px,transparent_0)] [background-size:22px_22px]"
+        className="absolute inset-0 bg-fingerprint bg-primary-400 opacity-[0.10]"
         aria-hidden="true"
       />
       <div

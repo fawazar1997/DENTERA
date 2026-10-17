@@ -11,7 +11,7 @@ import {
   MapPin,
   Tag,
 } from "lucide-react";
-import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
+import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import {
   getActiveBranches,
@@ -102,7 +102,7 @@ export default async function OfferPage({ params }: { params: Params }) {
         />
         <div className="container-x py-10 sm:py-14">
           <Link
-            href={`/${locale}/offers`}
+            href={localePath(locale, `/offers`)}
             className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-200 hover:text-white"
           >
             <BackArrow className="h-4 w-4" />
@@ -174,7 +174,7 @@ export default async function OfferPage({ params }: { params: Params }) {
                         {dict.offers.department}
                       </p>
                       <Link
-                        href={`/${locale}/doctors?department=${department.id}`}
+                        href={localePath(locale, `/doctors?department=${department.id}`)}
                         className="mt-2 inline-flex items-center gap-2 font-bold text-ink-900 hover:text-primary-700"
                       >
                         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-500 text-white">

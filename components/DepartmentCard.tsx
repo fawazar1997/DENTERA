@@ -1,3 +1,4 @@
+import { localePath } from "@/lib/i18n";
 import Link from "next/link";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import type { Department } from "@/lib/types";
@@ -29,7 +30,7 @@ export function DepartmentCard({
         {locale === "ar" ? department.descriptionAr : department.descriptionEn}
       </p>
       <Link
-        href={`/${locale}/doctors?department=${department.id}`}
+        href={localePath(locale, `/doctors?department=${department.id}`)}
         className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:text-primary-800"
       >
         {dict.departments.viewDoctors}
