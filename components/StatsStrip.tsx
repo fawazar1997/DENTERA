@@ -81,7 +81,7 @@ export function StatsStrip({ stats }: { stats: Stat[] }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-ink-900 to-ink-950">
       <div
-        className="absolute inset-0 bg-fingerprint bg-primary-400 opacity-[0.10]"
+        className="absolute inset-0 bg-brand-pattern bg-primary-400 opacity-[0.14]"
         aria-hidden="true"
       />
       <div

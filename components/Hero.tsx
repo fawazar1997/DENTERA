@@ -31,7 +31,7 @@ export function Hero({
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
         <div
-          className="bg-fingerprint bg-primary-500 opacity-[0.09] absolute inset-0"
+          className="bg-brand-pattern bg-primary-500 opacity-[0.12] absolute inset-0"
           aria-hidden="true"
         />
         <div
@@ -88,7 +88,7 @@ export function Hero({
                 aria-hidden="true"
               />
               <div
-                className="absolute -end-6 -top-6 h-28 w-28 rounded-2xl bg-fingerprint bg-primary-500 opacity-50 [--fp-size:160px]"
+                className="absolute -end-6 -top-6 h-28 w-28 rounded-2xl bg-brand-pattern bg-primary-500 opacity-50 [--pattern-size:110px]"
                 aria-hidden="true"
               />
               <div className="relative overflow-hidden rounded-[2.25rem] shadow-soft">
