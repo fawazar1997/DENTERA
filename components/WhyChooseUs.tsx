@@ -2,7 +2,13 @@ import { Award, Cpu, HeartHandshake, MapPinned } from "lucide-react";
 import type { Dictionary } from "@/lib/dictionaries";
 import { Reveal } from "./Reveal";
 
-export function WhyChooseUs({ dict }: { dict: Dictionary }) {
+export function WhyChooseUs({
+  dict,
+  className = "bg-white",
+}: {
+  dict: Dictionary;
+  className?: string;
+}) {
   const items = [
     { icon: Award, title: dict.home.why1Title, body: dict.home.why1Body },
     { icon: Cpu, title: dict.home.why2Title, body: dict.home.why2Body },
@@ -19,7 +25,7 @@ export function WhyChooseUs({ dict }: { dict: Dictionary }) {
   ];
 
   return (
-    <section className="section-y bg-white">
+    <section className={`section-y ${className}`}>
       <div className="container-x">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight text-ink-950 sm:text-4xl">

@@ -16,7 +16,13 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
-import { getActiveBranches, getActiveDepartments, getDepartment, getDoctor } from "@/lib/db";
+import {
+  getActiveBranches,
+  getActiveDepartments,
+  getDepartment,
+  getDoctor,
+  getDoctorsByDepartment,
+} from "@/lib/db";
 import { bookingFormLabels } from "@/lib/bookingLabels";
 import { BranchHours } from "@/components/BranchHours";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
@@ -109,6 +115,7 @@ export default async function DoctorProfilePage({
   const dict = await getSiteDictionary(locale);
   const department = await getDepartment(doctor.departmentId);
   const allDepartments = await getActiveDepartments();
+  const departmentDoctors = await getDoctorsByDepartment(doctor.departmentId);
   const branches = (await getActiveBranches()).filter((b) =>
     doctor.branchIds?.includes(b.id)
   );
@@ -332,8 +339,12 @@ export default async function DoctorProfilePage({
                   </p>
                   <BookingForm
                     source="doctor"
-                    doctorId={doctor.id}
                     defaultDepartmentId={doctor.departmentId}
+                    defaultDoctorId={doctor.id}
+                    doctors={[
+                      doctor,
+                      ...departmentDoctors.filter((d) => d.id !== doctor.id),
+                    ].map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn }))}
                     labels={bookingFormLabels(dict)}
                     departments={allDepartments.map((d) => ({
                       id: d.id,

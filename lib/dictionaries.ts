@@ -33,6 +33,8 @@ export const dictionaries = {
       formPhonePlaceholder: "05XXXXXXXX",
       formDepartment: "Department",
       formDepartmentAny: "Not sure — general consultation",
+      formDoctor: "Doctor",
+      formDoctorAny: "Any available doctor",
       formSubmit: "Request appointment",
       formSending: "Sending…",
       formSuccessTitle: "Request received",
@@ -166,10 +168,6 @@ export const dictionaries = {
       gradientTitle: "Signature Gradient",
       gradientBody:
         "Cyan, beige and pink blended together, as on the name badges our team wears — used lightly on cards and special moments.",
-      typeTitle: "Typeface",
-      typeBody:
-        "We use Almarai for both Arabic and English: clear, contemporary and comfortable to read on screen and in print.",
-      typeSample: "Your smile, our passion",
       applicationTitle: "Identity in Practice",
       applicationBody:
         "From our team's beige uniform with its cyan collar to name badges and printed materials, the identity is present at every point of contact.",
@@ -331,7 +329,7 @@ export const dictionaries = {
         "Photo uploads are currently disabled: Vercel Blob storage isn't set up for this project yet. Everything else on this page still saves normally. To enable uploads: Vercel dashboard → your project → Storage → Create Database → Blob, then redeploy.",
       partners: "Logos",
       partnersSubtitle:
-        "The logo galleries on the home page: partners, featured brands and payment methods. Logos sit still in rows; each one added goes on the next row.",
+        "The logo galleries on the home page: partners and payment methods. Logos sit still in rows; each one added goes on the next row.",
       logoGroupPartners: "Partners",
       logoGroupBrands: "Featured brands",
       logoGroupPayments: "Payment methods",
@@ -415,6 +413,21 @@ export const dictionaries = {
       copied: "Copied",
       noLink: "No link yet — create one to share the directory with staff.",
       openDirectory: "Open directory",
+      homeSections: "Home Page",
+      homeSectionsSubtitle:
+        "Choose which sections appear on the home page. They show in this order; untick a section to hide it.",
+      homeSectionsBannerHint: "The top banner / offers carousel is switched on and off in Banners.",
+      sectionHero: "Top section (headline and photo)",
+      sectionDoctors: "Doctors",
+      sectionDepartments: "Departments",
+      sectionPayments: "Payment methods",
+      sectionBranches: "Branches",
+      sectionTestimonials: "What our patients say",
+      sectionPartners: "Our partners",
+      sectionWhy: "Why Dentera, with the numbers",
+      sectionBooking: "Booking form",
+      sectionShown: "Shown",
+      sectionHidden: "Hidden",
       bookings: "Booking Requests",
       bookingsSubtitle:
         "Appointment requests sent from the website's booking form. The call center works them through its own private link and updates each one's status.",
@@ -534,6 +547,8 @@ export const dictionaries = {
       formPhonePlaceholder: "05XXXXXXXX",
       formDepartment: "القسم",
       formDepartmentAny: "غير متأكد — استشارة عامة",
+      formDoctor: "الطبيب",
+      formDoctorAny: "أي طبيب متاح",
       formSubmit: "اطلب الموعد",
       formSending: "جارٍ الإرسال…",
       formSuccessTitle: "تم استلام طلبك",
@@ -663,10 +678,6 @@ export const dictionaries = {
       gradientTitle: "التدرج المميز",
       gradientBody:
         "مزيج السماوي والبيج والوردي كما في بطاقات الأسماء على زي فريقنا — يُستخدم بلطف في البطاقات واللحظات المميزة.",
-      typeTitle: "الخط",
-      typeBody:
-        "نستخدم خط «المراعي» (Almarai) للعربية والإنجليزية: واضح ومعاصر ومريح للقراءة على الشاشة وفي المطبوعات.",
-      typeSample: "ابتسامتك شغفنا",
       applicationTitle: "الهوية في الواقع",
       applicationBody:
         "من زي فريقنا بلونه البيج وياقته السماوية، إلى بطاقات الأسماء والمطبوعات — تحضر الهوية في كل نقطة تواصل.",
@@ -826,7 +837,7 @@ export const dictionaries = {
         "رفع الصور معطّل حالياً: لم يتم تفعيل خدمة Vercel Blob لهذا المشروع بعد. باقي الحقول في هذه الصفحة تُحفظ بشكل طبيعي. لتفعيل رفع الصور: من لوحة Vercel ← مشروعك ← Storage ← Create Database ← Blob، ثم أعد النشر.",
       partners: "الشعارات",
       partnersSubtitle:
-        "معارض الشعارات في الصفحة الرئيسية: الشركاء، العلامات المتميزة، وطرق الدفع. الشعارات ثابتة في صفوف، وكل شعار جديد ينزل في الصف التالي.",
+        "معارض الشعارات في الصفحة الرئيسية: الشركاء وطرق الدفع. الشعارات ثابتة في صفوف، وكل شعار جديد ينزل في الصف التالي.",
       logoGroupPartners: "الشركاء",
       logoGroupBrands: "العلامات المتميزة",
       logoGroupPayments: "طرق الدفع",
@@ -905,6 +916,21 @@ export const dictionaries = {
       copied: "تم النسخ",
       noLink: "لا يوجد رابط بعد — أنشئ رابطاً لمشاركة الدليل مع الموظفين.",
       openDirectory: "فتح الدليل",
+      homeSections: "الصفحة الرئيسية",
+      homeSectionsSubtitle:
+        "اختر الأقسام التي تظهر في الصفحة الرئيسية. تظهر بهذا الترتيب؛ أزل العلامة لإخفاء القسم.",
+      homeSectionsBannerHint: "البنر العلوي / شريط العروض يتم إظهاره وإخفاؤه من صفحة البنرات.",
+      sectionHero: "القسم العلوي (العنوان والصورة)",
+      sectionDoctors: "الأطباء",
+      sectionDepartments: "الأقسام",
+      sectionPayments: "طرق الدفع",
+      sectionBranches: "الفروع",
+      sectionTestimonials: "ماذا يقول مرضانا",
+      sectionPartners: "شركاؤنا",
+      sectionWhy: "لماذا دنتيرا مع الأرقام",
+      sectionBooking: "نموذج حجز الموعد",
+      sectionShown: "ظاهر",
+      sectionHidden: "مخفي",
       bookings: "طلبات الحجز",
       bookingsSubtitle:
         "طلبات المواعيد المرسلة من نموذج الحجز في الموقع. يعمل عليها مركز الاتصال عبر رابطه الخاص ويحدّث حالة كل طلب.",

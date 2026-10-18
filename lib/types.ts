@@ -72,7 +72,23 @@ export type SiteSettings = {
   directoryKey?: string;
   /** Secret part of the call center's private bookings link. */
   bookingsKey?: string;
+  /** Home page sections switched off in the control panel. */
+  hiddenHomeSections?: HomeSectionKey[];
 };
+
+/** Home page sections, in the order they appear. */
+export const HOME_SECTIONS = [
+  "hero",
+  "doctors",
+  "departments",
+  "payments",
+  "branches",
+  "testimonials",
+  "partners",
+  "why",
+  "booking",
+] as const;
+export type HomeSectionKey = (typeof HOME_SECTIONS)[number];
 
 /** A promotional offer: a home page banner that opens its own page. */
 export type Offer = {

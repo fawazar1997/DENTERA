@@ -6,6 +6,7 @@ import { PageBanner } from "@/components/PageBanner";
 import { AboutTabs } from "@/components/AboutTabs";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
+import { WhyDentera } from "@/components/WhyDentera";
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).
@@ -86,6 +87,8 @@ export default async function AboutPage({
           </div>
         </div>
       </section>
+
+      <WhyDentera dict={dict} />
 
       <CtaBanner locale={locale} dict={dict} source="about" />
     </>

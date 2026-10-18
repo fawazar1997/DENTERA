@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
+  LayoutTemplate,
   LayoutDashboard,
   Stethoscope,
   Building2,
@@ -39,6 +40,11 @@ export function AdminNav({
       href: localePath(locale, `/admin/bookings`),
       label: dict.admin.bookings,
       icon: CalendarCheck,
+    },
+    {
+      href: localePath(locale, `/admin/home`),
+      label: dict.admin.homeSections,
+      icon: LayoutTemplate,
     },
     {
       href: localePath(locale, `/admin/doctors`),

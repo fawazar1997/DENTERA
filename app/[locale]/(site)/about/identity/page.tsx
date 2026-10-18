@@ -47,13 +47,6 @@ const MARK_POINTS = [
   { n: 3, x: 68.5, y: 25 },
 ];
 
-const WEIGHTS = [
-  { weight: 300, label: "Light 300" },
-  { weight: 400, label: "Regular 400" },
-  { weight: 700, label: "Bold 700" },
-  { weight: 800, label: "ExtraBold 800" },
-];
-
 export default async function IdentityPage({
   params,
 }: {
@@ -283,76 +276,24 @@ export default async function IdentityPage({
         </div>
       </section>
 
-      {/* Typeface */}
-      <section className="section-y bg-white">
-        <div className="container-x grid items-center gap-10 lg:grid-cols-2">
-          <Reveal>
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink-950 sm:text-4xl">
-              {t.typeTitle}
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-ink-600">{t.typeBody}</p>
-            <div className="mt-8 flex items-end gap-6 text-ink-900">
-              <span className="text-8xl font-extrabold leading-none">أب</span>
-              <span className="text-8xl font-extrabold leading-none" dir="ltr">
-                Aa
-              </span>
-            </div>
-            <p className="mt-3 text-sm font-bold uppercase tracking-widest text-primary-700" dir="ltr">
-              Almarai
-            </p>
-          </Reveal>
-          <Reveal delay={120}>
-            <ul className="divide-y divide-ink-100 rounded-[2rem] border border-ink-100 bg-paper px-6">
-              {WEIGHTS.map((w) => (
-                <li key={w.weight} className="flex items-baseline justify-between gap-4 py-5">
-                  <span className="text-2xl text-ink-950 sm:text-3xl" style={{ fontWeight: w.weight }}>
-                    {t.typeSample}
-                  </span>
-                  <span className="flex-shrink-0 text-xs font-semibold text-ink-400" dir="ltr">
-                    {w.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
-      </section>
-
       {/* Identity in practice */}
-      <section className="section-y bg-ink-50/60">
-        <div className="container-x grid items-center gap-10 lg:grid-cols-2">
-          <Reveal>
-            <div className="relative mx-auto max-w-lg">
-              <div
-                className="absolute inset-0 translate-x-4 translate-y-4 rounded-[2rem] bg-primary-200 rtl:-translate-x-4"
-                aria-hidden="true"
+      <section className="section-y bg-white">
+        <Reveal className="container-x mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-extrabold tracking-tight text-ink-950 sm:text-4xl">
+            {t.applicationTitle}
+          </h2>
+          <p className="mt-4 text-lg leading-relaxed text-ink-600">{t.applicationBody}</p>
+          <div className="mt-8 flex justify-center gap-3" dir="ltr">
+            {COLORS.map((color) => (
+              <span
+                key={color.key}
+                className="h-10 w-10 rounded-full ring-4 ring-ink-50"
+                style={{ backgroundColor: color.hex }}
+                title={color.hex}
               />
-              <Image
-                src="/brand/identity-uniform.jpg"
-                alt={t.applicationTitle}
-                width={506}
-                height={408}
-                className="relative w-full rounded-[2rem] shadow-soft"
-              />
-            </div>
-          </Reveal>
-          <Reveal delay={120}>
-            <h2 className="text-3xl font-extrabold tracking-tight text-ink-950 sm:text-4xl">
-              {t.applicationTitle}
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-ink-600">{t.applicationBody}</p>
-            <div className="mt-8 flex gap-3" dir="ltr">
-              {COLORS.map((color) => (
-                <span
-                  key={color.key}
-                  className="h-10 w-10 rounded-full ring-4 ring-white"
-                  style={{ backgroundColor: color.hex }}
-                  title={color.hex}
-                />
-              ))}
-            </div>
-          </Reveal>
-        </div>
+            ))}
+          </div>
+        </Reveal>
       </section>
 
       <CtaBanner locale={locale} dict={dict} source="identity" />

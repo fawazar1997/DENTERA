@@ -4,7 +4,6 @@ import { MapPin, ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { CallButton } from "./CallButton";
-import { StatsStrip } from "./StatsStrip";
 import { DoctorPhoto } from "./DoctorPhoto";
 
 export function Hero({
@@ -20,13 +19,6 @@ export function Hero({
   /** Branch names shown on the photo. */
   branchNames?: string[];
 }) {
-  const stats = [
-    { value: dict.stats.yearsValue, label: dict.stats.yearsLabel },
-    { value: dict.stats.doctorsValue, label: dict.stats.doctorsLabel },
-    { value: dict.stats.patientsValue, label: dict.stats.patientsLabel },
-    { value: dict.stats.departmentsValue, label: dict.stats.departmentsLabel },
-  ];
-
   return (
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
@@ -128,8 +120,6 @@ export function Hero({
           </div>
         </div>
       </section>
-
-      <StatsStrip stats={stats} />
     </>
   );
 }

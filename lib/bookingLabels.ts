@@ -10,6 +10,8 @@ export function bookingFormLabels(dict: Dictionary): BookingFormLabels {
     phonePlaceholder: b.formPhonePlaceholder,
     department: b.formDepartment,
     departmentAny: b.formDepartmentAny,
+    doctor: b.formDoctor,
+    doctorAny: b.formDoctorAny,
     submit: b.formSubmit,
     sending: b.formSending,
     successTitle: b.formSuccessTitle,

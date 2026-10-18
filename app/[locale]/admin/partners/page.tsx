@@ -3,7 +3,7 @@ import { Plus, Pencil } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getPartners } from "@/lib/db";
-import { LOGO_GROUPS } from "@/lib/types";
+import type { LogoGroup } from "@/lib/types";
 import {
   createPartnerAction,
   deletePartnerAction,
@@ -13,6 +13,9 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { PartnerForm } from "@/components/admin/PartnerForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
+
+// Featured brands are no longer shown on the website.
+const SHOWN_GROUPS: LogoGroup[] = ["partners", "payments"];
 
 const GROUP_LABELS = {
   partners: ["logoGroupPartners", "logoGroupPartnersHint"],
@@ -48,7 +51,7 @@ export default async function AdminPartnersPage({
           <BlobConfigNotice text={dict.admin.blobNotEnabled} />
         </div>
 
-        {LOGO_GROUPS.map((group) => {
+        {SHOWN_GROUPS.map((group) => {
           const logos = partners.filter((p) => (p.group ?? "partners") === group);
           return (
             <section key={group} className="mt-10 first:mt-0">

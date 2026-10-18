@@ -12,6 +12,8 @@ export type BookingFormLabels = {
   phonePlaceholder: string;
   department: string;
   departmentAny: string;
+  doctor: string;
+  doctorAny: string;
   submit: string;
   sending: string;
   successTitle: string;
@@ -41,7 +43,9 @@ type FormProps = {
   /** Page the form is on, saved with the request. */
   source: string;
   defaultDepartmentId?: string;
-  doctorId?: string;
+  /** On a doctor's page: doctors to choose from, with this one preselected. */
+  doctors?: { id: string; name: string }[];
+  defaultDoctorId?: string;
   className?: string;
 };
 
@@ -57,7 +61,8 @@ function BookingFormInner({
   labels,
   source,
   defaultDepartmentId = "",
-  doctorId,
+  doctors,
+  defaultDoctorId = "",
   className = "",
   onAnother,
 }: FormProps & { onAnother: () => void }) {
@@ -97,7 +102,6 @@ function BookingFormInner({
     >
       <input type="hidden" name="t" value={shownAt > 0 ? shownAt : ""} />
       <input type="hidden" name="source" value={source} />
-      {doctorId && <input type="hidden" name="doctorId" value={doctorId} />}
       {/* Left empty by people; bots tend to fill every field. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>
@@ -154,6 +158,25 @@ function BookingFormInner({
           ))}
         </select>
       </div>
+
+      {doctors && doctors.length > 0 && (
+        <div>
+          <label htmlFor={`bk-doctor-${source}`} className="label">{labels.doctor}</label>
+          <select
+            id={`bk-doctor-${source}`}
+            name="doctorId"
+            defaultValue={defaultDoctorId}
+            className="input"
+          >
+            <option value="">{labels.doctorAny}</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error === "server" && (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{labels.errorServer}</p>

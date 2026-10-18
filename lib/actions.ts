@@ -31,6 +31,7 @@ import { scheduleFromForm } from "./hours";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
 import {
+  HOME_SECTIONS,
   LOGO_GROUPS,
   PAGE_KEYS,
   type LogoGroup,
@@ -424,5 +425,17 @@ export async function generateDirectoryKeyAction() {
 export async function generateBookingsKeyAction() {
   await requireAdmin();
   await updateSettings({ bookingsKey: randomKey() });
+  revalidateAll();
+}
+
+// Home page sections
+
+/** Saves which home page sections are shown (unticked ones are hidden). */
+export async function updateHomeSectionsAction(formData: FormData) {
+  await requireAdmin();
+  const shown = new Set(formData.getAll("shown").map(String));
+  await updateSettings({
+    hiddenHomeSections: HOME_SECTIONS.filter((section) => !shown.has(section)),
+  });
   revalidateAll();
 }
