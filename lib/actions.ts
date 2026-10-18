@@ -33,6 +33,7 @@ import { googleMapsSearchUrl } from "./defaults";
 import {
   HOME_SECTIONS,
   LOGO_GROUPS,
+  homeSectionOrder,
   PAGE_KEYS,
   type LogoGroup,
   type PageKey,
@@ -430,12 +431,13 @@ export async function generateBookingsKeyAction() {
 
 // Home page sections
 
-/** Saves which home page sections are shown (unticked ones are hidden). */
+/** Saves the home page section order and which sections are shown. */
 export async function updateHomeSectionsAction(formData: FormData) {
   await requireAdmin();
   const shown = new Set(formData.getAll("shown").map(String));
   await updateSettings({
     hiddenHomeSections: HOME_SECTIONS.filter((section) => !shown.has(section)),
+    homeSectionOrder: homeSectionOrder(formData.getAll("order").map(String)),
   });
   revalidateAll();
 }

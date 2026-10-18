@@ -1,10 +1,11 @@
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getSettings } from "@/lib/db";
-import { HOME_SECTIONS, type HomeSectionKey } from "@/lib/types";
+import { HOME_SECTIONS, homeSectionOrder, type HomeSectionKey } from "@/lib/types";
 import { updateHomeSectionsAction } from "@/lib/actions";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { HomeSectionsEditor } from "@/components/admin/HomeSectionsEditor";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -29,7 +30,7 @@ export default async function AdminHomeSectionsPage({
 }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const dict = getDictionary(locale);
-  const hidden = new Set((await getSettings()).hiddenHomeSections ?? []);
+  const settings = await getSettings();
 
   return (
     <>
@@ -39,27 +40,15 @@ export default async function AdminHomeSectionsPage({
         <p className="mt-1 max-w-3xl text-ink-500">{dict.admin.homeSectionsSubtitle}</p>
 
         <form action={updateHomeSectionsAction} className="card mt-6 max-w-2xl p-6">
-          <ol className="divide-y divide-ink-100">
-            {HOME_SECTIONS.map((section, i) => (
-              <li key={section}>
-                <label className="flex cursor-pointer items-center gap-4 py-3.5">
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-ink-50 text-sm font-bold text-ink-500">
-                    {i + 1}
-                  </span>
-                  <span className="flex-1 font-semibold text-ink-900">
-                    {dict.admin[LABEL_KEYS[section]]}
-                  </span>
-                  <input
-                    type="checkbox"
-                    name="shown"
-                    value={section}
-                    defaultChecked={!hidden.has(section)}
-                    className="peer h-5 w-5 rounded border-ink-300"
-                  />
-                </label>
-              </li>
-            ))}
-          </ol>
+          <HomeSectionsEditor
+            initialOrder={homeSectionOrder(settings.homeSectionOrder)}
+            hidden={settings.hiddenHomeSections ?? []}
+            labels={Object.fromEntries(
+              HOME_SECTIONS.map((section) => [section, dict.admin[LABEL_KEYS[section]]])
+            ) as Record<HomeSectionKey, string>}
+            moveUp={dict.admin.moveUp}
+            moveDown={dict.admin.moveDown}
+          />
           <p className="mt-4 rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-500">
             {dict.admin.homeSectionsBannerHint}
           </p>

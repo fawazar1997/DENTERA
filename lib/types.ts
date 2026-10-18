@@ -74,6 +74,8 @@ export type SiteSettings = {
   bookingsKey?: string;
   /** Home page sections switched off in the control panel. */
   hiddenHomeSections?: HomeSectionKey[];
+  /** Home page section order set in the control panel. */
+  homeSectionOrder?: HomeSectionKey[];
 };
 
 /** Home page sections, in the order they appear. */
@@ -89,6 +91,23 @@ export const HOME_SECTIONS = [
   "booking",
 ] as const;
 export type HomeSectionKey = (typeof HOME_SECTIONS)[number];
+
+/**
+ * The saved section order, cleaned up: unknown keys dropped, and any
+ * section missing from it (e.g. one added later) placed where it sits in
+ * the default order.
+ */
+export function homeSectionOrder(saved: readonly string[] | undefined): HomeSectionKey[] {
+  const known = (saved ?? []).filter(
+    (key, i, all): key is HomeSectionKey =>
+      (HOME_SECTIONS as readonly string[]).includes(key) && all.indexOf(key) === i
+  );
+  const order = [...known];
+  HOME_SECTIONS.forEach((key, i) => {
+    if (!order.includes(key)) order.splice(Math.min(i, order.length), 0, key);
+  });
+  return order;
+}
 
 /** A promotional offer: a home page banner that opens its own page. */
 export type Offer = {

@@ -415,7 +415,9 @@ export const dictionaries = {
       openDirectory: "Open directory",
       homeSections: "Home Page",
       homeSectionsSubtitle:
-        "Choose which sections appear on the home page. They show in this order; untick a section to hide it.",
+        "Arrange the home page: use the arrows to move a section up or down, and untick a section to hide it. Then save.",
+      moveUp: "Move up",
+      moveDown: "Move down",
       homeSectionsBannerHint: "The top banner / offers carousel is switched on and off in Banners.",
       sectionHero: "Top section (headline and photo)",
       sectionDoctors: "Doctors",
@@ -918,7 +920,9 @@ export const dictionaries = {
       openDirectory: "فتح الدليل",
       homeSections: "الصفحة الرئيسية",
       homeSectionsSubtitle:
-        "اختر الأقسام التي تظهر في الصفحة الرئيسية. تظهر بهذا الترتيب؛ أزل العلامة لإخفاء القسم.",
+        "رتّب الصفحة الرئيسية: استخدم الأسهم لتحريك القسم للأعلى أو للأسفل، وأزل العلامة لإخفاء القسم، ثم اضغط حفظ.",
+      moveUp: "تحريك للأعلى",
+      moveDown: "تحريك للأسفل",
       homeSectionsBannerHint: "البنر العلوي / شريط العروض يتم إظهاره وإخفاؤه من صفحة البنرات.",
       sectionHero: "القسم العلوي (العنوان والصورة)",
       sectionDoctors: "الأطباء",
