@@ -204,7 +204,7 @@ export default async function DoctorProfilePage({
                   )}
                 </div>
 
-                {doctor.coordinationNumber && (
+                {doctor.coordinationNumber && doctor.showCoordinationOnSite !== false && (
                   <a
                     href={whatsappHref(
                       doctor.coordinationNumber,

@@ -45,6 +45,8 @@ export type Doctor = {
   coordinationNumber?: string;
   /** List the doctor in the staff coordination directory (default yes). */
   showInDirectory?: boolean;
+  /** Show the "Contact coordination" WhatsApp button on the site (default yes). */
+  showCoordinationOnSite?: boolean;
   active: boolean;
 };
 

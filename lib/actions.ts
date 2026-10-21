@@ -126,6 +126,7 @@ function doctorFields(formData: FormData) {
     hours: doctorHours(formData),
     coordinationNumber: optStr(formData, "coordinationNumber"),
     showInDirectory: formData.get("showInDirectory") === "on",
+    showCoordinationOnSite: formData.get("showCoordinationOnSite") === "on",
     active: formData.get("active") === "on",
   };
 }

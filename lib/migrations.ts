@@ -167,7 +167,112 @@ const SEED_LOGOS: Partner[] = [
   { id: "brand-3shape", group: "brands", nameEn: "3Shape", nameAr: "3Shape", active: false },
 ];
 
-export const DATA_VERSION = 5;
+// v6 — "Users - Doctors" sheet (Oct 2026): professional classification
+// and specialization per doctor, which set the title (and department).
+type Classification = "consultant" | "seniorSpecialist" | "specialist" | "gp";
+type Specialization =
+  | "ortho"
+  | "implantPerio"
+  | "endo"
+  | "prostho"
+  | "oralBioImplant"
+  | "restorative"
+  | "pediatric"
+  | "gp"
+  | "perioOralMed"
+  | "maxillofacial"
+  | "specialCare";
+
+const SPECIALIZATIONS: Record<Specialization, { en: string; ar: string; department: string }> = {
+  ortho: { en: "Orthodontics", ar: "تقويم الأسنان", department: "orthodontics" },
+  implantPerio: { en: "Implants & Periodontics", ar: "زراعة الأسنان وأمراض اللثة", department: "periodontics" },
+  endo: { en: "Endodontics", ar: "علاج العصب والجذور", department: "endodontics" },
+  prostho: { en: "Prosthodontics", ar: "التركيبات السنية", department: "implants-prosthodontics" },
+  oralBioImplant: { en: "Oral Biology & Dental Implants", ar: "بيولوجيا الفم وزراعة الأسنان", department: "implants-prosthodontics" },
+  restorative: { en: "Restorative & Cosmetic Dentistry", ar: "طب الأسنان الترميمي والتجميلي", department: "restorative-dentistry" },
+  pediatric: { en: "Pediatric Dentistry", ar: "طب أسنان الأطفال", department: "pediatric-dentistry" },
+  gp: { en: "General Dentistry", ar: "طب الأسنان العام", department: "general-dentistry" },
+  perioOralMed: { en: "Periodontics, Implants & Oral Medicine", ar: "أمراض اللثة والزراعة وطب الفم", department: "periodontics" },
+  maxillofacial: { en: "Implants & Maxillofacial Surgery", ar: "زراعة الأسنان وجراحة الوجه والفكين", department: "oral-surgery" },
+  specialCare: {
+    en: "Family & Special Care Dentistry for Adults",
+    ar: "طب أسنان الأسرة ورعاية ذوي الاحتياجات الخاصة للبالغين",
+    department: "general-dentistry",
+  },
+};
+
+/** [classification, specialization, female?] per doctor, from the sheet. */
+const ROSTER_V6: Record<string, [Classification, Specialization, true?]> = {
+  "ibrahim-alshahrani": ["consultant", "ortho"],
+  "mohammed-almagbol": ["consultant", "implantPerio"],
+  "manea-musa-al-ahmari": ["consultant", "implantPerio"],
+  "abdulaziz-al-shahrani": ["consultant", "ortho"],
+  "abdulaziz-abu-melha": ["consultant", "endo"],
+  "mohammad-al-wadaei": ["consultant", "prostho"],
+  "mohammed-nimer-alqahtani": ["consultant", "oralBioImplant"],
+  "abdulmajeed-al-shahrani": ["consultant", "endo"],
+  "waleed-saeed-asiri": ["consultant", "restorative"],
+  "faisal-ali-abboud": ["consultant", "pediatric"],
+  "nasser-mesfer-al-ahmari": ["consultant", "prostho"],
+  "raed-abdullah-al-manea": ["consultant", "endo"],
+  "ghadeer-saleh-al-wadaei": ["consultant", "prostho", true],
+  "malek-abo-zeed": ["specialist", "prostho"],
+  "ola-daoud": ["gp", "gp", true],
+  "amel-shaiban": ["consultant", "endo", true],
+  "mohammed-alamri": ["consultant", "restorative"],
+  "ali-alhaizaey": ["consultant", "ortho"],
+  "alhanuf-almoghamer": ["seniorSpecialist", "pediatric", true],
+  "lujain-aldossari": ["consultant", "prostho", true],
+  "nadaa-alamoudi": ["consultant", "restorative", true],
+  "abdullah-awn": ["consultant", "perioOralMed"],
+  "mansour-alamri": ["seniorSpecialist", "ortho"],
+  "ali-alqahtani": ["consultant", "maxillofacial"],
+  "atheer-al-ghanem": ["seniorSpecialist", "ortho"],
+  "abdulmajeed-alqahtani": ["gp", "gp"],
+  "lujain-alasiri": ["gp", "gp", true],
+  "ahmed-alelyani": ["consultant", "endo"],
+  "khalid-alhindi": ["consultant", "prostho"],
+  "saad-sabrah": ["consultant", "endo"],
+  "abdulrahman-alasiri": ["consultant", "implantPerio"],
+  "mohammed-thamer-alqahtani": ["consultant", "restorative"],
+  "mohammed-alsharif": ["consultant", "restorative"],
+  "nasser-alshehri": ["consultant", "endo"],
+  "abdulelah-daghriri": ["consultant", "implantPerio"],
+  "rawan-saddah": ["consultant", "ortho", true],
+  "waleed-alhogban": ["consultant", "endo"],
+  "sanaa-alshahrani": ["seniorSpecialist", "pediatric", true],
+  "amal-alzaydani": ["consultant", "endo", true],
+  "meelaf-alshahrani": ["seniorSpecialist", "ortho", true],
+  "shaden-bander": ["gp", "gp", true],
+  "nahar-abdullah-alqahtani": ["seniorSpecialist", "specialCare"],
+  "rima-othman-albishri": ["gp", "gp", true],
+};
+
+/** Professors (أ.د.) — the sheet lists them as consultants. */
+const PROFESSORS = new Set(["ibrahim-alshahrani", "abdulaziz-al-shahrani", "abdulaziz-abu-melha"]);
+
+function rosterTitle(id: string, [cls, spec, female]: [Classification, Specialization, true?]) {
+  const sp = SPECIALIZATIONS[spec];
+  if (cls === "gp") {
+    return {
+      titleEn: "General Dental Practitioner",
+      titleAr: female ? "طبيبة أسنان عامة" : "طبيب أسنان عام",
+    };
+  }
+  const en = {
+    consultant: PROFESSORS.has(id) ? "Professor & Consultant" : "Consultant",
+    seniorSpecialist: "Senior Specialist",
+    specialist: "Specialist",
+  }[cls];
+  const ar = {
+    consultant: PROFESSORS.has(id) ? (female ? "أستاذة واستشارية" : "أستاذ واستشاري") : female ? "استشارية" : "استشاري",
+    seniorSpecialist: female ? "أخصائية أولى" : "أخصائي أول",
+    specialist: female ? "أخصائية" : "أخصائي",
+  }[cls];
+  return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
+}
+
+export const DATA_VERSION = 6;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -177,6 +282,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 3) migrateV3(db);
   if (version < 4) migrateV4(db);
   if (version < 5) migrateV5(db);
+  if (version < 6) migrateV6(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -242,4 +348,21 @@ function migrateV5(db: Database): void {
   for (const logo of SEED_LOGOS) {
     if (!ids.has(logo.id)) db.partners.push({ ...logo });
   }
+}
+
+/** v6 — titles, departments and coordination numbers from the Oct 2026 sheet. */
+function migrateV6(db: Database): void {
+  const departments = new Set(db.departments.map((d) => d.id));
+  db.doctors = db.doctors.map((doctor) => {
+    const row = ROSTER_V6[doctor.id];
+    if (!row) return doctor;
+    const department = SPECIALIZATIONS[row[1]].department;
+    return {
+      ...doctor,
+      ...rosterTitle(doctor.id, row),
+      departmentId: departments.has(department) ? department : doctor.departmentId,
+      coordinationNumber: COORDINATION_NUMBERS[doctor.id] ?? doctor.coordinationNumber,
+      ...(doctor.id === "faisal-ali-abboud" ? { nameAr: "د. فيصل بن عبود" } : {}),
+    };
+  });
 }
