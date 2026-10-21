@@ -216,6 +216,12 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       f("yearsExperience", "\"Years of experience\" label", "عبارة «سنوات الخبرة»"),
       f("bookTitle", "Booking box — title", "مربع الحجز — العنوان"),
       f("bookBody", "Booking box — text", "مربع الحجز — النص"),
+      f("contactCoordination", "\"Contact coordination\" button", "زر «تواصل مع التنسيق»"),
+      f(
+        "coordinationMessage",
+        "WhatsApp message sent with the button ({doctor} = doctor's name)",
+        "رسالة الواتساب مع الزر ({doctor} = اسم الطبيب)"
+      ),
       f("availableNow", "\"In clinic now\" badge", "شارة «متواجد الآن»"),
       f("notAvailableNow", "\"Not in clinic now\" badge", "شارة «غير متواجد الآن»"),
       f("offDay", "Day the doctor isn't in", "اليوم الذي لا يتواجد فيه الطبيب"),

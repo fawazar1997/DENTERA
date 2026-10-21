@@ -24,6 +24,8 @@ import {
   getDoctorsByDepartment,
 } from "@/lib/db";
 import { bookingFormLabels } from "@/lib/bookingLabels";
+import { whatsappHref } from "@/lib/phone";
+import { SOCIAL_ICON_PATHS } from "@/lib/socialIconPaths";
 import { BranchHours } from "@/components/BranchHours";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { DepartmentIcon } from "@/components/IconMap";
@@ -201,6 +203,23 @@ export default async function DoctorProfilePage({
                     </span>
                   )}
                 </div>
+
+                {doctor.coordinationNumber && (
+                  <a
+                    href={whatsappHref(
+                      doctor.coordinationNumber,
+                      dict.doctorProfile.coordinationMessage.replace("{doctor}", name)
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary mt-5 w-full justify-center py-3 text-base"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
+                      <path d={SOCIAL_ICON_PATHS.whatsapp} />
+                    </svg>
+                    {dict.doctorProfile.contactCoordination}
+                  </a>
+                )}
 
                 {branches.length > 0 && (
                   <div className="mt-6 border-t border-ink-100 pt-5">

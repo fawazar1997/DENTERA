@@ -38,7 +38,10 @@ export type Doctor = {
   branchIds?: string[];
   /** Optional hours the doctor is in, per branch id (subset of branchIds). */
   hours?: Record<string, WeekSchedule>;
-  /** Internal coordination number — shown only in the staff directory. */
+  /**
+   * Coordinator's WhatsApp number: listed in the staff directory and
+   * behind the "Contact coordination" button on the doctor's page.
+   */
   coordinationNumber?: string;
   /** List the doctor in the staff coordination directory (default yes). */
   showInDirectory?: boolean;
