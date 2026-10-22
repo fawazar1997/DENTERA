@@ -30,7 +30,7 @@ export type BookingFormLabels = {
 function Submit({ labels }: { labels: BookingFormLabels }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="btn-primary w-full justify-center py-3.5 text-base disabled:opacity-70">
+    <button type="submit" disabled={pending} className="btn-book w-full justify-center py-3.5 text-base disabled:opacity-70">
       {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CalendarCheck className="h-5 w-5" />}
       {pending ? labels.sending : labels.submit}
     </button>

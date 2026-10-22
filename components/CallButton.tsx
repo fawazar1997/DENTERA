@@ -19,9 +19,10 @@ export function CallButton({
   showNumber?: boolean;
   className?: string;
 }) {
+  // Booking buttons are Teal everywhere ("accent" kept for older call sites).
   const styles = {
-    primary: "btn-primary",
-    accent: "btn-accent",
+    primary: "btn-book",
+    accent: "btn-book",
     outline: "btn-outline",
   }[variant];
 

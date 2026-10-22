@@ -118,7 +118,7 @@ export function Header({
         <div className="flex items-center gap-2 lg:hidden">
           <a
             href={telHref(dict.booking.phone)}
-            className="btn-primary px-4 py-2"
+            className="btn-book px-4 py-2"
             aria-label={`${dict.booking.button} ${dict.booking.phone}`}
           >
             <Phone className="h-4 w-4" />

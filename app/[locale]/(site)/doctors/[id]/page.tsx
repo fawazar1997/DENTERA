@@ -212,7 +212,7 @@ export default async function DoctorProfilePage({
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-primary mt-5 w-full justify-center py-3 text-base"
+                    className="btn-book mt-5 w-full justify-center py-3 text-base"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
                       <path d={SOCIAL_ICON_PATHS.whatsapp} />

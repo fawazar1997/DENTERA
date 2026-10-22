@@ -47,6 +47,12 @@ body {
   @apply btn border border-ink-900/25 bg-transparent text-ink-900 hover:border-ink-900/40 hover:bg-ink-900/[0.03] active:scale-[0.98];
 }
 
+/* Booking & contact buttons: brand Teal with Dark Blue text (white on
+   Teal is too faint to read). Hover lightens, keeping the text legible. */
+.btn-book {
+  @apply btn bg-primary-500 font-bold text-ink-900 shadow-inset hover:bg-primary-400 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
+}
+
 .btn-accent {
   @apply btn bg-accent-500 text-ink-900 shadow-inset hover:bg-accent-400 hover:shadow-inset-hover active:scale-[0.98] active:opacity-90;
 }
