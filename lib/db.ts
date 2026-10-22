@@ -32,9 +32,8 @@ const TMP_DB_PATH = path.join(os.tmpdir(), "dentera-db.json");
 //   this is what lets edits made in the control panel stick and show up on
 //   every instance. Each save writes a new blob with a random suffix (so a
 //   cached copy of an old version can never be served) and removes the
-//   older ones. It lives in the private store once that's connected (see
-//   lib/privateBlob.ts); before that, in the public store under a random,
-//   unlisted name.
+//   older ones. It lives in the private store (see lib/privateBlob.ts);
+//   without one, in the public store under a random, unlisted name.
 // - Without Blob (local development), it's a JSON file next to the source,
 //   falling back to the OS temp dir if the project dir is read-only.
 const BLOB_DB_PREFIX = "data/dentera-db";
@@ -88,6 +87,19 @@ async function readPublicDbRaw(): Promise<Database | null> {
   return (await response.json()) as Database;
 }
 
+/**
+ * Deletes database versions left in the public store from before the
+ * private store. Only called once the private store holds the database.
+ */
+async function removePublicDbCopies(): Promise<void> {
+  try {
+    const old = await listDbBlobs();
+    if (old.length > 0) await del(old.map((b) => b.url));
+  } catch (error) {
+    console.error("Failed to remove the old public database copies:", error);
+  }
+}
+
 /** The stored database exactly as saved (null when nothing is saved yet). */
 async function readBlobDbRaw(): Promise<Database | null> {
   const store = privateStore();
@@ -96,10 +108,12 @@ async function readBlobDbRaw(): Promise<Database | null> {
   if (latest) {
     const db = await readPrivateJson<Database>(latest.pathname);
     if (!db) throw new Error("Failed to load the database from the private store");
+    await removePublicDbCopies();
     return db;
   }
   // First read after the private store was connected: copy the database
-  // over. The public copy is left as a backup until it's removed.
+  // over. The public copy is removed on a later read, once the private
+  // copy is there to be read back.
   const saved = await readPublicDbRaw();
   if (saved) await putDbBlob(saved);
   return saved;
@@ -115,7 +129,7 @@ async function readBlobDb(): Promise<Database> {
 // Only the raw saved data is cached: Vercel keeps this cache across
 // deployments, so defaults and migrations must run after it, on every
 // read, or a new deployment's data updates would never show up.
-const readBlobDbRawCached = unstable_cache(readBlobDbRaw, [DB_CACHE_TAG, "raw"], {
+const readBlobDbRawCached = unstable_cache(readBlobDbRaw, [DB_CACHE_TAG, "raw", "private"], {
   tags: [DB_CACHE_TAG],
 });
 

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { list, put } from "@vercel/blob";
+import { del, list, put } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
 import { privateStore, readPrivateJson } from "./privateBlob";
@@ -17,10 +17,9 @@ import type { Booking, BookingStatus } from "./types";
 // Each file name starts with a reversed timestamp, so listing the folder
 // (which is alphabetical) returns the newest requests first.
 //
-// They're kept in the private store once that's connected (see
-// lib/privateBlob.ts), where no link can open them. Requests saved before
-// that, in the public store, are copied over the first time they're read;
-// the public copies stay as a backup until they're removed.
+// They're kept in the private store (see lib/privateBlob.ts), where no
+// link can open them. Any left in the public store from before are copied
+// over when read, then deleted from the public store.
 //
 // Without Blob (local development) they're kept in a JSON file.
 
@@ -90,7 +89,7 @@ async function writeBlob(booking: Booking): Promise<void> {
 }
 
 /** Requests in the public store (all of them, before the private store). */
-async function readPublicBlobs(): Promise<Booking[]> {
+async function readPublicEntries(): Promise<{ booking: Booking; url: string }[]> {
   const { blobs } = await list({ prefix: PREFIX, limit: MAX_SHOWN });
   const results = await Promise.all(
     blobs.map(async (blob) => {
@@ -98,36 +97,67 @@ async function readPublicBlobs(): Promise<Booking[]> {
       const url = `${blob.url}?v=${new Date(blob.uploadedAt).getTime()}`;
       try {
         const response = await fetch(url, { cache: "no-store" });
-        return response.ok ? ((await response.json()) as Booking) : null;
+        return response.ok ? { booking: (await response.json()) as Booking, url: blob.url } : null;
       } catch {
         return null;
       }
     })
   );
-  return results.filter((b): b is Booking => b !== null);
+  return results.filter((r): r is { booking: Booking; url: string } => r !== null);
 }
 
-async function readPrivateBlobs(store: NonNullable<ReturnType<typeof privateStore>>): Promise<Booking[]> {
+async function readPublicBlobs(): Promise<Booking[]> {
+  return (await readPublicEntries()).map((r) => r.booking);
+}
+
+/** Requests in the private store, plus the ids of every file listed there. */
+async function readPrivateBlobs(
+  store: NonNullable<ReturnType<typeof privateStore>>
+): Promise<{ bookings: Booking[]; listed: Set<string> }> {
   const { blobs } = await list({ prefix: PREFIX, limit: MAX_SHOWN, ...store });
   const results = await Promise.all(
     blobs.map((blob) => readPrivateJson<Booking>(blob.pathname).catch(() => null))
   );
-  return results.filter((b): b is Booking => b !== null);
+  return {
+    bookings: results.filter((b): b is Booking => b !== null),
+    listed: new Set(blobs.map((blob) => blob.pathname.slice(PREFIX.length, -".json".length))),
+  };
 }
 
 async function readAllBlobs(): Promise<Booking[]> {
   const store = privateStore();
   if (!store) return readPublicBlobs();
-  const [kept, older] = await Promise.all([readPrivateBlobs(store), readPublicBlobs()]);
-  // Copy requests that are still only in the public store.
-  const ids = new Set(kept.map((b) => b.id));
-  const toCopy = older.filter((b) => !ids.has(b.id));
+  const [{ bookings: kept, listed }, older] = await Promise.all([
+    readPrivateBlobs(store),
+    readPublicEntries(),
+  ]);
+  // Requests still in the public store (from before the private one) are
+  // copied over, and each public file is deleted once its private copy
+  // exists. Going by the private listing (not by what could be read) means
+  // a private copy that failed to load is never overwritten with the older
+  // public one.
+  const copied: Booking[] = [];
+  const toDelete: string[] = [];
   await Promise.all(
-    toCopy.map((b) =>
-      writeBlob(b).catch((error) => console.error("Failed to copy booking request:", error))
-    )
+    older.map(async ({ booking, url }) => {
+      if (!listed.has(booking.id)) {
+        try {
+          await writeBlob(booking);
+          copied.push(booking);
+        } catch (error) {
+          console.error("Failed to copy a booking request:", error);
+          return;
+        }
+      }
+      toDelete.push(url);
+    })
   );
-  return [...kept, ...toCopy];
+  if (toDelete.length > 0) {
+    await del(toDelete).catch((error) =>
+      console.error("Failed to remove old public booking files:", error)
+    );
+  }
+  return [...kept, ...copied];
 }
 
 /** One request by id, from the private store first, then the public one. */
@@ -144,7 +174,7 @@ async function readOneBlob(id: string): Promise<Booking | null> {
   return response.ok ? ((await response.json()) as Booking) : null;
 }
 
-const readAllBlobsCached = unstable_cache(readAllBlobs, [CACHE_TAG], {
+const readAllBlobsCached = unstable_cache(readAllBlobs, [CACHE_TAG, "private"], {
   tags: [CACHE_TAG],
 });
 
