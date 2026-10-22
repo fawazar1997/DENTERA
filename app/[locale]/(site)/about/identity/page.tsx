@@ -30,11 +30,15 @@ export async function generateMetadata({
 }
 
 /** The four identity colors, as on the identity sheet. */
+/** The official palette (brand sheet, Oct 2026). */
 const COLORS = [
   { key: "cyan", hex: "#0CB8CD", rgb: "12, 184, 205", text: "text-white" },
   { key: "navy", hex: "#141480", rgb: "20, 20, 128", text: "text-white" },
   { key: "beige", hex: "#C8BEB0", rgb: "200, 190, 176", text: "text-ink-900" },
+  { key: "bone", hex: "#FCF3E8", rgb: "252, 243, 232", text: "text-ink-900" },
   { key: "pink", hex: "#DAACAB", rgb: "218, 172, 171", text: "text-ink-900" },
+  { key: "turquoise", hex: "#08B7CC", rgb: "8, 183, 204", text: "text-white" },
+  { key: "navyBlue", hex: "#292C87", rgb: "41, 44, 135", text: "text-white" },
 ] as const;
 
 /**
@@ -62,6 +66,9 @@ export default async function IdentityPage({
     navy: { name: t.navyName, meaning: t.navyMeaning },
     beige: { name: t.beigeName, meaning: t.beigeMeaning },
     pink: { name: t.pinkName, meaning: t.pinkMeaning },
+    bone: { name: t.boneName, meaning: t.boneMeaning },
+    turquoise: { name: t.turquoiseName, meaning: t.turquoiseMeaning },
+    navyBlue: { name: t.navyBlueName, meaning: t.navyBlueMeaning },
   };
   const markPoints = [
     { title: t.markPoint1Title, body: t.markPoint1Body },
@@ -206,7 +213,7 @@ export default async function IdentityPage({
             <p className="mt-4 text-lg text-ink-600">{t.colorsBody}</p>
           </div>
 
-          {/* The four colors side by side, as on the identity sheet */}
+          {/* The colors side by side, as on the identity sheet */}
           <div className="mx-auto mt-10 flex h-16 max-w-3xl overflow-hidden rounded-2xl shadow-card" dir="ltr">
             {COLORS.map((color) => (
               <div key={color.key} className="flex-1" style={{ backgroundColor: color.hex }} />
@@ -218,7 +225,9 @@ export default async function IdentityPage({
               <Reveal key={color.key} delay={i * 80} className="h-full">
                 <div className="card flex h-full flex-col overflow-hidden">
                   <div
-                    className={`flex h-36 items-end p-5 ${color.text}`}
+                    className={`flex h-36 items-end p-5 ${color.text} ${
+                      color.key === "bone" ? "border-b border-ink-100" : ""
+                    }`}
                     style={{ backgroundColor: color.hex }}
                   >
                     <span dir="ltr" className="text-2xl font-extrabold tracking-wide">

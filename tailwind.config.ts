@@ -5,7 +5,8 @@ const config: Config = {
   theme: {
     extend: {
       // Every color below comes from the four Dentera identity colors only:
-      //   cyan #0CB8CD · navy #141480 · beige #C8BEB0 · pink #DAACAB
+      //   teal #0CB8CD · dark blue #141480 · beige #C8BEB0 · bone #FCF3E8
+      //   gum #DAACAB · turquoise blue #08B7CC · navy blue #292C87
       // Light steps are each color mixed with white; dark steps are mixed
       // with the identity navy (not black), so even shades stay on-brand.
       colors: {
@@ -56,11 +57,12 @@ const config: Config = {
           500: "#6767ac",
           600: "#6262aa",
           700: "#4c4c9e",
-          800: "#30308f",
+          800: "#292c87", // Navy blue
           900: "#141480",
           950: "#0c0c4d",
         },
-        paper: "#f6f5f2",
+        // Bone — the page background.
+        paper: "#fcf3e8",
       },
       // Almarai is the site font for both Arabic and English. It ships in
       // 300/400/700/800, so medium (500) renders as 400 and semibold (600)
