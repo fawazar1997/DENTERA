@@ -253,57 +253,7 @@ export default async function IdentityPage({
             ))}
           </div>
 
-          {/* Signature gradient — as on the team's name badges */}
-          <Reveal>
-            <div className="mt-12 grid items-center gap-8 rounded-[2rem] bg-white p-6 shadow-card sm:p-10 lg:grid-cols-2">
-              <div>
-                <h3 className="text-2xl font-extrabold text-ink-950">{t.gradientTitle}</h3>
-                <p className="mt-3 leading-relaxed text-ink-600">{t.gradientBody}</p>
-              </div>
-              <div
-                className="flex h-28 items-center justify-between gap-4 rounded-2xl px-6 shadow-soft"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(100deg, #b6eaf0 0%, #ece9e4 50%, #edd6d5 100%)",
-                }}
-                dir="ltr"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/brand/dentera-mark.svg"
-                  alt=""
-                  className="h-14 w-auto [filter:brightness(0.55)_saturate(1.2)]"
-                />
-                <span className="text-end">
-                  <span className="block text-lg font-extrabold text-ink-900">Dentera</span>
-                  <span className="block text-sm font-bold text-ink-700" dir="rtl">
-                    دنتيرا
-                  </span>
-                </span>
-              </div>
-            </div>
-          </Reveal>
         </div>
-      </section>
-
-      {/* Identity in practice */}
-      <section className="section-y bg-white">
-        <Reveal className="container-x mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-ink-950 sm:text-4xl">
-            {t.applicationTitle}
-          </h2>
-          <p className="mt-4 text-lg leading-relaxed text-ink-600">{t.applicationBody}</p>
-          <div className="mt-8 flex justify-center gap-3" dir="ltr">
-            {COLORS.map((color) => (
-              <span
-                key={color.key}
-                className="h-10 w-10 rounded-full ring-4 ring-ink-50"
-                style={{ backgroundColor: color.hex }}
-                title={color.hex}
-              />
-            ))}
-          </div>
-        </Reveal>
       </section>
 
       <CtaBanner locale={locale} dict={dict} source="identity" />

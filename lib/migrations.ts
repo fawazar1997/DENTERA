@@ -272,7 +272,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 6;
+export const DATA_VERSION = 7;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -283,6 +283,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 4) migrateV4(db);
   if (version < 5) migrateV5(db);
   if (version < 6) migrateV6(db);
+  if (version < 7) migrateV7(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -365,4 +366,22 @@ function migrateV6(db: Database): void {
       ...(doctor.id === "faisal-ali-abboud" ? { nameAr: "د. فيصل بن عبود" } : {}),
     };
   });
+}
+
+/** Old colour names (before the seven-colour identity of Oct 22, 2026). */
+const OLD_COLOUR_WORDS = /سماو|وردي|cyan|pink|sky/i;
+
+function migrateV7(db: Database): void {
+  // v7 — the Identity page shows only the seven official colours: drop
+  // saved texts for the removed sections, and saved identity texts that
+  // still name the old colours, so the new defaults show.
+  for (const texts of [db.content?.en, db.content?.ar]) {
+    if (!texts) continue;
+    for (const [key, value] of Object.entries(texts)) {
+      if (!key.startsWith("identity.")) continue;
+      if (/^identity\.(gradient|application)/.test(key) || OLD_COLOUR_WORDS.test(value)) {
+        delete texts[key];
+      }
+    }
+  }
 }

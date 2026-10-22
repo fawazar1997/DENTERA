@@ -152,7 +152,7 @@ export const dictionaries = {
       markPoint3Body: "A circle the lines wrap around: the patient at the centre of our attention, with care surrounding them on every side.",
       wordmarkTitle: "The Wordmark",
       wordmarkBody:
-        "Dentera in Arabic and English, set together as one balanced lockup. Soft, rounded letterforms convey warmth and approachability, while the cyan type speaks of clarity and modern care.",
+        "Dentera in Arabic and English, set together as one balanced lockup. Soft, rounded letterforms convey warmth and approachability, while the Teal type speaks of clarity and modern care.",
       colorsTitle: "Our Colors",
       colorsBody: "Seven official colors make everything you see at Dentera.",
       cyanName: "Teal",
@@ -171,12 +171,6 @@ export const dictionaries = {
       navyBlueMeaning: "A softer navy for secondary text, icons and supporting surfaces.",
       copyHex: "Copy",
       copied: "Copied",
-      gradientTitle: "Signature Gradient",
-      gradientBody:
-        "Cyan, beige and pink blended together, as on the name badges our team wears — used lightly on cards and special moments.",
-      applicationTitle: "Identity in Practice",
-      applicationBody:
-        "From our team's beige uniform with its cyan collar to name badges and printed materials, the identity is present at every point of contact.",
     },
     departments: {
       title: "Our Departments",
@@ -686,7 +680,7 @@ export const dictionaries = {
       markPoint3Body: "دائرة تلتف حولها الخطوط: المريض في مركز اهتمامنا، والرعاية تحيط به من كل جانب.",
       wordmarkTitle: "الكلمة الشعار",
       wordmarkBody:
-        "اسم دنتيرا بالعربية والإنجليزية في كتلة واحدة متوازنة. حروف دائرية لينة تعكس القرب والودّ، ولون سماوي يرمز للنقاء والرعاية الحديثة.",
+        "اسم دنتيرا بالعربية والإنجليزية في كتلة واحدة متوازنة. حروف دائرية لينة تعكس القرب والودّ، ولون التيل يرمز للنقاء والرعاية الحديثة.",
       colorsTitle: "ألواننا",
       colorsBody: "سبعة ألوان رسمية تصنع كل ما تراه في دنتيرا.",
       cyanName: "التيل",
@@ -705,12 +699,6 @@ export const dictionaries = {
       navyBlueMeaning: "كحلي أهدأ للنصوص الثانوية والأيقونات والمساحات المساندة.",
       copyHex: "نسخ",
       copied: "تم النسخ",
-      gradientTitle: "التدرج المميز",
-      gradientBody:
-        "مزيج السماوي والبيج والوردي كما في بطاقات الأسماء على زي فريقنا — يُستخدم بلطف في البطاقات واللحظات المميزة.",
-      applicationTitle: "الهوية في الواقع",
-      applicationBody:
-        "من زي فريقنا بلونه البيج وياقته السماوية، إلى بطاقات الأسماء والمطبوعات — تحضر الهوية في كل نقطة تواصل.",
     },
     departments: {
       title: "أقسامنا",
