@@ -3,7 +3,6 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getContentOverrides } from "@/lib/db";
 import { CONTENT_SECTIONS, defaultText, isLongField } from "@/lib/content";
 import { saveContentAction } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 
 // Phone numbers and emails read left-to-right in both languages.
@@ -26,7 +25,6 @@ export default async function AdminTextsPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.texts}

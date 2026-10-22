@@ -3,7 +3,6 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getSettings } from "@/lib/db";
 import { HOME_SECTIONS, homeSectionOrder, type HomeSectionKey } from "@/lib/types";
 import { updateHomeSectionsAction } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { HomeSectionsEditor } from "@/components/admin/HomeSectionsEditor";
 
@@ -34,7 +33,6 @@ export default async function AdminHomeSectionsPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">{dict.admin.homeSections}</h1>
         <p className="mt-1 max-w-3xl text-ink-500">{dict.admin.homeSectionsSubtitle}</p>

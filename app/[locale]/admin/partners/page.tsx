@@ -10,7 +10,6 @@ import {
   reorderPartnersAction,
   updatePartnerAction,
 } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { PartnerForm } from "@/components/admin/PartnerForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
@@ -43,7 +42,6 @@ export default async function AdminPartnersPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.partners}

@@ -7,7 +7,6 @@ import {
   deleteDoctorAction,
   updateDoctorAction,
 } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { DoctorForm } from "@/components/admin/DoctorForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { PhotoQualityBadge } from "@/components/admin/PhotoQualityBadge";
@@ -33,7 +32,6 @@ export default async function AdminDoctorsPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-extrabold text-ink-950">

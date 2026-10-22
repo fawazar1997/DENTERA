@@ -5,7 +5,6 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getDepartments, getOffers, isOfferExpired } from "@/lib/db";
 import { createOfferAction, deleteOfferAction, updateOfferAction } from "@/lib/actions";
 import { formatOfferDate } from "@/lib/offerFormat";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { OfferForm } from "@/components/admin/OfferForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
@@ -32,7 +31,6 @@ export default async function AdminOffersPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">{dict.admin.offers}</h1>
         <p className="mt-1 max-w-3xl text-ink-500">{dict.admin.offersSubtitle}</p>

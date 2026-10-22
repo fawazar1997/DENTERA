@@ -7,7 +7,6 @@ import {
   deleteBranchAction,
   updateBranchAction,
 } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { BranchForm } from "@/components/admin/BranchForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 
@@ -29,7 +28,6 @@ export default async function AdminBranchesPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.branches}

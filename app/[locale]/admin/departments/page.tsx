@@ -7,7 +7,6 @@ import {
   deleteDepartmentAction,
   updateDepartmentAction,
 } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { DepartmentForm } from "@/components/admin/DepartmentForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { DepartmentIcon } from "@/components/IconMap";
@@ -29,7 +28,6 @@ export default async function AdminDepartmentsPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.departments}

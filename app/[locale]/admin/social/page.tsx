@@ -3,7 +3,6 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getSettings } from "@/lib/db";
 import { saveSocialAction } from "@/lib/actions";
 import { SOCIAL_PLATFORMS } from "@/lib/social";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { SocialLinks } from "@/components/SocialLinks";
 
@@ -25,7 +24,6 @@ export default async function AdminSocialPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.social}

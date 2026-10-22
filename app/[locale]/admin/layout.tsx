@@ -1,10 +1,14 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import "../../globals.css";
-import { isLocale, isRtl, defaultLocale, type Locale, localePath } from "@/lib/i18n";
+import { isLocale, isRtl, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { FontLinks } from "@/components/FontLinks";
-import { Logo } from "@/components/Logo";
+import { AdminShell } from "@/components/admin/AdminShell";
+
+// The control panel is private: keep it out of search results.
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, nocache: true },
+};
 
 export default function AdminLayout({
   children,
@@ -25,29 +29,9 @@ export default function AdminLayout({
         <FontLinks />
       </head>
       <body className={`bg-ink-50 ${rtl ? "font-arabic" : "font-sans"}`}>
-        <div className="border-b border-ink-200 bg-ink-950">
-          <div className="container-x flex items-center justify-between py-3.5">
-            <Link href={localePath(locale, `/admin`)} className="flex items-center gap-3">
-              <Logo variant="color" className="h-8 w-auto" />
-              <span className="rounded-full bg-primary-800 px-2.5 py-0.5 text-xs font-semibold text-primary-100">
-                {dict.admin.badge}
-              </span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <LanguageSwitcher
-                locale={locale}
-                className="border-ink-700 text-ink-200 hover:border-primary-400 hover:text-white"
-              />
-              <Link
-                href={localePath(locale)}
-                className="text-sm font-medium text-ink-300 hover:text-white"
-              >
-                {dict.admin.viewSite}
-              </Link>
-            </div>
-          </div>
-        </div>
-        <main className="min-h-[calc(100vh-64px)]">{children}</main>
+        <AdminShell locale={locale} dict={dict}>
+          {children}
+        </AdminShell>
       </body>
     </html>
   );

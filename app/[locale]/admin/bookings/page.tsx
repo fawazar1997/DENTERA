@@ -4,7 +4,6 @@ import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSettings } from "@/lib/db";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { generateBookingsKeyAction } from "@/lib/actions";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { CopyField } from "@/components/admin/CopyField";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { BookingsBoard } from "@/components/BookingsBoard";
@@ -34,7 +33,6 @@ export default async function AdminBookingsPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">{dict.admin.bookings}</h1>
         <p className="mt-1 max-w-3xl text-ink-500">{dict.admin.bookingsSubtitle}</p>

@@ -1,20 +1,10 @@
 import Link from "next/link";
-import {
-  Stethoscope,
-  Building2,
-  Handshake,
-  MapPin,
-  Image as ImageIcon,
-  Type,
-  ArrowRight,
-  ArrowLeft,
-  CalendarCheck,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
-import { getBranches, getDepartments, getDoctors, getPartners } from "@/lib/db";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { getBranches, getDepartments, getDoctors, getOffers, getPartners } from "@/lib/db";
 import { getBookings } from "@/lib/bookings";
+import { ADMIN_SECTION_GROUPS } from "@/components/admin/adminSections";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -29,126 +19,86 @@ export default async function AdminDashboardPage({
     ? params.locale
     : defaultLocale;
   const dict = getDictionary(locale);
-  const [doctors, departments, partners, branches, bookings] = await Promise.all([
+  const [doctors, departments, partners, branches, offers, bookings] = await Promise.all([
     getDoctors(),
     getDepartments(),
     getPartners(),
     getBranches(),
+    getOffers(),
     getBookings().catch(() => []),
   ]);
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
+  const newBookings = bookings.filter((b) => b.status === "new").length;
 
-  const cards = [
-    {
-      href: localePath(locale, `/admin/bookings`),
-      icon: CalendarCheck,
-      label: `${dict.admin.bookings} — ${dict.admin.statusNew}`,
-      value: bookings.filter((b) => b.status === "new").length,
-      color: "bg-primary-600 text-white",
-    },
-    {
-      href: localePath(locale, `/admin/doctors`),
-      icon: Stethoscope,
-      label: dict.admin.totalDoctors,
-      value: doctors.length,
-      color: "bg-primary-500 text-white",
-    },
-    {
-      href: localePath(locale, `/admin/departments`),
-      icon: Building2,
-      label: dict.admin.totalDepartments,
-      value: departments.length,
-      color: "bg-accent-500 text-ink-900",
-    },
-    {
-      href: localePath(locale, `/admin/partners`),
-      icon: Handshake,
-      label: dict.admin.totalPartners,
-      value: partners.length,
-      color: "bg-ink-900 text-white",
-    },
-    {
-      href: localePath(locale, `/admin/branches`),
-      icon: MapPin,
-      label: dict.admin.branches,
-      value: branches.length,
-      color: "bg-primary-700 text-white",
-    },
-  ];
-
-  const shortcuts = [
-    {
-      href: localePath(locale, `/admin/texts`),
-      icon: Type,
-      label: dict.admin.texts,
-      body: dict.admin.textsSubtitle,
-    },
-    {
-      href: localePath(locale, `/admin/banners`),
-      icon: ImageIcon,
-      label: dict.admin.banners,
-      body: dict.admin.bannersSubtitle,
-    },
-  ];
+  // A count shown on a section's card, where one helps.
+  const counts: Record<string, number> = {
+    "/doctors": doctors.length,
+    "/departments": departments.length,
+    "/offers": offers.length,
+    "/partners": partners.length,
+    "/branches": branches.length,
+  };
 
   return (
-    <>
-      <AdminNav locale={locale} dict={dict} />
-      <div className="container-x py-10">
-        <h1 className="text-2xl font-extrabold text-ink-950">
-          {dict.admin.dashboardTitle}
-        </h1>
-        <p className="mt-1 text-ink-500">{dict.admin.dashboardSubtitle}</p>
+    <div className="container-x py-10">
+      <h1 className="text-2xl font-extrabold text-ink-950">{dict.admin.dashboardTitle}</h1>
+      <p className="mt-1 max-w-3xl text-ink-500">{dict.admin.dashboardSubtitle}</p>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {cards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="card group flex items-center justify-between p-7 hover:-translate-y-1 hover:shadow-soft"
-            >
-              <div>
-                <p className="text-sm font-medium text-ink-500">{card.label}</p>
-                <p className="mt-1 text-3xl font-extrabold text-ink-950">
-                  {card.value}
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary-700">
-                  {dict.admin.edit}
-                  <Arrow className="h-3.5 w-3.5" />
-                </span>
-              </div>
-              <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${card.color}`}
+      {newBookings > 0 && (
+        <Link
+          href={localePath(locale, "/admin/bookings")}
+          className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-ink-900 px-6 py-5 text-white transition hover:bg-ink-800"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-11 min-w-[2.75rem] items-center justify-center rounded-full bg-primary-500 px-3 text-lg font-extrabold text-ink-900">
+              {newBookings}
+            </span>
+            <span className="font-bold">
+              {dict.admin.bookings} — {dict.admin.newRequests}
+            </span>
+          </span>
+          <Arrow className="h-5 w-5 flex-shrink-0" />
+        </Link>
+      )}
+
+      {ADMIN_SECTION_GROUPS.filter((group) => group.sections.some((s) => s.hint)).map((group) => (
+        <section key={group.label} className="mt-10">
+          <h2 className="text-sm font-extrabold text-ink-500">{dict.admin[group.label]}</h2>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {group.sections.map((section) => (
+              <Link
+                key={section.path}
+                href={localePath(locale, `/admin${section.path}`)}
+                className="card group flex items-start gap-4 p-5 hover:-translate-y-0.5 hover:shadow-soft"
               >
-                <card.icon className="h-7 w-7" />
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          {shortcuts.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="card group flex items-start gap-5 p-7 hover:-translate-y-1 hover:shadow-soft"
-            >
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-primary-100 text-primary-700">
-                <item.icon className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="flex items-center gap-1.5 font-bold text-ink-900">
-                  {item.label}
-                  <Arrow className="h-4 w-4 text-primary-700" />
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-ink-500">
-                  {item.body}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </>
+                <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 text-ink-900">
+                  <section.icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 font-bold text-ink-900">
+                    {dict.admin[section.label]}
+                    {section.path === "/bookings" && newBookings > 0 ? (
+                      <span className="rounded-full bg-primary-500 px-2 py-0.5 text-xs font-extrabold text-ink-900">
+                        {newBookings} {dict.admin.newRequests}
+                      </span>
+                    ) : counts[section.path] !== undefined ? (
+                      <span className="rounded-full bg-ink-50 px-2 py-0.5 text-xs font-bold text-ink-500">
+                        {counts[section.path]}
+                      </span>
+                    ) : null}
+                  </span>
+                  {section.hint && (
+                    <span className="mt-1 block text-sm leading-relaxed text-ink-500">
+                      {dict.admin[section.hint]}
+                    </span>
+                  )}
+                </span>
+                <Arrow className="mt-1 h-4 w-4 flex-shrink-0 text-ink-300 transition group-hover:text-ink-900" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }

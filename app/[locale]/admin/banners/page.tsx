@@ -11,7 +11,6 @@ import {
   updateHeroImageAction,
 } from "@/lib/actions";
 import { PAGE_KEYS, type PageKey } from "@/lib/types";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 import { ToggleSwitch } from "@/components/admin/ToggleSwitch";
 import { PhotoQualityBadge } from "@/components/admin/PhotoQualityBadge";
@@ -42,7 +41,6 @@ export default async function AdminBannersPage({
 
   return (
     <>
-      <AdminNav locale={locale} dict={dict} />
       <div className="container-x py-10">
         <h1 className="text-2xl font-extrabold text-ink-950">
           {dict.admin.banners}
