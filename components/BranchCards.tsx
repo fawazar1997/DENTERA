@@ -27,9 +27,13 @@ export function BranchCards({
         return (
           <Reveal key={branch.id} delay={i * 100} className="h-full">
             <div className="card group relative flex h-full flex-col overflow-hidden p-7 hover:-translate-y-1 hover:shadow-soft">
-              <div
-                className="absolute -end-10 -top-10 h-32 w-32 rounded-full bg-primary-100/70 transition group-hover:scale-125"
+              {/* The fingerprint lines from the identity, fading out of the corner. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/fingerprint-corner.svg"
+                alt=""
                 aria-hidden="true"
+                className="pointer-events-none absolute -end-8 -top-8 h-36 w-36 transition duration-500 [mask-image:radial-gradient(circle,black_30%,transparent_68%)] group-hover:scale-110 sm:h-48 sm:w-48"
               />
               <div className="relative flex items-start gap-4">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-ink-900 text-white">
