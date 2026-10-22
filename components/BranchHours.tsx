@@ -62,7 +62,7 @@ export function BranchHours({
 
   if (!own && legacy) {
     return (
-      <p className={`flex items-center gap-1.5 text-sm ${dark ? "text-ink-400" : "text-ink-500"} ${className}`}>
+      <p className={`flex items-center gap-1.5 text-sm ${dark ? "text-sand-300" : "text-ink-500"} ${className}`}>
         <Clock className="h-4 w-4 flex-shrink-0" />
         {legacy}
       </p>
@@ -144,7 +144,7 @@ export function BranchHours({
         })}
       </ul>
       {note && (
-        <p className={`mt-1.5 px-1 text-xs ${dark ? "text-ink-400" : "text-ink-500"}`}>{note}</p>
+        <p className={`mt-1.5 px-1 text-xs ${dark ? "text-sand-300" : "text-ink-500"}`}>{note}</p>
       )}
     </details>
   );

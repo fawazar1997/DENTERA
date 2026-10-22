@@ -278,7 +278,7 @@ function BookingCard({
         </span>
         <div className="flex items-center gap-2">
           {result && (
-            <span className={`text-xs font-semibold ${result === "saved" ? "text-primary-700" : "text-red-600"}`}>
+            <span className={`text-xs font-semibold ${result === "saved" ? "text-primary-700" : "rounded-md bg-accent-100 px-2 py-0.5 text-ink-900"}`}>
               {result === "saved" ? labels.saved : labels.saveFailed}
             </span>
           )}

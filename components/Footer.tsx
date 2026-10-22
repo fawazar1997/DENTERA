@@ -167,7 +167,7 @@ export function Footer({
       </div>
 
       <div className="border-t border-ink-800">
-        <div className="container-x py-6 text-center text-xs text-ink-400 sm:text-start">
+        <div className="container-x py-6 text-center text-xs text-sand-300 sm:text-start">
           <p>
             &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
           </p>

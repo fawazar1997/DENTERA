@@ -106,7 +106,7 @@ export function ScheduleEditor({
                       onClick={() =>
                         update(day, (x) => ({ ...x, periods: x.periods.filter((_, i) => i !== n) }))
                       }
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-400 hover:bg-red-50 hover:text-red-600"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-400 hover:bg-accent-100 hover:text-ink-900"
                     >
                       <X className="h-4 w-4" />
                     </button>

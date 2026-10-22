@@ -89,7 +89,7 @@ function BookingFormInner({
 
   const fieldError = (field: "name" | "phone") =>
     error === field ? (
-      <p className="mt-1.5 text-xs font-semibold text-red-600">
+      <p className="mt-1.5 rounded-md bg-accent-100 px-2 py-1 text-xs font-bold text-ink-900">
         {field === "name" ? labels.errorName : labels.errorPhone}
       </p>
     ) : null;
@@ -179,7 +179,7 @@ function BookingFormInner({
       )}
 
       {error === "server" && (
-        <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{labels.errorServer}</p>
+        <p className="rounded-xl bg-accent-100 px-3 py-2 text-sm font-bold text-ink-900">{labels.errorServer}</p>
       )}
 
       <Submit labels={labels} />

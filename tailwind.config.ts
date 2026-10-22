@@ -1,68 +1,92 @@
 import type { Config } from "tailwindcss";
 
+/** The official Dentera palette — the only colours used on the site. */
+const BRAND = {
+  teal: "#0CB8CD",
+  darkBlue: "#141480",
+  beige: "#C8BEB0",
+  bone: "#FCF3E8",
+  gum: "#DAACAB",
+  turquoise: "#08B7CC",
+  navyBlue: "#292C87",
+};
+
+/**
+ * A brand colour mixed into a light base (amount 0–1), for soft
+ * backgrounds. Warm colours mix into Bone; Teal mixes into white, since
+ * Teal over Bone turns a muddy mint.
+ */
+function tint(hex: string, amount: number, base: string = BRAND.bone): string {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [a, b] = [rgb(hex), rgb(base)];
+  return `#${a
+    .map((c, i) => Math.round(b[i] + (c - b[i]) * amount).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
+
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      // Every color below comes from the four Dentera identity colors only:
-      //   teal #0CB8CD · dark blue #141480 · beige #C8BEB0 · bone #FCF3E8
-      //   gum #DAACAB · turquoise blue #08B7CC · navy blue #292C87
-      // Light steps are each color mixed with white; dark steps are mixed
-      // with the identity navy (not black), so even shades stay on-brand.
+      // Every colour below is one of the seven official colours (BRAND),
+      // or a light tint of one (into Bone, or white for Teal) for soft backgrounds and
+      // borders. No other hues are generated.
       colors: {
-        // Cyan — logo wordmark color.
         primary: {
-          50: "#f0fbfc",
-          100: "#ddf5f8",
-          200: "#b6eaf0",
-          300: "#81dae5",
-          400: "#46c9d9",
-          500: "#0cb8cd",
-          600: "#0e94bc",
-          700: "#0f73ad",
-          800: "#11569f",
-          900: "#123b92",
-          950: "#132889",
+          50: tint(BRAND.teal, 0.08, "#FFFFFF"),
+          100: tint(BRAND.teal, 0.16, "#FFFFFF"),
+          200: tint(BRAND.teal, 0.3, "#FFFFFF"),
+          300: BRAND.turquoise,
+          400: BRAND.turquoise,
+          500: BRAND.teal,
+          600: BRAND.teal,
+          700: BRAND.navyBlue, // links and text accents (Teal text is too faint)
+          800: BRAND.darkBlue,
+          900: BRAND.darkBlue,
+          950: BRAND.darkBlue,
         },
-        // Pink — identity accent.
+        // Gum — soft accents.
         accent: {
-          50: "#fbf5f5",
-          100: "#f5e8e7",
-          200: "#edd6d5",
-          300: "#e5c5c4",
-          400: "#dfb8b7",
-          500: "#daacab",
-          600: "#a986a0",
-          700: "#816898",
-          800: "#5f4e90",
-          900: "#403589",
+          50: tint(BRAND.gum, 0.12),
+          100: tint(BRAND.gum, 0.22),
+          200: tint(BRAND.gum, 0.4),
+          300: BRAND.gum,
+          400: BRAND.gum,
+          500: BRAND.gum,
+          600: BRAND.navyBlue,
+          700: BRAND.navyBlue,
+          800: BRAND.navyBlue,
+          900: BRAND.darkBlue,
         },
-        // Beige — logo tooth mark / uniform color.
+        // Beige — warm neutrals.
         sand: {
-          50: "#f6f5f2",
-          100: "#ece9e4",
-          200: "#e0dbd3",
-          300: "#d4ccc1",
-          400: "#cec5b8",
-          500: "#c8beb0",
+          50: BRAND.bone,
+          100: tint(BRAND.beige, 0.25),
+          200: tint(BRAND.beige, 0.45),
+          300: tint(BRAND.beige, 0.7),
+          400: BRAND.beige,
+          500: BRAND.beige,
         },
-        // Neutral roles: the light steps (surfaces, borders) are beige
-        // tints, the text steps are the identity navy and its tints.
+        // Neutral roles: surfaces and borders are Beige tints on Bone,
+        // text is Navy Blue (secondary) and Dark Blue (main).
         ink: {
-          50: "#f6f5f2",
-          100: "#ece9e4",
-          200: "#e0dbd3",
-          300: "#bdbddb",
-          400: "#9595c6",
-          500: "#6767ac",
-          600: "#6262aa",
-          700: "#4c4c9e",
-          800: "#292c87", // Navy blue
-          900: "#141480",
-          950: "#0c0c4d",
+          50: tint(BRAND.beige, 0.15),
+          100: tint(BRAND.beige, 0.35),
+          200: tint(BRAND.beige, 0.55),
+          300: BRAND.beige,
+          400: tint(BRAND.navyBlue, 0.6),
+          500: BRAND.navyBlue,
+          600: BRAND.navyBlue,
+          700: BRAND.navyBlue,
+          800: BRAND.navyBlue,
+          900: BRAND.darkBlue,
+          950: BRAND.darkBlue,
         },
-        // Bone — the page background.
-        paper: "#fcf3e8",
+        paper: BRAND.bone,
+      },
+      // Borders without an explicit colour use a Beige tint, not grey.
+      borderColor: {
+        DEFAULT: tint(BRAND.beige, 0.35),
       },
       // Almarai is the site font for both Arabic and English. It ships in
       // 300/400/700/800, so medium (500) renders as 400 and semibold (600)
@@ -92,8 +116,8 @@ const config: Config = {
         // Tactile inset technique: a thin light highlight along the top
         // edge plus a soft dark ring, so a dark button reads as pressed
         // into the surface rather than floating above it.
-        inset: "inset 0 1px 0 0 rgba(255,255,255,0.16), inset 0 0 0 1px rgba(12,12,77,0.2), 0 1px 2px rgba(20,20,128,0.14)",
-        "inset-hover": "inset 0 1px 0 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(12,12,77,0.24), 0 2px 6px rgba(20,20,128,0.18)",
+        inset: "inset 0 1px 0 0 rgba(255,255,255,0.16), inset 0 0 0 1px rgba(20,20,128,0.2), 0 1px 2px rgba(20,20,128,0.14)",
+        "inset-hover": "inset 0 1px 0 0 rgba(255,255,255,0.2), inset 0 0 0 1px rgba(20,20,128,0.24), 0 2px 6px rgba(20,20,128,0.18)",
         focus: "0 0 0 4px rgba(12, 184, 205, 0.2)",
       },
       borderRadius: {
