@@ -14,6 +14,7 @@ import { PAGE_KEYS, type PageKey } from "@/lib/types";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 import { ToggleSwitch } from "@/components/admin/ToggleSwitch";
 import { PhotoQualityBadge } from "@/components/admin/PhotoQualityBadge";
+import { requireAdminPage } from "@/lib/adminSession";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -24,6 +25,7 @@ export default async function AdminBannersPage({
 }: {
   params: { locale: string };
 }) {
+  await requireAdminPage(params.locale);
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

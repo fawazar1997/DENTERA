@@ -5,6 +5,7 @@ import { HOME_SECTIONS, homeSectionOrder, type HomeSectionKey } from "@/lib/type
 import { updateHomeSectionsAction } from "@/lib/actions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { HomeSectionsEditor } from "@/components/admin/HomeSectionsEditor";
+import { requireAdminPage } from "@/lib/adminSession";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -27,6 +28,7 @@ export default async function AdminHomeSectionsPage({
 }: {
   params: { locale: string };
 }) {
+  await requireAdminPage(params.locale);
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const dict = getDictionary(locale);
   const settings = await getSettings();

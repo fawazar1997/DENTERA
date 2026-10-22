@@ -8,6 +8,7 @@ import { formatOfferDate } from "@/lib/offerFormat";
 import { OfferForm } from "@/components/admin/OfferForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
+import { requireAdminPage } from "@/lib/adminSession";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -18,6 +19,7 @@ export default async function AdminOffersPage({
 }: {
   params: { locale: string };
 }) {
+  await requireAdminPage(params.locale);
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

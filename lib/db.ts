@@ -4,6 +4,7 @@ import os from "node:os";
 import { del, list, put } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
+import { privateStore, readPrivateJson } from "./privateBlob";
 import type {
   Branch,
   ContentOverrides,
@@ -30,9 +31,10 @@ const TMP_DB_PATH = path.join(os.tmpdir(), "dentera-db.json");
 //   JSON blob. Serverless instances have no shared or persistent disk, so
 //   this is what lets edits made in the control panel stick and show up on
 //   every instance. Each save writes a new blob with a random suffix (so a
-//   CDN-cached copy of an old version can never be served) and removes the
-//   older ones; the random, unlisted URL also keeps patient contact
-//   requests out of reach of anyone without the store's credentials.
+//   cached copy of an old version can never be served) and removes the
+//   older ones. It lives in the private store once that's connected (see
+//   lib/privateBlob.ts); before that, in the public store under a random,
+//   unlisted name.
 // - Without Blob (local development), it's a JSON file next to the source,
 //   falling back to the OS temp dir if the project dir is read-only.
 const BLOB_DB_PREFIX = "data/dentera-db";
@@ -65,16 +67,18 @@ function withDefaults(db: Database): Database {
 
 // --- Blob backend ---
 
-async function listDbBlobs() {
-  const { blobs } = await list({ prefix: BLOB_DB_PREFIX });
+type StoreOptions = ReturnType<typeof privateStore>;
+
+async function listDbBlobs(store: StoreOptions = null) {
+  const { blobs } = await list({ prefix: BLOB_DB_PREFIX, ...store });
   return [...blobs].sort(
     (a, b) =>
       new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
   );
 }
 
-/** The stored database exactly as saved (null when nothing is saved yet). */
-async function readBlobDbRaw(): Promise<Database | null> {
+/** The latest database saved in the public store (the place before the private one). */
+async function readPublicDbRaw(): Promise<Database | null> {
   const [latest] = await listDbBlobs();
   if (!latest) return null;
   const response = await fetch(latest.url, { cache: "no-store" });
@@ -82,6 +86,23 @@ async function readBlobDbRaw(): Promise<Database | null> {
     throw new Error(`Failed to load database blob (${response.status})`);
   }
   return (await response.json()) as Database;
+}
+
+/** The stored database exactly as saved (null when nothing is saved yet). */
+async function readBlobDbRaw(): Promise<Database | null> {
+  const store = privateStore();
+  if (!store) return readPublicDbRaw();
+  const [latest] = await listDbBlobs(store);
+  if (latest) {
+    const db = await readPrivateJson<Database>(latest.pathname);
+    if (!db) throw new Error("Failed to load the database from the private store");
+    return db;
+  }
+  // First read after the private store was connected: copy the database
+  // over. The public copy is left as a backup until it's removed.
+  const saved = await readPublicDbRaw();
+  if (saved) await putDbBlob(saved);
+  return saved;
 }
 
 async function readBlobDb(): Promise<Database> {
@@ -105,18 +126,26 @@ async function readBlobDbCached(): Promise<Database> {
   return raw ? withDefaults(structuredClone(raw)) : readSeed();
 }
 
-async function writeBlobDb(db: Database): Promise<void> {
-  const saved = await put(`${BLOB_DB_PREFIX}.json`, JSON.stringify(db), {
-    access: "public",
+/** Saves a new version (private store when connected, else public). */
+async function putDbBlob(db: Database) {
+  const store = privateStore();
+  return put(`${BLOB_DB_PREFIX}.json`, JSON.stringify(db), {
+    access: store ? "private" : "public",
     addRandomSuffix: true,
     contentType: "application/json",
+    ...store,
   });
+}
+
+async function writeBlobDb(db: Database): Promise<void> {
+  const saved = await putDbBlob(db);
   revalidateTag(DB_CACHE_TAG);
 
   // Clean up superseded versions. Only delete blobs older than the one we
   // just wrote, so a concurrent save's newer version is never removed.
   try {
-    const blobs = await listDbBlobs();
+    const store = privateStore();
+    const blobs = await listDbBlobs(store);
     const savedAt = new Date(
       blobs.find((b) => b.url === saved.url)?.uploadedAt ?? Date.now()
     ).getTime();
@@ -125,7 +154,7 @@ async function writeBlobDb(db: Database): Promise<void> {
         (b) => b.url !== saved.url && new Date(b.uploadedAt).getTime() <= savedAt
       )
       .map((b) => b.url);
-    if (stale.length > 0) await del(stale);
+    if (stale.length > 0) await del(stale, { ...store });
   } catch (error) {
     console.error("Failed to remove old database versions:", error);
   }

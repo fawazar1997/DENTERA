@@ -5,6 +5,7 @@ import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getDepartments, getDoctors, getOffers, getPartners } from "@/lib/db";
 import { getBookings } from "@/lib/bookings";
 import { ADMIN_SECTION_GROUPS } from "@/components/admin/adminSections";
+import { requireAdminPage } from "@/lib/adminSession";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -15,6 +16,7 @@ export default async function AdminDashboardPage({
 }: {
   params: { locale: string };
 }) {
+  await requireAdminPage(params.locale);
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

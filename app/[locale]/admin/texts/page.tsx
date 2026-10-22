@@ -4,6 +4,7 @@ import { getContentOverrides } from "@/lib/db";
 import { CONTENT_SECTIONS, defaultText, isLongField } from "@/lib/content";
 import { saveContentAction } from "@/lib/actions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { requireAdminPage } from "@/lib/adminSession";
 
 // Phone numbers and emails read left-to-right in both languages.
 const LTR_FIELDS = new Set(["booking.phone", "contact.emailValue"]);
@@ -17,6 +18,7 @@ export default async function AdminTextsPage({
 }: {
   params: { locale: string };
 }) {
+  await requireAdminPage(params.locale);
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

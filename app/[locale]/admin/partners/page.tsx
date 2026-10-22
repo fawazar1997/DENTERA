@@ -15,6 +15,7 @@ import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
 import { LogoOrderEditor } from "@/components/admin/LogoOrderEditor";
 import { SubmitButton } from "@/components/admin/SubmitButton";
+import { requireAdminPage } from "@/lib/adminSession";
 
 // Featured brands are no longer shown on the website.
 const SHOWN_GROUPS: LogoGroup[] = ["partners", "payments"];
@@ -34,6 +35,7 @@ export default async function AdminPartnersPage({
 }: {
   params: { locale: string };
 }) {
+  await requireAdminPage(params.locale);
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

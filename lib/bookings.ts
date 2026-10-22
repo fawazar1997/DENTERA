@@ -5,6 +5,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { list, put } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
+import { privateStore, readPrivateJson } from "./privateBlob";
 import { getSettings } from "./db";
 import type { Booking, BookingStatus } from "./types";
 
@@ -14,8 +15,12 @@ import type { Booking, BookingStatus } from "./types";
 // submissions never rewrite a shared file, so two arriving together can't
 // overwrite each other; a status update rewrites only that request's file.
 // Each file name starts with a reversed timestamp, so listing the folder
-// (which is alphabetical) returns the newest requests first. Names end in
-// random characters and the store isn't listable without its credentials.
+// (which is alphabetical) returns the newest requests first.
+//
+// They're kept in the private store once that's connected (see
+// lib/privateBlob.ts), where no link can open them. Requests saved before
+// that, in the public store, are copied over the first time they're read;
+// the public copies stay as a backup until they're removed.
 //
 // Without Blob (local development) they're kept in a JSON file.
 
@@ -73,16 +78,19 @@ function writeLocal(bookings: Booking[]): void {
 // --- Blob backend ---
 
 async function writeBlob(booking: Booking): Promise<void> {
+  const store = privateStore();
   await put(`${PREFIX}${booking.id}.json`, JSON.stringify(booking), {
-    access: "public",
+    access: store ? "private" : "public",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
     cacheControlMaxAge: 60,
+    ...store,
   });
 }
 
-async function readAllBlobs(): Promise<Booking[]> {
+/** Requests in the public store (all of them, before the private store). */
+async function readPublicBlobs(): Promise<Booking[]> {
   const { blobs } = await list({ prefix: PREFIX, limit: MAX_SHOWN });
   const results = await Promise.all(
     blobs.map(async (blob) => {
@@ -97,6 +105,43 @@ async function readAllBlobs(): Promise<Booking[]> {
     })
   );
   return results.filter((b): b is Booking => b !== null);
+}
+
+async function readPrivateBlobs(store: NonNullable<ReturnType<typeof privateStore>>): Promise<Booking[]> {
+  const { blobs } = await list({ prefix: PREFIX, limit: MAX_SHOWN, ...store });
+  const results = await Promise.all(
+    blobs.map((blob) => readPrivateJson<Booking>(blob.pathname).catch(() => null))
+  );
+  return results.filter((b): b is Booking => b !== null);
+}
+
+async function readAllBlobs(): Promise<Booking[]> {
+  const store = privateStore();
+  if (!store) return readPublicBlobs();
+  const [kept, older] = await Promise.all([readPrivateBlobs(store), readPublicBlobs()]);
+  // Copy requests that are still only in the public store.
+  const ids = new Set(kept.map((b) => b.id));
+  const toCopy = older.filter((b) => !ids.has(b.id));
+  await Promise.all(
+    toCopy.map((b) =>
+      writeBlob(b).catch((error) => console.error("Failed to copy booking request:", error))
+    )
+  );
+  return [...kept, ...toCopy];
+}
+
+/** One request by id, from the private store first, then the public one. */
+async function readOneBlob(id: string): Promise<Booking | null> {
+  const store = privateStore();
+  if (store) {
+    const kept = await readPrivateJson<Booking>(`${PREFIX}${id}.json`).catch(() => null);
+    if (kept) return kept;
+  }
+  const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
+  const blob = blobs[0];
+  if (!blob) return null;
+  const response = await fetch(`${blob.url}?v=${Date.now()}`, { cache: "no-store" });
+  return response.ok ? ((await response.json()) as Booking) : null;
 }
 
 const readAllBlobsCached = unstable_cache(readAllBlobs, [CACHE_TAG], {
@@ -142,12 +187,9 @@ export async function updateBooking(
   });
 
   if (isBlobConfigured()) {
-    const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
-    const blob = blobs[0];
-    if (!blob) return false;
-    const response = await fetch(`${blob.url}?v=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) return false;
-    await writeBlob(apply((await response.json()) as Booking));
+    const booking = await readOneBlob(id);
+    if (!booking) return false;
+    await writeBlob(apply(booking));
   } else {
     const all = readLocal();
     const index = all.findIndex((b) => b.id === id);
