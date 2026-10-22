@@ -354,13 +354,15 @@ export async function updateSettings(
 
 export async function setPageBanner(
   page: PageKey,
-  url: string | undefined
+  url: string | undefined,
+  variant: "desktop" | "mobile" = "desktop"
 ): Promise<void> {
   const db = await readDbForWrite();
-  const banners = { ...db.settings.banners };
+  const field = variant === "mobile" ? "mobileBanners" : "banners";
+  const banners = { ...db.settings[field] };
   if (url) banners[page] = url;
   else delete banners[page];
-  db.settings = { ...db.settings, banners };
+  db.settings = { ...db.settings, [field]: banners };
   await writeDb(db);
 }
 

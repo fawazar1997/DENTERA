@@ -75,6 +75,7 @@ export default async function IdentityPage({
         title={t.title}
         subtitle={t.subtitle}
         imageUrl={settings.banners?.about}
+        mobileImageUrl={settings.mobileBanners?.about}
       />
       <AboutTabs locale={locale} dict={dict} active="identity" />
 

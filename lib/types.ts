@@ -64,6 +64,8 @@ export type SiteSettings = {
   /** Legacy single home banner; superseded by banners.home. */
   bannerUrl?: string;
   banners?: Partial<Record<PageKey, string>>;
+  /** Optional phone versions of the page banners (shown below 640px). */
+  mobileBanners?: Partial<Record<PageKey, string>>;
   /** Show the full-width banner at the top of the home page (default on). */
   showHomeBanner?: boolean;
   /** Photo of a Dentera branch, shown beside the home page headline. */
@@ -130,6 +132,8 @@ export type Offer = {
   termsAr?: string;
   /** Wide banner image (also the offer page header). */
   imageUrl?: string;
+  /** Optional phone version of the image (shown below 640px). */
+  mobileImageUrl?: string;
   /** Prices in SAR; priceWas shows struck through with the discount. */
   priceNow?: number;
   priceWas?: number;

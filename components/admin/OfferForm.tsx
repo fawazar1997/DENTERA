@@ -63,6 +63,38 @@ export function OfferForm({
         <p className="mt-1.5 text-xs text-ink-400">{dict.admin.offerImageHint}</p>
       </div>
 
+      <div>
+        <label className="label">{dict.admin.offerMobileImage}</label>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex h-24 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-ink-100 bg-ink-50">
+            {offer?.mobileImageUrl ? (
+              <Image
+                src={offer.mobileImageUrl}
+                alt=""
+                width={160}
+                height={200}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-xs text-ink-300">—</span>
+            )}
+          </div>
+          <input
+            name="mobileImage"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="input min-w-0 flex-1"
+          />
+        </div>
+        <p className="mt-1.5 text-xs text-ink-400">{dict.admin.offerMobileImageHint}</p>
+        {offer?.mobileImageUrl && (
+          <label className="mt-2 flex items-center gap-2 text-xs font-semibold text-accent-800">
+            <input type="checkbox" name="removeMobileImage" className="h-4 w-4 rounded border-ink-300" />
+            {dict.admin.removeMobileImage}
+          </label>
+        )}
+      </div>
+
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="label">{dict.admin.offerTitleEn}</label>

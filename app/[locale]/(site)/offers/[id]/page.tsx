@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { BannerImage } from "@/components/BannerImage";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -82,16 +82,18 @@ export default async function OfferPage({ params }: { params: Params }) {
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-ink-950">
-        {offer.imageUrl ? (
-          <Image
-          unoptimized
-            src={offer.imageUrl}
-            alt=""
-            fill
+      <section
+        className={`relative isolate overflow-hidden bg-ink-950 ${
+          // A 4:5 phone image shows whole on phones.
+          offer.mobileImageUrl ? "max-sm:min-h-[125vw]" : ""
+        }`}
+      >
+        {offer.imageUrl || offer.mobileImageUrl ? (
+          <BannerImage
+            src={(offer.imageUrl ?? offer.mobileImageUrl)!}
+            mobileSrc={offer.mobileImageUrl}
             priority
-            sizes="100vw"
-            className="-z-20 object-cover"
+            className="-z-20"
           />
         ) : (
           <div className="absolute inset-0 -z-20 bg-gradient-to-br from-ink-900 to-primary-800" />

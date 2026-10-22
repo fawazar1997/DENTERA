@@ -28,6 +28,7 @@ export default async function DepartmentsPage({
         title={dict.departments.title}
         subtitle={dict.departments.subtitle}
         imageUrl={settings.banners?.departments}
+        mobileImageUrl={settings.mobileBanners?.departments}
       />
 
       <section className="section-y bg-white">

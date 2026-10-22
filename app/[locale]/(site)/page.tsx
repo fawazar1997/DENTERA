@@ -221,6 +221,7 @@ export default async function HomePage({
               title: rtl ? offer.titleAr : offer.titleEn,
               summary: rtl ? offer.summaryAr : offer.summaryEn,
               imageUrl: offer.imageUrl,
+              mobileImageUrl: offer.mobileImageUrl,
               priceNow: offer.priceNow,
               priceWas: offer.priceWas,
             }))}
@@ -235,6 +236,7 @@ export default async function HomePage({
         ) : (
           <HomeBanner
             bannerUrl={settings.banners?.home}
+            mobileBannerUrl={settings.mobileBanners?.home}
             tagline={dict.footer.description}
           />
         ))}

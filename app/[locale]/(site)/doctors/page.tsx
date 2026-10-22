@@ -37,6 +37,7 @@ export default async function DoctorsPage({
         title={dict.doctors.title}
         subtitle={dict.doctors.subtitle}
         imageUrl={settings.banners?.doctors}
+        mobileImageUrl={settings.mobileBanners?.doctors}
       />
 
       <section className="section-y bg-white">

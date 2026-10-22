@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { BannerImage } from "./BannerImage";
 import { Logo } from "./Logo";
 
 /**
@@ -8,23 +8,24 @@ import { Logo } from "./Logo";
  */
 export function HomeBanner({
   bannerUrl,
+  mobileBannerUrl,
   tagline,
 }: {
   bannerUrl?: string;
+  /** Optional phone version, shown below 640px. */
+  mobileBannerUrl?: string;
   tagline: string;
 }) {
-  if (bannerUrl) {
+  const desktop = bannerUrl ?? mobileBannerUrl;
+  if (desktop) {
     return (
-      <div className="relative h-56 w-full overflow-hidden bg-ink-100 sm:h-72 lg:h-[28rem]">
-        <Image
-          unoptimized
-          src={bannerUrl}
-          alt=""
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-        />
+      <div
+        className={`relative w-full overflow-hidden bg-ink-100 sm:h-72 lg:h-[28rem] ${
+          // A phone version is square (1080 × 1080): show it whole on phones.
+          mobileBannerUrl ? "aspect-square sm:aspect-auto" : "h-56"
+        }`}
+      >
+        <BannerImage src={desktop} mobileSrc={mobileBannerUrl} priority />
       </div>
     );
   }

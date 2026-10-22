@@ -28,6 +28,7 @@ export default async function OffersPage({
         title={dict.offers.title}
         subtitle={dict.offers.subtitle}
         imageUrl={settings.banners?.offers}
+        mobileImageUrl={settings.mobileBanners?.offers}
       />
       <section className="section-y bg-white">
         <div className="container-x">

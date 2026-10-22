@@ -34,6 +34,7 @@ export default async function ContactPage({
         title={dict.contact.title}
         subtitle={dict.contact.subtitle}
         imageUrl={settings.banners?.contact}
+        mobileImageUrl={settings.mobileBanners?.contact}
       />
 
       <section className="section-y bg-white">

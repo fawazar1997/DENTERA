@@ -199,12 +199,17 @@ function pageKey(formData: FormData): PageKey | null {
     : null;
 }
 
+/** Which version of a banner a form changes: the wide one or the phone one. */
+function bannerVariant(formData: FormData): "desktop" | "mobile" {
+  return formData.get("variant") === "mobile" ? "mobile" : "desktop";
+}
+
 export async function updateBannerAction(formData: FormData) {
   await requireAdmin();
   const page = pageKey(formData);
   if (!page) return;
   const url = await uploadImage(fileOrNull(formData, "banner"), "banners");
-  if (url) await setPageBanner(page, url);
+  if (url) await setPageBanner(page, url, bannerVariant(formData));
   revalidateAll();
 }
 
@@ -212,7 +217,7 @@ export async function removeBannerAction(formData: FormData) {
   await requireAdmin();
   const page = pageKey(formData);
   if (!page) return;
-  await setPageBanner(page, undefined);
+  await setPageBanner(page, undefined, bannerVariant(formData));
   revalidateAll();
 }
 
@@ -386,16 +391,23 @@ function offerFields(formData: FormData) {
 export async function createOfferAction(formData: FormData) {
   await requireAdmin();
   const imageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
-  await createOffer({ ...offerFields(formData), imageUrl });
+  const mobileImageUrl = await uploadImage(fileOrNull(formData, "mobileImage"), "offers");
+  await createOffer({ ...offerFields(formData), imageUrl, mobileImageUrl });
   revalidateAll();
 }
 
 export async function updateOfferAction(formData: FormData) {
   await requireAdmin();
   const id = str(formData, "id");
+  const current = await getOffer(id);
   const newImageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
-  const imageUrl = newImageUrl ?? (await getOffer(id))?.imageUrl;
-  await updateOffer(id, { ...offerFields(formData), imageUrl });
+  const imageUrl = newImageUrl ?? current?.imageUrl;
+  const newMobileUrl = await uploadImage(fileOrNull(formData, "mobileImage"), "offers");
+  // A new phone image replaces the old one; "remove" clears it.
+  const mobileImageUrl =
+    newMobileUrl ??
+    (formData.get("removeMobileImage") === "on" ? undefined : current?.mobileImageUrl);
+  await updateOffer(id, { ...offerFields(formData), imageUrl, mobileImageUrl });
   revalidateAll();
 }
 

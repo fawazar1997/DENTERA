@@ -319,6 +319,19 @@ export const dictionaries = {
       bannersSubtitle:
         "A banner image for the top of each page. Recommended: a wide photo, at least 1600px wide. Shown on both languages.",
       uploadBanner: "Upload Banner",
+      bannerDesktop: "Computer (wide)",
+      bannerMobile: "Phone (optional)",
+      bannerMobileHint:
+        "Shown on phones instead of the wide image, so nothing gets cropped. Without it, phones show the wide image.",
+      bannerSizeHome: "Recommended 2000 × 625 px",
+      bannerSizePage: "Recommended 2000 × 600 px",
+      bannerSizeMobileHome: "Recommended 1080 × 1080 px",
+      bannerSizeMobilePage: "Recommended 1080 × 1080 px",
+      noMobileBanner: "No phone version — phones show the wide image.",
+      offerMobileImage: "Phone image (optional, 1080 × 1350 px)",
+      offerMobileImageHint:
+        "Shown on phones instead of the wide image. Keep the main subject in the top half: the title and price are written over the bottom half.",
+      removeMobileImage: "Remove the phone image",
       removeBanner: "Remove Banner",
       noBanner: "No image — the page shows its default banner.",
       pageHome: "Home Page",
@@ -390,7 +403,7 @@ export const dictionaries = {
       offerTermsAr: "Terms & conditions (Arabic, one per line)",
       offerImage: "Banner image",
       offerImageHint:
-        "A wide image (about 1600×600). Shown in the home page banner and at the top of the offer page.",
+        "A wide image, recommended 2000 × 800 px. Shown in the home page banner and at the top of the offer page. Avoid text in the image: the title and price are written over it.",
       priceNow: "Offer price (SAR, optional)",
       priceWas: "Original price (SAR, optional)",
       endsAt: "Last day of the offer (optional)",
@@ -832,6 +845,19 @@ export const dictionaries = {
       bannersSubtitle:
         "صورة بنر أعلى كل صفحة. يُفضّل صورة عريضة بعرض 1600 بكسل على الأقل. تظهر في اللغتين.",
       uploadBanner: "رفع البنر",
+      bannerDesktop: "الكمبيوتر (عريض)",
+      bannerMobile: "الجوال (اختياري)",
+      bannerMobileHint:
+        "تظهر على الجوال بدل الصورة العريضة حتى لا يُقص شيء منها. بدونها يعرض الجوال الصورة العريضة.",
+      bannerSizeHome: "المقاس المقترح 2000 × 625 بكسل",
+      bannerSizePage: "المقاس المقترح 2000 × 600 بكسل",
+      bannerSizeMobileHome: "المقاس المقترح 1080 × 1080 بكسل",
+      bannerSizeMobilePage: "المقاس المقترح 1080 × 1080 بكسل",
+      noMobileBanner: "لا توجد نسخة للجوال — يعرض الجوال الصورة العريضة.",
+      offerMobileImage: "صورة الجوال (اختياري، 1080 × 1350 بكسل)",
+      offerMobileImageHint:
+        "تظهر على الجوال بدل الصورة العريضة. ضع العنصر الأساسي في النصف العلوي، لأن العنوان والسعر يُكتبان فوق النصف السفلي.",
+      removeMobileImage: "حذف صورة الجوال",
       removeBanner: "إزالة البنر",
       noBanner: "لا توجد صورة — تظهر الصفحة بالبنر الافتراضي.",
       pageHome: "الصفحة الرئيسية",
@@ -899,7 +925,7 @@ export const dictionaries = {
       offerTermsAr: "الشروط والأحكام (عربي، كل شرط في سطر)",
       offerImage: "صورة البنر",
       offerImageHint:
-        "صورة عريضة (حوالي 1600×600). تظهر في بنر الصفحة الرئيسية وأعلى صفحة العرض.",
+        "صورة عريضة، المقاس المقترح 2000 × 800 بكسل. تظهر في بنر الصفحة الرئيسية وأعلى صفحة العرض. تجنب الكتابة داخل الصورة لأن العنوان والسعر يُكتبان فوقها.",
       priceNow: "سعر العرض (ريال، اختياري)",
       priceWas: "السعر الأصلي (ريال، اختياري)",
       endsAt: "آخر يوم للعرض (اختياري)",

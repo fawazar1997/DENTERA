@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { BannerImage } from "./BannerImage";
 
 /**
  * Title banner at the top of the inner pages. With an image uploaded in
@@ -9,23 +9,24 @@ export function PageBanner({
   title,
   subtitle,
   imageUrl,
+  mobileImageUrl,
 }: {
   title: string;
   subtitle?: string;
   imageUrl?: string;
+  /** Optional phone version, shown below 640px. */
+  mobileImageUrl?: string;
 }) {
-  if (imageUrl) {
+  const desktop = imageUrl ?? mobileImageUrl;
+  if (desktop) {
     return (
-      <section className="relative isolate flex min-h-[18rem] items-center overflow-hidden sm:min-h-[22rem] lg:min-h-[26rem]">
-        <Image
-          unoptimized
-          src={imageUrl}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="-z-20 object-cover"
-        />
+      <section
+        className={`relative isolate flex min-h-[18rem] items-center overflow-hidden sm:min-h-[22rem] lg:min-h-[26rem] ${
+          // A phone version is square (1080 × 1080): show it whole on phones.
+          mobileImageUrl ? "max-sm:aspect-square" : ""
+        }`}
+      >
+        <BannerImage src={desktop} mobileSrc={mobileImageUrl} priority className="-z-20" />
         <div
           className="absolute inset-0 -z-10 bg-gradient-to-t from-ink-950/85 via-ink-950/55 to-ink-900/30"
           aria-hidden="true"

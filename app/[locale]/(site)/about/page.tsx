@@ -36,6 +36,7 @@ export default async function AboutPage({
         title={dict.about.title}
         subtitle={dict.about.subtitle}
         imageUrl={settings.banners?.about}
+        mobileImageUrl={settings.mobileBanners?.about}
       />
       <AboutTabs locale={locale} dict={dict} active="about" />
 

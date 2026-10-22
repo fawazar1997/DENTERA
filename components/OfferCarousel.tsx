@@ -2,7 +2,7 @@
 
 import { localePath } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
+import { BannerImage } from "./BannerImage";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Tag } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -13,6 +13,8 @@ export type OfferSlide = {
   title: string;
   summary?: string;
   imageUrl?: string;
+  /** Optional phone version, shown below 640px. */
+  mobileImageUrl?: string;
   priceNow?: number;
   priceWas?: number;
 };
@@ -57,7 +59,10 @@ export function OfferCarousel({
   return (
     <section
       aria-roledescription="carousel"
-      className="relative h-[22rem] w-full overflow-hidden bg-ink-950 sm:h-[26rem] lg:h-[30rem]"
+      className={`relative w-full overflow-hidden bg-ink-950 sm:h-[26rem] lg:h-[30rem] ${
+        // Phone versions are 4:5 (1080 × 1350): give them their full shape.
+        slides.some((s) => s.mobileImageUrl) ? "aspect-[4/5] sm:aspect-auto" : "h-[22rem]"
+      }`}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -76,15 +81,12 @@ export function OfferCarousel({
               active ? "z-10 opacity-100" : "pointer-events-none opacity-0"
             }`}
           >
-            {slide.imageUrl ? (
-              <Image
-                src={slide.imageUrl}
-                alt=""
-                fill
+            {slide.imageUrl || slide.mobileImageUrl ? (
+              <BannerImage
+                src={(slide.imageUrl ?? slide.mobileImageUrl)!}
+                mobileSrc={slide.mobileImageUrl}
                 priority={i === 0}
-                unoptimized
-                sizes="100vw"
-                className={`object-cover transition-transform duration-[7000ms] ease-out ${
+                className={`transition-transform duration-[7000ms] ease-out ${
                   active ? "scale-105" : "scale-100"
                 }`}
               />
