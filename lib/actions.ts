@@ -14,6 +14,7 @@ import {
   deleteDepartment,
   deleteDoctor,
   deletePartner,
+  reorderPartners,
   getDoctor,
   getOffer,
   getPartners,
@@ -282,6 +283,14 @@ export async function updatePartnerAction(formData: FormData) {
   const logoUrl =
     newLogoUrl ?? (await getPartners()).find((p) => p.id === id)?.logoUrl;
   await updatePartner(id, { ...partnerFields(formData), logoUrl });
+  revalidateAll();
+}
+
+export async function reorderPartnersAction(formData: FormData) {
+  await requireAdmin();
+  const group = str(formData, "group");
+  if (!(LOGO_GROUPS as readonly string[]).includes(group)) return;
+  await reorderPartners(group as LogoGroup, formData.getAll("order").map(String));
   revalidateAll();
 }
 

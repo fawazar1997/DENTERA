@@ -406,6 +406,24 @@ export async function updatePartner(
   return db.partners[index];
 }
 
+/**
+ * Puts one group's logos in the given order (ids). The group keeps the
+ * same slots in the list, so the other groups don't move; logos missing
+ * from `ids` stay after the ordered ones.
+ */
+export async function reorderPartners(group: LogoGroup, ids: string[]): Promise<void> {
+  const db = await readDbForWrite();
+  const inGroup = (p: Partner) => (p.group ?? "partners") === group;
+  const rank = (p: Partner) => {
+    const i = ids.indexOf(p.id);
+    return i === -1 ? ids.length : i;
+  };
+  const sorted = db.partners.filter(inGroup).sort((a, b) => rank(a) - rank(b));
+  let next = 0;
+  db.partners = db.partners.map((p) => (inGroup(p) ? sorted[next++] : p));
+  await writeDb(db);
+}
+
 export async function deletePartner(id: string): Promise<boolean> {
   const db = await readDbForWrite();
   const before = db.partners.length;

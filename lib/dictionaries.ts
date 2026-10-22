@@ -352,6 +352,8 @@ export const dictionaries = {
       logoGroupBrandsHint: "Leading brands the clinic works with (e.g. Invisalign).",
       logoGroupPaymentsHint: "Shown in the payment methods band with its marketing line (edit it in Texts → Home page).",
       addLogo: "Add logo",
+      reorderLogos: "Reorder logos",
+      reorderLogosHint: "The logos show on the website in this order. Use the arrows, then save.",
       addPartner: "Add Partner",
       logo: "Logo",
       logoHint:
@@ -878,6 +880,8 @@ export const dictionaries = {
       logoGroupBrandsHint: "العلامات العالمية التي تتعامل معها العيادة (مثل Invisalign).",
       logoGroupPaymentsHint: "تظهر في شريط طرق الدفع مع العبارة التسويقية (تعديلها من النصوص ← الصفحة الرئيسية).",
       addLogo: "إضافة شعار",
+      reorderLogos: "ترتيب الشعارات",
+      reorderLogosHint: "تظهر الشعارات في الموقع بهذا الترتيب. حرّكها بالأسهم ثم اضغط حفظ.",
       addPartner: "إضافة شريك",
       logo: "الشعار",
       logoHint: "يُفضّل شعار PNG بخلفية شفافة (بحد أقصى 5 ميجابايت).",

@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Plus, Pencil } from "lucide-react";
+import { ArrowUpDown, Plus, Pencil } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getPartners } from "@/lib/db";
@@ -7,12 +7,15 @@ import type { LogoGroup } from "@/lib/types";
 import {
   createPartnerAction,
   deletePartnerAction,
+  reorderPartnersAction,
   updatePartnerAction,
 } from "@/lib/actions";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { PartnerForm } from "@/components/admin/PartnerForm";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { BlobConfigNotice } from "@/components/admin/BlobConfigNotice";
+import { LogoOrderEditor } from "@/components/admin/LogoOrderEditor";
+import { SubmitButton } from "@/components/admin/SubmitButton";
 
 // Featured brands are no longer shown on the website.
 const SHOWN_GROUPS: LogoGroup[] = ["partners", "payments"];
@@ -70,6 +73,35 @@ export default async function AdminPartnersPage({
                   <PartnerForm action={createPartnerAction} dict={dict} group={group} />
                 </div>
               </details>
+
+              {logos.length > 1 && (
+                <details className="card mt-4 p-6 open:pb-7">
+                  <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-primary-700">
+                    <ArrowUpDown className="h-4 w-4" />
+                    {dict.admin.reorderLogos}
+                  </summary>
+                  <form action={reorderPartnersAction} className="mt-4 max-w-2xl">
+                    <input type="hidden" name="group" value={group} />
+                    <p className="text-sm text-ink-500">{dict.admin.reorderLogosHint}</p>
+                    <div className="mt-3">
+                      <LogoOrderEditor
+                        items={logos.map((p) => ({
+                          id: p.id,
+                          name: locale === "ar" ? p.nameAr : p.nameEn,
+                          logoUrl: p.logoUrl,
+                          hidden: !p.active,
+                        }))}
+                        moveUp={dict.admin.moveUp}
+                        moveDown={dict.admin.moveDown}
+                        hiddenLabel={dict.admin.statusHidden}
+                      />
+                    </div>
+                    <div className="mt-5">
+                      <SubmitButton label={dict.admin.save} savedLabel={dict.admin.saved} />
+                    </div>
+                  </form>
+                </details>
+              )}
 
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {logos.map((partner) => (
