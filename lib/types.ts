@@ -83,10 +83,6 @@ export type SiteSettings = {
   hiddenHomeSections?: HomeSectionKey[];
   /** Home page section order set in the control panel. */
   homeSectionOrder?: HomeSectionKey[];
-  /** Branch id → its Google Business Profile location ("accounts/…/locations/…"). */
-  googleLocations?: Record<string, string>;
-  /** Google review ids shown on the website, in display order. */
-  shownReviews?: string[];
 };
 
 /** Home page sections, in the order they appear. */

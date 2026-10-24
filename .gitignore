@@ -25,4 +25,3 @@ next-env.d.ts
 # local runtime data (regenerated from data/seed.json on first write)
 /data/db.local.json
 /data/bookings.local.json
-/data/google-*.local.json

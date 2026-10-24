@@ -8,7 +8,6 @@ import {
   LayoutTemplate,
   MapPin,
   Share2,
-  Star,
   Stethoscope,
   Tag,
   Type,
@@ -59,7 +58,6 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
     label: "navGroupContent",
     sections: [
       { path: "/home", label: "homeSections", hint: "hintHome", icon: LayoutTemplate },
-      { path: "/reviews", label: "reviews", hint: "hintReviews", icon: Star },
       { path: "/offers", label: "offers", hint: "hintOffers", icon: Tag },
       { path: "/banners", label: "banners", hint: "hintBanners", icon: ImageIcon },
       { path: "/partners", label: "partners", hint: "hintPartners", icon: Handshake },

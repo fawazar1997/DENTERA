@@ -1,3 +1,0 @@
-{
-  "crons": [{ "path": "/api/cron/google-reviews", "schedule": "17 2 * * *" }]
-}
