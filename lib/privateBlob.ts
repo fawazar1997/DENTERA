@@ -1,4 +1,4 @@
-import { get } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 
 // The private Blob store holds what must never be reachable by a link:
 // patients' booking requests and the site database (which includes the
@@ -26,4 +26,17 @@ export async function readPrivateJson<T>(pathname: string): Promise<T | null> {
   const result = await get(pathname, { access: "private", useCache: false, ...store });
   if (!result || result.statusCode !== 200 || !result.stream) return null;
   return (await new Response(result.stream).json()) as T;
+}
+
+/** Saves a private JSON file under a fixed name (replacing the previous one). */
+export async function writePrivateJson(pathname: string, data: unknown): Promise<void> {
+  const store = privateStore();
+  if (!store) throw new Error("The private Blob store isn't connected");
+  await put(pathname, JSON.stringify(data), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    ...store,
+  });
 }
