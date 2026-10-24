@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 import {
   getActiveBranches,
   getDepartment,
@@ -52,10 +53,14 @@ export async function generateMetadata({
   if (!offer || !offer.active) return {};
   const dict = await getSiteDictionary(locale);
   const title = locale === "ar" ? offer.titleAr : offer.titleEn;
-  return {
-    title: `${title} — ${dict.meta.siteName}`,
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: `/offers/${offer.id}`,
+    title,
     description: (locale === "ar" ? offer.summaryAr : offer.summaryEn) || title,
-  };
+    image: offer.imageUrl,
+  });
 }
 
 export default async function OfferPage({ params }: { params: Params }) {

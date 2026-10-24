@@ -1,12 +1,30 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 import { PageBanner } from "@/components/PageBanner";
 import { getActiveDepartments, getActiveDoctors, getSettings } from "@/lib/db";
 import { DoctorCard } from "@/components/DoctorCard";
 import { DoctorsFilter } from "@/components/DoctorsFilter";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
+  const dict = await getSiteDictionary(locale);
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: "/doctors",
+    title: dict.doctors.title,
+    description: `${dict.doctors.subtitle} ${dict.meta.description}`,
+  });
+}
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).

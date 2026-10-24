@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import { Fragment } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 import { homeSectionOrder, type HomeSectionKey } from "@/lib/types";
 import {
   getActiveBranches,
@@ -25,6 +27,24 @@ import { LogoGallery } from "@/components/LogoGallery";
 import { PaymentMethods } from "@/components/PaymentMethods";
 import { DoctorsCarousel } from "@/components/DoctorsCarousel";
 import { BranchCards } from "@/components/BranchCards";
+import { ClinicJsonLd } from "@/components/ClinicJsonLd";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
+  const dict = await getSiteDictionary(locale);
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: "",
+    title: dict.meta.homeTitle,
+    description: dict.meta.description,
+    absoluteTitle: true,
+  });
+}
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).
@@ -210,6 +230,7 @@ export default async function HomePage({
 
   return (
     <>
+      <ClinicJsonLd locale={locale} />
       {settings.showHomeBanner !== false &&
         (offers.length > 0 ? (
           // The home banner is the promotions carousel; each slide opens

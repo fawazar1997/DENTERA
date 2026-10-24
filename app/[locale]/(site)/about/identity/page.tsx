@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 import { getSettings } from "@/lib/db";
 import { PageBanner } from "@/components/PageBanner";
 import { AboutTabs } from "@/components/AboutTabs";
@@ -22,11 +23,15 @@ export async function generateMetadata({
 }: {
   params: { locale: string };
 }): Promise<Metadata> {
-  const dict = await getSiteDictionary(resolveLocale(params.locale));
-  return {
-    title: `${dict.identity.title} — ${dict.meta.siteName}`,
+  const locale = resolveLocale(params.locale);
+  const dict = await getSiteDictionary(locale);
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: "/about/identity",
+    title: dict.identity.title,
     description: dict.identity.subtitle,
-  };
+  });
 }
 
 /** The four identity colors, as on the identity sheet. */

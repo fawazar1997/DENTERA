@@ -1,12 +1,30 @@
+import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 import { getSettings } from "@/lib/db";
 import { PageBanner } from "@/components/PageBanner";
 import { AboutTabs } from "@/components/AboutTabs";
 import { CtaBanner } from "@/components/CtaBanner";
 import { Reveal } from "@/components/Reveal";
 import { WhyDentera } from "@/components/WhyDentera";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
+  const dict = await getSiteDictionary(locale);
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: "/about",
+    title: dict.about.title,
+    description: `${dict.about.subtitle} ${dict.meta.description}`,
+  });
+}
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).

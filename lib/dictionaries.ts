@@ -8,6 +8,7 @@ export const dictionaries = {
     meta: {
       siteName: "Dentera",
       tagline: "Your Smile, Our Passion",
+      homeTitle: "Dentera Dental Clinics in Abha & Khamis Mushait",
       description:
         "Dentera Dental Clinics in Abha and Khamis Mushait offer advanced, gentle dental care for the whole family with a team of trusted specialists.",
     },
@@ -137,7 +138,7 @@ export const dictionaries = {
     },
     identity: {
       title: "Our Identity",
-      subtitle: "The thinking behind Dentera's mark, colors and type.",
+      subtitle: "The thinking behind Dentera's mark and colors.",
       philosophyEyebrow: "Brand Philosophy",
       philosophyTitle: "Every smile is a one-of-a-kind print",
       philosophyBody:
@@ -565,6 +566,7 @@ export const dictionaries = {
     meta: {
       siteName: "دنتيرا",
       tagline: "ابتسامتك شغفنا",
+      homeTitle: "عيادات دنتيرا لطب الأسنان في أبها وخميس مشيط",
       description:
         "تقدم عيادات دنتيرا لطب الأسنان في أبها وخميس مشيط رعاية متقدمة ولطيفة لجميع أفراد الأسرة مع فريق من الأخصائيين الموثوقين.",
     },
@@ -690,7 +692,7 @@ export const dictionaries = {
     },
     identity: {
       title: "هويتنا",
-      subtitle: "الفكرة وراء شعار دنتيرا وألوانها وخطها.",
+      subtitle: "الفكرة وراء شعار دنتيرا وألوانها.",
       philosophyEyebrow: "فلسفة الهوية",
       philosophyTitle: "كل ابتسامة بصمة لا تتكرر",
       philosophyBody:

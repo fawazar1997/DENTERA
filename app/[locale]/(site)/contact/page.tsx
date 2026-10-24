@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { Phone, Mail, Clock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { pageMetadata } from "@/lib/seo";
 import { telHref } from "@/lib/phone";
 import { getActiveBranches, getActiveDepartments, getSettings } from "@/lib/db";
 import { bookingFormLabels } from "@/lib/bookingLabels";
@@ -10,6 +12,24 @@ import { BranchCards } from "@/components/BranchCards";
 import { Reveal } from "@/components/Reveal";
 import { BranchHours } from "@/components/BranchHours";
 import { SocialLinks } from "@/components/SocialLinks";
+import { ClinicJsonLd } from "@/components/ClinicJsonLd";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
+  const dict = await getSiteDictionary(locale);
+  const branches = (await getActiveBranches()).map((b) => (locale === "ar" ? b.nameAr : b.nameEn));
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: "/contact",
+    title: dict.contact.title,
+    description: `${dict.contact.subtitle} ${dict.booking.phone} — ${branches.join(locale === "ar" ? "، " : ", ")}`,
+  });
+}
 
 // Content is edited live from the control panel, so render on request
 // (the database read itself is cached until the next save).
@@ -30,6 +50,7 @@ export default async function ContactPage({
 
   return (
     <>
+      <ClinicJsonLd locale={locale} />
       <PageBanner
         title={dict.contact.title}
         subtitle={dict.contact.subtitle}

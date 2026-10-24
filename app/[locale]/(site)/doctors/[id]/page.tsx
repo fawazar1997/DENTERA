@@ -16,6 +16,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { absoluteUrl, pageMetadata } from "@/lib/seo";
+import { JsonLd, ORGANIZATION_ID } from "@/components/ClinicJsonLd";
 import {
   getActiveBranches,
   getActiveDepartments,
@@ -59,12 +61,21 @@ export async function generateMetadata({
   const doctor = await getDoctor(params.id);
   if (!doctor || !doctor.active) return {};
   const dict = await getSiteDictionary(locale);
-  const name = locale === "ar" ? doctor.nameAr : doctor.nameEn;
-  const title = locale === "ar" ? doctor.titleAr : doctor.titleEn;
-  return {
-    title: `${name} — ${dict.meta.siteName}`,
-    description: (locale === "ar" ? doctor.bioAr : doctor.bioEn) || title,
-  };
+  const ar = locale === "ar";
+  const name = ar ? doctor.nameAr : doctor.nameEn;
+  const title = ar ? doctor.titleAr : doctor.titleEn;
+  const department = await getDepartment(doctor.departmentId);
+  const departmentName = department ? (ar ? department.nameAr : department.nameEn) : "";
+  const bio = ar ? doctor.bioAr : doctor.bioEn;
+  return pageMetadata({
+    locale,
+    siteName: dict.meta.siteName,
+    path: `/doctors/${doctor.id}`,
+    title: title ? `${name} — ${title}` : name,
+    description:
+      bio || [title, departmentName, dict.meta.siteName].filter(Boolean).join(" · "),
+    image: doctor.photoUrl,
+  });
 }
 
 function CvSection({
@@ -159,6 +170,19 @@ export default async function DoctorProfilePage({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Physician",
+          name,
+          ...(title ? { jobTitle: title } : {}),
+          ...(bio ? { description: bio } : {}),
+          ...(doctor.photoUrl ? { image: absoluteUrl(doctor.photoUrl) } : {}),
+          url: absoluteUrl(localePath(locale, `/doctors/${doctor.id}`)),
+          ...(department ? { knowsAbout: ar ? department.nameAr : department.nameEn } : {}),
+          worksFor: { "@id": ORGANIZATION_ID },
+        }}
+      />
       <div className="container-x relative py-8 sm:py-10 lg:py-12">
         <Link
           href={localePath(locale, `/doctors`)}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { isLocale, locales, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/seo";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -21,8 +22,22 @@ export async function generateMetadata({
     : defaultLocale;
   const dict = await getSiteDictionary(locale);
   return {
-    title: `${dict.meta.siteName} — ${dict.meta.tagline}`,
+    // Relative links in page metadata (canonical, share images) resolve
+    // against the public address.
+    metadataBase: new URL(SITE_URL),
+    applicationName: dict.meta.siteName,
+    title: {
+      default: dict.meta.homeTitle,
+      template: `%s | ${dict.meta.siteName}`,
+    },
     description: dict.meta.description,
+    openGraph: {
+      type: "website",
+      siteName: dict.meta.siteName,
+      locale: locale === "ar" ? "ar_SA" : "en_US",
+      images: [SHARE_IMAGE],
+    },
+    twitter: { card: "summary_large_image", images: [SHARE_IMAGE.url] },
   };
 }
 

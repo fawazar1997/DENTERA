@@ -309,7 +309,8 @@ export const CONTENT_SECTIONS: ContentSection[] = [
     label: { en: "Site name & search engines", ar: "اسم الموقع ومحركات البحث" },
     fields: [
       f("siteName", "Site name", "اسم الموقع"),
-      f("tagline", "Tagline (browser tab)", "الشعار النصي (عنوان المتصفح)"),
+      f("tagline", "Tagline", "الشعار النصي"),
+      f("homeTitle", "Home page title in Google", "عنوان الصفحة الرئيسية في قوقل"),
       f("description", "Description for Google", "الوصف في قوقل"),
     ],
   },
