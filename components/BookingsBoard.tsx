@@ -5,15 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronDown,
-  Clock,
   Copy,
   History,
   Loader2,
   Phone,
   RefreshCw,
   Search,
-  Stethoscope,
-  UserRound,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { BookingStatus } from "@/lib/types";
@@ -68,6 +65,11 @@ export type BoardLabels = {
   copied: string;
   results: string;
   newLabel: string;
+  colTime: string;
+  colName: string;
+  colPhone: string;
+  colStatus: string;
+  colActions: string;
 };
 
 const STATUS_ORDER: BookingStatus[] = ["new", "no_answer", "callback", "contacted", "booked", "cancelled"];
@@ -109,29 +111,34 @@ function riyadhDay(iso: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh" }).format(new Date(iso));
 }
 
-function BookingCard({
-  booking,
-  locale,
-  labels,
-  accessKey,
-  agent,
-  onSaved,
-}: {
+function formatTime(iso: string, locale: Locale): { day: string; time: string } {
+  const opts = { timeZone: "Asia/Riyadh" } as const;
+  const tag = locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB";
+  const date = new Date(iso);
+  return {
+    day: new Intl.DateTimeFormat(tag, { ...opts, day: "numeric", month: "short" }).format(date),
+    time: new Intl.DateTimeFormat(tag, { ...opts, hour: "numeric", minute: "2-digit" }).format(date),
+  };
+}
+
+type RowProps = {
   booking: BoardBooking;
   locale: Locale;
   labels: BoardLabels;
   accessKey?: string;
   agent: string;
   onSaved: (b: BoardBooking) => void;
-}) {
+};
+
+/** A request's status/note being edited, and saving it. */
+function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
   const [status, setStatus] = useState<BookingStatus>(booking.status);
   const [note, setNote] = useState(booking.note ?? "");
   const [result, setResult] = useState<"saved" | "failed" | null>(null);
-  const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
   const dirty = status !== booking.status || note !== (booking.note ?? "");
 
-  // Pick up changes made by someone else, unless this card is being edited.
+  // Pick up changes made by someone else, unless this row is being edited.
   useEffect(() => {
     if (!dirty) {
       setStatus(booking.status);
@@ -165,151 +172,251 @@ function BookingCard({
     });
   };
 
-  const style = STATUS_STYLE[booking.status];
+  return { status, setStatus, note, setNote, dirty, save, pending, result };
+}
+
+function PhoneActions({ phone, labels }: { phone: string; labels: BoardLabels }) {
+  const [copied, setCopied] = useState(false);
+  const icon = "flex h-8 w-8 items-center justify-center rounded-lg transition";
+  return (
+    <span className="flex items-center gap-1">
+      <a href={telHref(phone)} title={labels.call} aria-label={labels.call} className={`${icon} bg-ink-900 text-white hover:bg-ink-800`}>
+        <Phone className="h-4 w-4" />
+      </a>
+      <a
+        href={whatsappHref(phone)}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={labels.whatsapp}
+        aria-label={labels.whatsapp}
+        className={`${icon} bg-primary-500 text-white hover:bg-primary-600`}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
+          <path d={SOCIAL_ICON_PATHS.whatsapp} />
+        </svg>
+      </a>
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(phone);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          } catch {
+            // Clipboard blocked; the number is on screen anyway.
+          }
+        }}
+        title={copied ? labels.copied : labels.copy}
+        aria-label={copied ? labels.copied : labels.copy}
+        className={`${icon} text-ink-500 hover:bg-ink-50 hover:text-ink-900`}
+      >
+        {copied ? <Check className="h-4 w-4 text-primary-600" /> : <Copy className="h-4 w-4" />}
+      </button>
+    </span>
+  );
+}
+
+function StatusSelect({
+  value,
+  onChange,
+  labels,
+}: {
+  value: BookingStatus;
+  onChange: (s: BookingStatus) => void;
+  labels: BoardLabels;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as BookingStatus)}
+      aria-label={labels.colStatus}
+      className={`w-full cursor-pointer rounded-lg border-0 px-2.5 py-1.5 text-xs font-bold ${STATUS_STYLE[value].badge}`}
+    >
+      {STATUS_ORDER.map((s) => (
+        <option key={s} value={s} className="bg-white text-ink-900">
+          {labels.statuses[s]}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function SaveButton({
+  editor,
+  labels,
+}: {
+  editor: ReturnType<typeof useBookingEditor>;
+  labels: BoardLabels;
+}) {
+  return (
+    <span className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={editor.save}
+        disabled={editor.pending || !editor.dirty}
+        className="btn-primary !px-3 !py-1.5 text-xs disabled:opacity-30"
+      >
+        {editor.pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+        {labels.save}
+      </button>
+      {editor.result && (
+        <span className={`text-xs font-semibold ${editor.result === "saved" ? "text-primary-700" : "rounded-md bg-accent-100 px-2 py-0.5 text-ink-900"}`}>
+          {editor.result === "saved" ? labels.saved : labels.saveFailed}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function HistoryList({ booking, locale, labels }: { booking: BoardBooking; locale: Locale; labels: BoardLabels }) {
+  return (
+    <ol className="space-y-1 border-s-2 border-ink-100 ps-3 text-xs text-ink-600">
+      {[...booking.history].reverse().map((h, i) => (
+        <li key={i}>
+          <span className="font-semibold">{labels.statuses[h.status]}</span> — {formatWhen(h.at, locale)}
+          {h.agent && ` · ${h.agent}`}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function HistoryToggle({ count, open, onClick, labels }: { count: number; open: boolean; onClick: () => void; labels: BoardLabels }) {
+  if (count === 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      title={labels.history}
+      className="inline-flex items-center gap-1 text-xs font-semibold text-ink-500 hover:text-ink-900"
+    >
+      <History className="h-3.5 w-3.5" />
+      {count}
+      <ChevronDown className={`h-3.5 w-3.5 transition ${open ? "rotate-180" : ""}`} />
+    </button>
+  );
+}
+
+/** One request as a table row (computer). */
+function BookingRow(props: RowProps) {
+  const { booking, locale, labels } = props;
+  const editor = useBookingEditor(props);
+  const [open, setOpen] = useState(false);
+  const isNew = booking.status === "new";
+  const when = formatTime(booking.createdAt, locale);
+  const cell = "px-2.5 py-3 align-middle";
 
   return (
-    <li className={`card min-w-0 p-4 ${booking.status === "new" ? "ring-2 ring-primary-300" : ""}`}>
+    <tbody className="border-b border-ink-100 last:border-b-0">
+      <tr className={isNew ? "bg-primary-50" : "hover:bg-paper"}>
+        <td className={`${cell} border-s-4 ${isNew ? "border-primary-500" : "border-transparent"} whitespace-nowrap`}>
+          <span className="block font-bold text-ink-900">{when.day}</span>
+          <span className="block text-xs text-ink-500">{when.time}</span>
+        </td>
+        <td className={`${cell} min-w-[8rem]`}>
+          <span className="block font-bold text-ink-950">{booking.name}</span>
+          {booking.source && (
+            <span className="block text-xs text-ink-500">
+              {labels.fromPage} {booking.source}
+            </span>
+          )}
+        </td>
+        <td className={cell}>
+          <span className="flex flex-col items-start gap-1.5 2xl:flex-row 2xl:items-center 2xl:gap-2">
+            <a href={telHref(booking.phone)} dir="ltr" className="whitespace-nowrap font-bold tabular-nums text-ink-950 hover:text-primary-700">
+              {booking.phone}
+            </a>
+            <PhoneActions phone={booking.phone} labels={labels} />
+          </span>
+        </td>
+        <td className={`${cell} min-w-[8rem]`}>
+          <span className="block text-ink-900">{booking.department}</span>
+          {booking.doctor && <span className="block text-xs text-ink-500">{booking.doctor}</span>}
+        </td>
+        <td className={`${cell} w-40 min-w-[10rem]`}>
+          <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
+        </td>
+        <td className={`${cell} min-w-[11rem]`}>
+          <input
+            value={editor.note}
+            onChange={(e) => editor.setNote(e.target.value)}
+            maxLength={500}
+            placeholder={labels.notePlaceholder}
+            aria-label={labels.note}
+            className="input !py-1.5 text-xs"
+          />
+          {booking.updatedAt && (
+            <span className="mt-1 block truncate text-[11px] text-ink-400">
+              {formatWhen(booking.updatedAt, locale)}
+              {booking.agent && ` · ${labels.updatedBy} ${booking.agent}`}
+            </span>
+          )}
+        </td>
+        <td className={`${cell} whitespace-nowrap`}>
+          <span className="flex flex-col items-start gap-1.5">
+            <SaveButton editor={editor} labels={labels} />
+            <HistoryToggle count={booking.history.length} open={open} onClick={() => setOpen(!open)} labels={labels} />
+          </span>
+        </td>
+      </tr>
+      {open && (
+        <tr className="bg-paper">
+          <td colSpan={7} className="px-6 py-3">
+            <HistoryList booking={booking} locale={locale} labels={labels} />
+          </td>
+        </tr>
+      )}
+    </tbody>
+  );
+}
+
+/** One request as a compact list item (phone and tablet). */
+function BookingItem(props: RowProps) {
+  const { booking, locale, labels } = props;
+  const editor = useBookingEditor(props);
+  const [open, setOpen] = useState(false);
+  const isNew = booking.status === "new";
+
+  return (
+    <li className={`border-s-4 px-4 py-3 ${isNew ? "border-primary-500 bg-primary-50" : "border-transparent bg-white"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-lg font-extrabold text-ink-950">{booking.name}</p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {labels.receivedAt} {formatWhen(booking.createdAt, locale)}
-            </span>
-            {booking.source && (
-              <span>
-                · {labels.fromPage} {booking.source}
-              </span>
-            )}
+          <p className="truncate font-extrabold text-ink-950">{booking.name}</p>
+          <p className="truncate text-xs text-ink-500">
+            {formatWhen(booking.createdAt, locale)} · {booking.department}
+            {booking.doctor && ` · ${booking.doctor}`}
           </p>
         </div>
-        <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${style.badge}`}>
+        <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_STYLE[booking.status].badge}`}>
           {labels.statuses[booking.status]}
         </span>
       </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-ink-50 px-3 py-2.5">
-        <a href={telHref(booking.phone)} dir="ltr" className="basis-full text-start text-lg font-extrabold tabular-nums text-ink-950 hover:text-primary-700 rtl:text-end sm:me-auto sm:basis-auto">
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <a href={telHref(booking.phone)} dir="ltr" className="font-bold tabular-nums text-ink-950">
           {booking.phone}
         </a>
-        <a
-          href={telHref(booking.phone)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink-900 px-3 text-xs font-bold text-white hover:bg-ink-800"
-        >
-          <Phone className="h-4 w-4" />
-          {labels.call}
-        </a>
-        <a
-          href={whatsappHref(booking.phone)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-500 px-3 text-xs font-bold text-white hover:bg-primary-600"
-        >
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-4 w-4">
-            <path d={SOCIAL_ICON_PATHS.whatsapp} />
-          </svg>
-          {labels.whatsapp}
-        </a>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(booking.phone);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            } catch {
-              // Clipboard blocked; the number is on screen anyway.
-            }
-          }}
-          title={copied ? labels.copied : labels.copy}
-          aria-label={copied ? labels.copied : labels.copy}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-500 hover:bg-white hover:text-primary-700"
-        >
-          {copied ? <Check className="h-4 w-4 text-primary-600" /> : <Copy className="h-4 w-4" />}
-        </button>
+        <PhoneActions phone={booking.phone} labels={labels} />
       </div>
-
-      <dl className="mt-3 grid grid-cols-1 gap-1.5 text-sm sm:grid-cols-2">
-        <div className="flex items-center gap-1.5 text-ink-700">
-          <Stethoscope className="h-4 w-4 flex-shrink-0 text-primary-600" />
-          <dt className="sr-only">{labels.department}</dt>
-          <dd className="truncate font-semibold">{booking.department}</dd>
-        </div>
-        {booking.doctor && (
-          <div className="flex items-center gap-1.5 text-ink-700">
-            <UserRound className="h-4 w-4 flex-shrink-0 text-primary-600" />
-            <dt className="sr-only">{labels.doctor}</dt>
-            <dd className="truncate">{booking.doctor}</dd>
-          </div>
-        )}
-      </dl>
-
-      <div className="mt-4 grid gap-2 border-t border-ink-100 pt-4 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value as BookingStatus)}
-          aria-label={labels.statuses[status]}
-          className="input !py-2 text-sm font-semibold"
-        >
-          {STATUS_ORDER.map((s) => (
-            <option key={s} value={s}>
-              {labels.statuses[s]}
-            </option>
-          ))}
-        </select>
+      <div className="mt-2 grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-2">
+        <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
         <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
+          value={editor.note}
+          onChange={(e) => editor.setNote(e.target.value)}
           maxLength={500}
           placeholder={labels.notePlaceholder}
           aria-label={labels.note}
-          className="input !py-2 text-sm"
+          className="input !py-1.5 text-xs"
         />
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-ink-400">
-          {booking.updatedAt && (
-            <>
-              {formatWhen(booking.updatedAt, locale)}
-              {booking.agent && ` · ${labels.updatedBy} ${booking.agent}`}
-            </>
-          )}
-        </span>
-        <div className="flex items-center gap-2">
-          {result && (
-            <span className={`text-xs font-semibold ${result === "saved" ? "text-primary-700" : "rounded-md bg-accent-100 px-2 py-0.5 text-ink-900"}`}>
-              {result === "saved" ? labels.saved : labels.saveFailed}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={save}
-            disabled={pending || !dirty}
-            className="btn-primary !px-4 !py-2 text-sm disabled:opacity-40"
-          >
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {labels.save}
-          </button>
-        </div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <HistoryToggle count={booking.history.length} open={open} onClick={() => setOpen(!open)} labels={labels} />
+        <SaveButton editor={editor} labels={labels} />
       </div>
-
-      {booking.history.length > 0 && (
-        <details className="group mt-2">
-          <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-semibold text-ink-500 hover:text-primary-700 [&::-webkit-details-marker]:hidden">
-            <History className="h-3.5 w-3.5" />
-            {labels.history} ({booking.history.length})
-            <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
-          </summary>
-          <ol className="mt-2 space-y-1 border-s-2 border-ink-100 ps-3 text-xs text-ink-600">
-            {[...booking.history].reverse().map((h, i) => (
-              <li key={i}>
-                <span className="font-semibold">{labels.statuses[h.status]}</span> — {formatWhen(h.at, locale)}
-                {h.agent && ` · ${h.agent}`}
-              </li>
-            ))}
-          </ol>
-        </details>
+      {open && (
+        <div className="mt-2">
+          <HistoryList booking={booking} locale={locale} labels={labels} />
+        </div>
       )}
     </li>
   );
@@ -478,19 +585,47 @@ export function BookingsBoard({
       ) : results.length === 0 ? (
         <p className="py-16 text-center text-ink-500">{labels.noMatches}</p>
       ) : (
-        <ul className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          {results.map((b) => (
-            <BookingCard
-              key={b.id}
-              booking={b}
-              locale={locale}
-              labels={labels}
-              accessKey={accessKey}
-              agent={agent}
-              onSaved={(updated) => setBookings((all) => all.map((x) => (x.id === updated.id ? updated : x)))}
-            />
-          ))}
-        </ul>
+        <>
+          {/* Computer: one row per request. */}
+          <div className="card mt-5 hidden overflow-x-auto xl:block">
+            <table className="w-full min-w-[56rem] text-start text-sm">
+              <thead className="border-b border-ink-100 bg-ink-50 text-xs font-bold text-ink-500">
+                <tr>
+                  {[labels.colTime, labels.colName, labels.colPhone, labels.department, labels.colStatus, labels.note, labels.colActions].map((h, i) => (
+                    <th key={i} scope="col" className={`px-2.5 py-3 text-start ${i === 0 ? "border-s-4 border-transparent" : ""}`}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              {results.map((b) => (
+                <BookingRow
+                  key={b.id}
+                  booking={b}
+                  locale={locale}
+                  labels={labels}
+                  accessKey={accessKey}
+                  agent={agent}
+                  onSaved={(updated) => setBookings((all) => all.map((x) => (x.id === updated.id ? updated : x)))}
+                />
+              ))}
+            </table>
+          </div>
+          {/* Phone, tablet and small laptops: a compact list. */}
+          <ul className="card mt-5 divide-y divide-ink-100 overflow-hidden xl:hidden">
+            {results.map((b) => (
+              <BookingItem
+                key={b.id}
+                booking={b}
+                locale={locale}
+                labels={labels}
+                accessKey={accessKey}
+                agent={agent}
+                onSaved={(updated) => setBookings((all) => all.map((x) => (x.id === updated.id ? updated : x)))}
+              />
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

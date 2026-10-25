@@ -84,6 +84,11 @@ export async function getBookingsBoardData(locale: Locale) {
     copied: a.copied,
     results: a.bookingResults,
     newLabel: a.newRequests,
+    colTime: a.bookingColTime,
+    colName: a.bookingColName,
+    colPhone: a.bookingColPhone,
+    colStatus: a.bookingColStatus,
+    colActions: a.bookingColActions,
   };
 
   return {
