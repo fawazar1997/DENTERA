@@ -488,28 +488,33 @@ export function BookingsBoard({
     <div>
       <div className="card p-4 sm:p-5">
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("")}
-            className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              statusFilter === "" ? "bg-ink-950 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"
-            }`}
-          >
-            {labels.all} <span className="opacity-70">({bookings.length})</span>
-          </button>
-          {STATUS_ORDER.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatusFilter(statusFilter === s ? "" : s)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                statusFilter === s ? STATUS_STYLE[s].badge : "bg-ink-50 text-ink-700 hover:bg-ink-100"
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[s].dot}`} />
-              {labels.statuses[s]} <span className="opacity-70">({counts[s]})</span>
-            </button>
-          ))}
+          {/* "New" first, then "All", then the other statuses. */}
+          {(["new", "", ...STATUS_ORDER.filter((x) => x !== "new")] as (BookingStatus | "")[]).map((s) =>
+            s === "" ? (
+              <button
+                key="all"
+                type="button"
+                onClick={() => setStatusFilter("")}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                  statusFilter === "" ? "bg-ink-950 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"
+                }`}
+              >
+                {labels.all} <span className="opacity-70">({bookings.length})</span>
+              </button>
+            ) : (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatusFilter(statusFilter === s ? "" : s)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+                  statusFilter === s ? STATUS_STYLE[s].badge : "bg-ink-50 text-ink-700 hover:bg-ink-100"
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[s].dot}`} />
+                {labels.statuses[s]} <span className="opacity-70">({counts[s]})</span>
+              </button>
+            )
+          )}
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
