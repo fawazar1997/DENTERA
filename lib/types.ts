@@ -234,6 +234,8 @@ export type Booking = {
   note?: string;
   /** Name of the call-center agent who last updated it. */
   agent?: string;
+  /** Call-center extension assigned to call the patient (see BOOKING_EXTENSIONS). */
+  extension?: string;
   updatedAt?: string;
-  history?: { status: BookingStatus; at: string; agent?: string }[];
+  history?: { status: BookingStatus; at: string; agent?: string; extension?: string }[];
 };

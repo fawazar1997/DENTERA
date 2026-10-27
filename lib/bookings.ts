@@ -41,6 +41,12 @@ export const BOOKING_STATUSES: BookingStatus[] = [
   "cancelled",
 ];
 
+/** Call-center extensions a request can be assigned to: 601–610 and 771–779. */
+export const BOOKING_EXTENSIONS = [
+  ...Array.from({ length: 10 }, (_, i) => String(601 + i)),
+  ...Array.from({ length: 9 }, (_, i) => String(771 + i)),
+];
+
 export function isBookingStatus(value: string): value is BookingStatus {
   return (BOOKING_STATUSES as string[]).includes(value);
 }
@@ -202,7 +208,7 @@ export async function createBooking(
 
 export async function updateBooking(
   id: string,
-  change: { status: BookingStatus; note?: string; agent?: string }
+  change: { status: BookingStatus; note?: string; agent?: string; extension?: string }
 ): Promise<boolean> {
   if (!ID_PATTERN.test(id)) return false;
   const now = new Date().toISOString();
@@ -212,8 +218,12 @@ export async function updateBooking(
     status: change.status,
     note: change.note,
     agent: change.agent ?? b.agent,
+    extension: change.extension,
     updatedAt: now,
-    history: [...(b.history ?? []), { status: change.status, at: now, agent: change.agent }].slice(-20),
+    history: [
+      ...(b.history ?? []),
+      { status: change.status, at: now, agent: change.agent, extension: change.extension },
+    ].slice(-20),
   });
 
   if (isBlobConfigured()) {

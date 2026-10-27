@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySessionToken } from "./auth";
 import { getActiveDepartments, getDoctor } from "./db";
 import {
+  BOOKING_EXTENSIONS,
   createBooking,
   isBookingStatus,
   isValidBookingsKey,
@@ -76,6 +77,9 @@ export async function updateBookingAction(formData: FormData): Promise<{ ok: boo
   if (!isBookingStatus(status)) return { ok: false };
   const note = String(formData.get("note") ?? "").trim().slice(0, 500) || undefined;
   const agent = String(formData.get("agent") ?? "").trim().slice(0, 60) || undefined;
+  const ext = String(formData.get("extension") ?? "").trim();
+  if (ext && !BOOKING_EXTENSIONS.includes(ext)) return { ok: false };
+  const extension = ext || undefined;
 
-  return { ok: await updateBooking(id, { status, note, agent }) };
+  return { ok: await updateBooking(id, { status, note, agent, extension }) };
 }

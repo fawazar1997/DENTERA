@@ -1,7 +1,7 @@
 import type { Locale } from "./i18n";
 import { getDictionary } from "./dictionaries";
 import { getDepartments, getDoctors } from "./db";
-import { getBookings } from "./bookings";
+import { BOOKING_EXTENSIONS, getBookings } from "./bookings";
 import type { BookingStatus } from "./types";
 import type { BoardBooking, BoardLabels } from "@/components/BookingsBoard";
 
@@ -49,6 +49,7 @@ export async function getBookingsBoardData(locale: Locale) {
     status: b.status,
     note: b.note,
     agent: b.agent,
+    extension: b.extension,
     updatedAt: b.updatedAt,
     history: b.history ?? [],
   }));
@@ -88,6 +89,9 @@ export async function getBookingsBoardData(locale: Locale) {
     colName: a.bookingColName,
     colPhone: a.bookingColPhone,
     colStatus: a.bookingColStatus,
+    colExtension: a.bookingColExtension,
+    allExtensions: a.allExtensions,
+    extensionShort: a.extensionShort,
     colActions: a.bookingColActions,
   };
 
@@ -95,6 +99,7 @@ export async function getBookingsBoardData(locale: Locale) {
     dict,
     bookings: list,
     departments: departments.map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn })),
+    extensions: BOOKING_EXTENSIONS,
     labels,
   };
 }

@@ -62,6 +62,7 @@ export default async function CallCenterBookingsPage({
         <BookingsBoard
           bookings={data.bookings}
           departments={data.departments}
+          extensions={data.extensions}
           locale={locale}
           labels={data.labels}
           accessKey={params.key}

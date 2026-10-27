@@ -30,8 +30,10 @@ export type BoardBooking = {
   status: BookingStatus;
   note?: string;
   agent?: string;
+  /** Extension assigned to call the patient. */
+  extension?: string;
   updatedAt?: string;
-  history: { status: BookingStatus; at: string; agent?: string }[];
+  history: { status: BookingStatus; at: string; agent?: string; extension?: string }[];
 };
 
 export type BoardLabels = {
@@ -69,6 +71,9 @@ export type BoardLabels = {
   colName: string;
   colPhone: string;
   colStatus: string;
+  colExtension: string;
+  allExtensions: string;
+  extensionShort: string;
   colActions: string;
 };
 
@@ -123,6 +128,7 @@ function formatTime(iso: string, locale: Locale): { day: string; time: string } 
 
 type RowProps = {
   booking: BoardBooking;
+  extensions: string[];
   locale: Locale;
   labels: BoardLabels;
   accessKey?: string;
@@ -134,18 +140,23 @@ type RowProps = {
 function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
   const [status, setStatus] = useState<BookingStatus>(booking.status);
   const [note, setNote] = useState(booking.note ?? "");
+  const [extension, setExtension] = useState(booking.extension ?? "");
   const [result, setResult] = useState<"saved" | "failed" | null>(null);
   const [pending, startTransition] = useTransition();
-  const dirty = status !== booking.status || note !== (booking.note ?? "");
+  const dirty =
+    status !== booking.status ||
+    note !== (booking.note ?? "") ||
+    extension !== (booking.extension ?? "");
 
   // Pick up changes made by someone else, unless this row is being edited.
   useEffect(() => {
     if (!dirty) {
       setStatus(booking.status);
       setNote(booking.note ?? "");
+      setExtension(booking.extension ?? "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [booking.status, booking.note]);
+  }, [booking.status, booking.note, booking.extension]);
 
   const save = () => {
     const form = new FormData();
@@ -153,6 +164,7 @@ function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
     form.set("status", status);
     form.set("note", note);
     form.set("agent", agent);
+    form.set("extension", extension);
     if (accessKey) form.set("key", accessKey);
     startTransition(async () => {
       const { ok } = await updateBookingAction(form);
@@ -164,15 +176,19 @@ function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
           status,
           note: note || undefined,
           agent: agent || booking.agent,
+          extension: extension || undefined,
           updatedAt: at,
-          history: [...booking.history, { status, at, agent: agent || undefined }],
+          history: [
+            ...booking.history,
+            { status, at, agent: agent || undefined, extension: extension || undefined },
+          ],
         });
       }
       setTimeout(() => setResult(null), 2500);
     });
   };
 
-  return { status, setStatus, note, setNote, dirty, save, pending, result };
+  return { status, setStatus, note, setNote, extension, setExtension, dirty, save, pending, result };
 }
 
 function PhoneActions({ phone, labels }: { phone: string; labels: BoardLabels }) {
@@ -241,6 +257,37 @@ function StatusSelect({
   );
 }
 
+function ExtensionSelect({
+  value,
+  onChange,
+  extensions,
+  labels,
+}: {
+  value: string;
+  onChange: (e: string) => void;
+  extensions: string[];
+  labels: BoardLabels;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={labels.colExtension}
+      dir="ltr"
+      className={`w-full cursor-pointer rounded-lg border px-2 py-1.5 text-center text-xs font-bold tabular-nums ${
+        value ? "border-ink-900 bg-white text-ink-950" : "border-ink-100 bg-white text-ink-400"
+      }`}
+    >
+      <option value="">—</option>
+      {extensions.map((x) => (
+        <option key={x} value={x}>
+          {x}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function SaveButton({
   editor,
   labels,
@@ -275,6 +322,7 @@ function HistoryList({ booking, locale, labels }: { booking: BoardBooking; local
         <li key={i}>
           <span className="font-semibold">{labels.statuses[h.status]}</span> — {formatWhen(h.at, locale)}
           {h.agent && ` · ${h.agent}`}
+          {h.extension && ` · ${labels.extensionShort} ${h.extension}`}
         </li>
       ))}
     </ol>
@@ -334,10 +382,13 @@ function BookingRow(props: RowProps) {
           <span className="block text-ink-900">{booking.department}</span>
           {booking.doctor && <span className="block text-xs text-ink-500">{booking.doctor}</span>}
         </td>
-        <td className={`${cell} w-40 min-w-[10rem]`}>
+        <td className={`${cell} w-40 min-w-[9.5rem]`}>
           <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
         </td>
-        <td className={`${cell} min-w-[11rem]`}>
+        <td className={`${cell} w-20 min-w-[5rem]`}>
+          <ExtensionSelect value={editor.extension} onChange={editor.setExtension} extensions={props.extensions} labels={labels} />
+        </td>
+        <td className={`${cell} min-w-[9rem]`}>
           <input
             value={editor.note}
             onChange={(e) => editor.setNote(e.target.value)}
@@ -347,7 +398,7 @@ function BookingRow(props: RowProps) {
             className="input !py-1.5 text-xs"
           />
           {booking.updatedAt && (
-            <span className="mt-1 block truncate text-[11px] text-ink-400">
+            <span className="mt-1 block max-w-[10rem] text-[11px] leading-snug text-ink-400">
               {formatWhen(booking.updatedAt, locale)}
               {booking.agent && ` · ${labels.updatedBy} ${booking.agent}`}
             </span>
@@ -362,7 +413,7 @@ function BookingRow(props: RowProps) {
       </tr>
       {open && (
         <tr className="bg-paper">
-          <td colSpan={7} className="px-6 py-3">
+          <td colSpan={8} className="px-6 py-3">
             <HistoryList booking={booking} locale={locale} labels={labels} />
           </td>
         </tr>
@@ -398,8 +449,9 @@ function BookingItem(props: RowProps) {
         </a>
         <PhoneActions phone={booking.phone} labels={labels} />
       </div>
-      <div className="mt-2 grid grid-cols-[minmax(0,9rem)_minmax(0,1fr)] gap-2">
+      <div className="mt-2 grid grid-cols-[minmax(0,8.5rem)_4.75rem_minmax(0,1fr)] gap-2">
         <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
+        <ExtensionSelect value={editor.extension} onChange={editor.setExtension} extensions={props.extensions} labels={labels} />
         <input
           value={editor.note}
           onChange={(e) => editor.setNote(e.target.value)}
@@ -426,12 +478,15 @@ function BookingItem(props: RowProps) {
 export function BookingsBoard({
   bookings: initial,
   departments,
+  extensions,
   locale,
   labels,
   accessKey,
 }: {
   bookings: BoardBooking[];
   departments: { id: string; name: string }[];
+  /** Extensions a request can be assigned to. */
+  extensions: string[];
   locale: Locale;
   labels: BoardLabels;
   /** The private link's key (call-center page); omitted in the control panel. */
@@ -442,6 +497,7 @@ export function BookingsBoard({
   const [statusFilter, setStatusFilter] = useState<BookingStatus | "">("");
   const [department, setDepartment] = useState("");
   const [period, setPeriod] = useState<"" | "today" | "week">("");
+  const [extensionFilter, setExtensionFilter] = useState("");
   const [query, setQuery] = useState("");
   const [agent, setAgent] = useState("");
   const [refreshing, startRefresh] = useTransition();
@@ -477,12 +533,13 @@ export function BookingsBoard({
     return bookings.filter((b) => {
       if (statusFilter && b.status !== statusFilter) return false;
       if (department && b.departmentId !== department) return false;
+      if (extensionFilter && b.extension !== extensionFilter) return false;
       if (period === "today" && riyadhDay(b.createdAt) !== today) return false;
       if (period === "week" && new Date(b.createdAt).getTime() < weekAgo) return false;
       const haystack = normalize(`${b.name} ${b.phone} ${b.phone.replace(/^0/, "966")}`);
       return terms.every((t) => haystack.includes(t));
     });
-  }, [bookings, statusFilter, department, period, query]);
+  }, [bookings, statusFilter, department, period, extensionFilter, query]);
 
   return (
     <div>
@@ -517,7 +574,7 @@ export function BookingsBoard({
           )}
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
           <div className="relative">
             <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
             <input
@@ -546,6 +603,19 @@ export function BookingsBoard({
             <option value="">{labels.periodAll}</option>
             <option value="today">{labels.periodToday}</option>
             <option value="week">{labels.periodWeek}</option>
+          </select>
+          <select
+            value={extensionFilter}
+            onChange={(e) => setExtensionFilter(e.target.value)}
+            aria-label={labels.colExtension}
+            className="input"
+          >
+            <option value="">{labels.allExtensions}</option>
+            {extensions.map((x) => (
+              <option key={x} value={x}>
+                {labels.extensionShort} {x}
+              </option>
+            ))}
           </select>
           <input
             value={agent}
@@ -596,7 +666,7 @@ export function BookingsBoard({
             <table className="w-full min-w-[56rem] text-start text-sm">
               <thead className="border-b border-ink-100 bg-ink-50 text-xs font-bold text-ink-500">
                 <tr>
-                  {[labels.colTime, labels.colName, labels.colPhone, labels.department, labels.colStatus, labels.note, labels.colActions].map((h, i) => (
+                  {[labels.colTime, labels.colName, labels.colPhone, labels.department, labels.colStatus, labels.colExtension, labels.note, labels.colActions].map((h, i) => (
                     <th key={i} scope="col" className={`px-2.5 py-3 text-start ${i === 0 ? "border-s-4 border-transparent" : ""}`}>
                       {h}
                     </th>
@@ -607,6 +677,7 @@ export function BookingsBoard({
                 <BookingRow
                   key={b.id}
                   booking={b}
+                  extensions={extensions}
                   locale={locale}
                   labels={labels}
                   accessKey={accessKey}
@@ -622,6 +693,7 @@ export function BookingsBoard({
               <BookingItem
                 key={b.id}
                 booking={b}
+                extensions={extensions}
                 locale={locale}
                 labels={labels}
                 accessKey={accessKey}
