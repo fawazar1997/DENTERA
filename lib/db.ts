@@ -5,6 +5,7 @@ import { del, list, put } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
 import { privateStore, readPrivateJson } from "./privateBlob";
+import { inDepartment } from "./doctorDepartments";
 import type {
   Branch,
   ContentOverrides,
@@ -339,7 +340,7 @@ export async function getActiveDoctors(): Promise<Doctor[]> {
 
 export async function getDoctorsByDepartment(departmentId: string): Promise<Doctor[]> {
   return (await readDb()).doctors.filter(
-    (d) => d.departmentId === departmentId && d.active
+    (d) => inDepartment(d, departmentId) && d.active
   );
 }
 

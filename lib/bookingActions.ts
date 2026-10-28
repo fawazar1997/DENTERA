@@ -13,6 +13,7 @@ import {
   updateBooking,
 } from "./bookings";
 import { doctorExtension } from "./extensions";
+import { doctorDepartmentIds } from "./doctorDepartments";
 
 export type BookingFormState =
   | { ok: true }
@@ -65,8 +66,13 @@ export async function submitBookingAction(
     await createBooking({
       name,
       phone,
-      // A request for a specific doctor is always for that doctor's department.
-      departmentId: doctor?.departmentId || departmentId,
+      // A request for a specific doctor is for one of that doctor's
+      // departments (the main one unless another of theirs was chosen).
+      departmentId: doctor
+        ? doctorDepartmentIds(doctor).includes(departmentId)
+          ? departmentId
+          : doctor.departmentId
+        : departmentId,
       doctorId: doctor?.id,
       branchId,
       source,

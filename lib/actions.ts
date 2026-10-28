@@ -107,6 +107,15 @@ function doctorHours(formData: FormData) {
   return Object.keys(hours).length > 0 ? hours : undefined;
 }
 
+/** Other departments ticked besides the main one (none: undefined). */
+function extraDepartments(formData: FormData): string[] | undefined {
+  const main = str(formData, "departmentId");
+  const ids = [...new Set(formData.getAll("extraDepartmentIds").map(String))].filter(
+    (id) => id && id !== main
+  );
+  return ids.length > 0 ? ids : undefined;
+}
+
 /** Booking extension per branch ("extension_<branchId>" fields). */
 function doctorExtensions(formData: FormData): Record<string, string> | undefined {
   const extensions: Record<string, string> = {};
@@ -125,6 +134,7 @@ function doctorFields(formData: FormData) {
     titleEn: str(formData, "titleEn"),
     titleAr: str(formData, "titleAr"),
     departmentId: str(formData, "departmentId"),
+    extraDepartmentIds: extraDepartments(formData),
     bioEn: optStr(formData, "bioEn"),
     bioAr: optStr(formData, "bioAr"),
     yearsExperience: optNum(formData, "yearsExperience"),

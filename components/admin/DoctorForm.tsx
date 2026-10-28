@@ -119,6 +119,27 @@ export function DoctorForm({
             ))}
           </select>
         </div>
+        <fieldset className="sm:col-span-2">
+          <legend className="label">{dict.admin.extraDepartments}</legend>
+          <p className="-mt-1 mb-2 text-xs text-ink-400">{dict.admin.extraDepartmentsHint}</p>
+          <div className="flex flex-wrap gap-2">
+            {departments.map((department) => (
+              <label
+                key={department.id}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-ink-200 px-3 py-1.5 text-sm text-ink-700 has-[:checked]:border-primary-400 has-[:checked]:bg-primary-50"
+              >
+                <input
+                  type="checkbox"
+                  name="extraDepartmentIds"
+                  value={department.id}
+                  defaultChecked={doctor?.extraDepartmentIds?.includes(department.id)}
+                  className="h-4 w-4 rounded border-ink-300"
+                />
+                {locale === "ar" ? department.nameAr : department.nameEn}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div>
           <label className="label">{dict.admin.coordinationNumber}</label>
           <input

@@ -493,6 +493,9 @@ export const dictionaries = {
       deleteOldButton: "Delete requests",
       deleteOldConfirm: "Permanently delete all requests received on or before this date? This can't be undone.",
       deleteOldDone: "Deleted requests:",
+      extraDepartments: "Other departments (optional)",
+      extraDepartmentsHint:
+        "If the doctor also works in other departments, tick them: the doctor then shows in those departments too, and patients can book with them in either.",
       doctorExtensions: "Booking requests extension",
       doctorExtensionsHint:
         "New booking requests for this doctor at each branch go straight to this extension. Leave it empty for the supervisor to assign.",
@@ -1079,6 +1082,9 @@ export const dictionaries = {
       deleteOldButton: "حذف الطلبات",
       deleteOldConfirm: "حذف كل الطلبات التي وصلت في هذا التاريخ أو قبله نهائيًا؟ لا يمكن التراجع عن الحذف.",
       deleteOldDone: "عدد الطلبات المحذوفة:",
+      extraDepartments: "أقسام إضافية (اختياري)",
+      extraDepartmentsHint:
+        "إذا كان الطبيب يعمل في أقسام أخرى أيضًا فحدّدها: يظهر الطبيب في هذه الأقسام، ويستطيع المريض الحجز معه في أيٍّ منها.",
       doctorExtensions: "تحويلة طلبات الحجز",
       doctorExtensionsHint:
         "طلبات الحجز الجديدة لهذا الطبيب في كل فرع تتعيّن مباشرة على هذه التحويلة. اتركها فارغة ليعيّنها المشرف.",

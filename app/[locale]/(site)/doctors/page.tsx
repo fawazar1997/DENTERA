@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
+import { inDepartment } from "@/lib/doctorDepartments";
 import { pageMetadata } from "@/lib/seo";
 import { PageBanner } from "@/components/PageBanner";
 import { getActiveDepartments, getActiveDoctors, getSettings } from "@/lib/db";
@@ -46,7 +47,7 @@ export default async function DoctorsPage({
   const allDoctors = await getActiveDoctors();
   const departmentId = searchParams.department;
   const doctors = departmentId
-    ? allDoctors.filter((d) => d.departmentId === departmentId)
+    ? allDoctors.filter((d) => inDepartment(d, departmentId))
     : allDoctors;
 
   return (
@@ -79,7 +80,11 @@ export default async function DoctorsPage({
                   <DoctorCard
                     doctor={doctor}
                     department={departments.find(
-                      (d) => d.id === doctor.departmentId
+                      (d) =>
+                        d.id ===
+                        (departmentId && inDepartment(doctor, departmentId)
+                          ? departmentId
+                          : doctor.departmentId)
                     )}
                     locale={locale}
                     dict={dict}

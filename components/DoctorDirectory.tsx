@@ -13,7 +13,8 @@ export type DirectoryDoctor = {
   nameAr: string;
   titleEn: string;
   titleAr: string;
-  departmentId: string;
+  /** Main department first. */
+  departmentIds: string[];
   branchIds: string[];
   coordinationNumber?: string;
   photoUrl?: string;
@@ -130,8 +131,9 @@ export function DoctorDirectory({
               doctor.titleAr,
               doctor.titleEn,
               doctor.coordinationNumber ?? "",
-              departments.find((d) => d.id === doctor.departmentId)?.nameAr ?? "",
-              departments.find((d) => d.id === doctor.departmentId)?.nameEn ?? "",
+              ...departments
+                .filter((d) => doctor.departmentIds.includes(d.id))
+                .flatMap((d) => [d.nameAr, d.nameEn]),
             ].join(" ")
           ),
         }))
@@ -146,7 +148,7 @@ export function DoctorDirectory({
     const terms = normalize(query).split(" ").filter(Boolean);
     return indexed
       .filter(({ doctor, haystack }) => {
-        if (department && doctor.departmentId !== department) return false;
+        if (department && !doctor.departmentIds.includes(department)) return false;
         if (branch && !doctor.branchIds.includes(branch)) return false;
         if (numberFilter === "with" && !doctor.coordinationNumber) return false;
         if (numberFilter === "without" && doctor.coordinationNumber) return false;
@@ -254,7 +256,12 @@ export function DoctorDirectory({
                     {ar ? doctor.titleAr : doctor.titleEn}
                   </p>
                   <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-500">
-                    <span>{departmentName.get(doctor.departmentId) ?? labels.notSet}</span>
+                    <span>
+                      {doctor.departmentIds
+                        .map((id) => departmentName.get(id))
+                        .filter(Boolean)
+                        .join("، ") || labels.notSet}
+                    </span>
                     {doctor.branchIds.length > 0 && (
                       <span>
                         ·{" "}

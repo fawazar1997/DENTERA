@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import type { Locale } from "./i18n";
 import { getDictionary } from "./dictionaries";
 import { getBranches, getDepartments, getDoctors, getSettings } from "./db";
+import { doctorDepartmentIds } from "./doctorDepartments";
 import type { DirectoryDoctor, DirectoryLabels } from "@/components/DoctorDirectory";
 
 /** True when `key` matches the directory link saved in the control panel. */
@@ -38,7 +39,7 @@ export async function getDirectoryData(
     nameAr: d.nameAr,
     titleEn: d.titleEn,
     titleAr: d.titleAr,
-    departmentId: d.departmentId,
+    departmentIds: doctorDepartmentIds(d),
     branchIds: d.branchIds ?? [],
     coordinationNumber: d.coordinationNumber,
     photoUrl: d.photoUrl,

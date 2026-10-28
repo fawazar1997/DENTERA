@@ -56,7 +56,7 @@ type FormProps = {
    * On a doctor's page: doctors to choose from, with this one preselected.
    * Their branches limit the branch choice.
    */
-  doctors?: { id: string; name: string; branchIds?: string[] }[];
+  doctors?: { id: string; name: string; branchIds?: string[]; departmentIds?: string[] }[];
   defaultDoctorId?: string;
   className?: string;
 };
@@ -91,6 +91,12 @@ function BookingFormInner({
     const own = ids?.length ? branches.filter((b) => ids.includes(b.id)) : [];
     return own.length > 0 ? own : branches;
   }, [doctors, doctorId, branches]);
+  // With the department fixed by the doctor: the chosen doctor's
+  // departments (main first); the patient picks when there are several.
+  const doctorDepartments = useMemo(() => {
+    const ids = doctors?.find((d) => d.id === doctorId)?.departmentIds;
+    return ids?.length ? ids : [defaultDepartmentId];
+  }, [doctors, doctorId, defaultDepartmentId]);
   const onlyBranch = branchOptions.length === 1 ? branchOptions[0].id : "";
   // Booking a specific doctor needs one of their branches (it decides which
   // call-center extension gets the request); otherwise "any branch" is fine.
@@ -178,11 +184,25 @@ function BookingFormInner({
 
       <div>
         <label htmlFor={`bk-dept-${source}`} className="label">{labels.department}</label>
-        {lockDepartment ? (
+        {lockDepartment && doctorDepartments.length > 1 ? (
+          <select
+            key={doctorId}
+            id={`bk-dept-${source}`}
+            name="departmentId"
+            defaultValue={doctorDepartments[0]}
+            className="input"
+          >
+            {doctorDepartments.map((id) => (
+              <option key={id} value={id}>
+                {departments.find((d) => d.id === id)?.name ?? id}
+              </option>
+            ))}
+          </select>
+        ) : lockDepartment ? (
           <>
-            <input type="hidden" name="departmentId" value={defaultDepartmentId} />
+            <input type="hidden" name="departmentId" value={doctorDepartments[0]} />
             <p id={`bk-dept-${source}`} className="input flex cursor-default items-center justify-between gap-2 !bg-ink-50 font-semibold text-ink-900">
-              {departments.find((d) => d.id === defaultDepartmentId)?.name ?? labels.departmentAny}
+              {departments.find((d) => d.id === doctorDepartments[0])?.name ?? labels.departmentAny}
               <Lock className="h-4 w-4 flex-shrink-0 text-ink-400" aria-hidden="true" />
             </p>
           </>

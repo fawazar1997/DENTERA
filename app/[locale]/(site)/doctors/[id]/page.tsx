@@ -28,6 +28,7 @@ import {
 import { bookingFormLabels } from "@/lib/bookingLabels";
 import { whatsappHref } from "@/lib/phone";
 import { SOCIAL_ICON_PATHS } from "@/lib/socialIconPaths";
+import { doctorDepartmentIds } from "@/lib/doctorDepartments";
 import { BranchHours } from "@/components/BranchHours";
 import { DoctorPhoto } from "@/components/DoctorPhoto";
 import { DepartmentIcon } from "@/components/IconMap";
@@ -128,7 +129,19 @@ export default async function DoctorProfilePage({
   const dict = await getSiteDictionary(locale);
   const department = await getDepartment(doctor.departmentId);
   const allDepartments = await getActiveDepartments();
-  const departmentDoctors = await getDoctorsByDepartment(doctor.departmentId);
+  // Every department the doctor works in (main first), and the other
+  // doctors in any of them (offered as alternatives in the booking form).
+  const departmentIds = doctorDepartmentIds(doctor);
+  const doctorDepartments = departmentIds
+    .map((id) => allDepartments.find((d) => d.id === id))
+    .filter((d): d is NonNullable<typeof d> => !!d);
+  const departmentDoctors = [
+    ...new Map(
+      (await Promise.all(departmentIds.map((id) => getDoctorsByDepartment(id))))
+        .flat()
+        .map((d) => [d.id, d])
+    ).values(),
+  ];
   const activeBranches = await getActiveBranches();
   const branches = activeBranches.filter((b) => doctor.branchIds?.includes(b.id));
 
@@ -210,15 +223,16 @@ export default async function DoctorProfilePage({
                 </h1>
                 <p className="mt-1.5 font-bold text-primary-700">{title}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {department && (
+                  {doctorDepartments.map((d) => (
                     <Link
-                      href={localePath(locale, `/doctors?department=${department.id}`)}
+                      key={d.id}
+                      href={localePath(locale, `/doctors?department=${d.id}`)}
                       className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-700 hover:bg-primary-100"
                     >
-                      <DepartmentIcon department={department} className="h-4 w-4" />
-                      {ar ? department.nameAr : department.nameEn}
+                      <DepartmentIcon department={d} className="h-4 w-4" />
+                      {ar ? d.nameAr : d.nameEn}
                     </Link>
-                  )}
+                  ))}
                   {years && (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-100 px-3 py-1.5 text-xs font-bold text-ink-800">
                       <Clock className="h-3.5 w-3.5" />
@@ -387,7 +401,12 @@ export default async function DoctorProfilePage({
                     doctors={[
                       doctor,
                       ...departmentDoctors.filter((d) => d.id !== doctor.id),
-                    ].map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn, branchIds: d.branchIds }))}
+                    ].map((d) => ({
+                      id: d.id,
+                      name: ar ? d.nameAr : d.nameEn,
+                      branchIds: d.branchIds,
+                      departmentIds: doctorDepartmentIds(d),
+                    }))}
                     branches={activeBranches.map((b) => ({ id: b.id, name: ar ? b.nameAr : b.nameEn }))}
                     labels={bookingFormLabels(dict)}
                     departments={allDepartments.map((d) => ({

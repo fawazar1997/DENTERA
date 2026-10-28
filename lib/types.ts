@@ -17,7 +17,10 @@ export type Doctor = {
   nameAr: string;
   titleEn: string;
   titleAr: string;
+  /** Main department (shown with the title, used by default for bookings). */
   departmentId: string;
+  /** Other departments the doctor also works in. */
+  extraDepartmentIds?: string[];
   /** Short summary shown on the doctor card and at the top of the profile. */
   bioEn?: string;
   bioAr?: string;
