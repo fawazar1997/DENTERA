@@ -15,9 +15,9 @@ export async function isValidDirectoryKey(key: string): Promise<boolean> {
 
 /**
  * Everything the staff directory needs — and nothing more. The staff page
- * lists only doctors shown on the site and set to show in the directory;
- * the control panel's copy passes includeExcluded to list everyone
- * (hidden and excluded ones flagged).
+ * lists every doctor, including those hidden on the website (flagged),
+ * except any whose "show in the coordination directory" switch is off;
+ * the control panel's copy passes includeExcluded to list those too.
  */
 export async function getDirectoryData(
   locale: Locale,
@@ -31,7 +31,7 @@ export async function getDirectoryData(
   ]);
 
   const list: DirectoryDoctor[] = doctors
-    .filter((d) => includeExcluded || (d.active && d.showInDirectory !== false))
+    .filter((d) => includeExcluded || d.showInDirectory !== false)
     .map((d) => ({
     id: d.id,
     nameEn: d.nameEn,
