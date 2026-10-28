@@ -1,6 +1,6 @@
 import type { Locale } from "./i18n";
 import { getDictionary } from "./dictionaries";
-import { getDepartments, getDoctors } from "./db";
+import { getBranches, getDepartments, getDoctors } from "./db";
 import { BOOKING_EXTENSIONS, getBookings } from "./bookings";
 import type { BookingStatus } from "./types";
 import type { BoardBooking, BoardLabels } from "@/components/BookingsBoard";
@@ -10,11 +10,13 @@ export async function getBookingsBoardData(locale: Locale) {
   const dict = getDictionary(locale);
   const a = dict.admin;
   const ar = locale === "ar";
-  const [bookings, departments, doctors] = await Promise.all([
+  const [bookings, departments, doctors, branches] = await Promise.all([
     getBookings(),
     getDepartments(),
     getDoctors(),
+    getBranches(),
   ]);
+  const branchName = new Map(branches.map((b) => [b.id, ar ? b.nameAr : b.nameEn]));
   const departmentName = new Map(departments.map((d) => [d.id, ar ? d.nameAr : d.nameEn]));
   const doctorName = new Map(doctors.map((d) => [d.id, ar ? d.nameAr : d.nameEn]));
 
@@ -45,6 +47,8 @@ export async function getBookingsBoardData(locale: Locale) {
     departmentId: b.departmentId,
     department: departmentName.get(b.departmentId) ?? a.anyDepartment,
     doctor: b.doctorId ? doctorName.get(b.doctorId) : undefined,
+    branchId: b.branchId,
+    branch: b.branchId ? branchName.get(b.branchId) : undefined,
     source: b.source ? sourceLabels[b.source] ?? b.source : undefined,
     status: b.status,
     note: b.note,
@@ -90,6 +94,7 @@ export async function getBookingsBoardData(locale: Locale) {
     colPhone: a.bookingColPhone,
     colStatus: a.bookingColStatus,
     colExtension: a.bookingColExtension,
+    allBranches: a.allBranches,
     allExtensions: a.allExtensions,
     extensionShort: a.extensionShort,
     colActions: a.bookingColActions,
@@ -100,6 +105,7 @@ export async function getBookingsBoardData(locale: Locale) {
     bookings: list,
     departments: departments.map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn })),
     extensions: BOOKING_EXTENSIONS,
+    branches: branches.filter((b) => b.active).map((b) => ({ id: b.id, name: ar ? b.nameAr : b.nameEn })),
     labels,
   };
 }

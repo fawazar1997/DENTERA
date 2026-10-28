@@ -1,6 +1,6 @@
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
-import { getActiveDepartments } from "@/lib/db";
+import { getActiveBranches, getActiveDepartments } from "@/lib/db";
 import { bookingFormLabels } from "@/lib/bookingLabels";
 import { CallButton } from "./CallButton";
 import { BookingForm } from "./BookingForm";
@@ -16,7 +16,7 @@ export async function CtaBanner({
   /** Page the banner is on, saved with each request. */
   source?: string;
 }) {
-  const departments = await getActiveDepartments();
+  const [departments, branches] = await Promise.all([getActiveDepartments(), getActiveBranches()]);
   const ar = locale === "ar";
 
   return (
@@ -53,6 +53,7 @@ export async function CtaBanner({
                 source={source}
                 labels={bookingFormLabels(dict)}
                 departments={departments.map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn }))}
+                branches={branches.map((b) => ({ id: b.id, name: ar ? b.nameAr : b.nameEn }))}
               />
             </div>
           </div>

@@ -12,6 +12,8 @@ export function bookingFormLabels(dict: Dictionary): BookingFormLabels {
     departmentAny: b.formDepartmentAny,
     doctor: b.formDoctor,
     doctorAny: b.formDoctorAny,
+    branch: b.formBranch,
+    branchAny: b.formBranchAny,
     submit: b.formSubmit,
     sending: b.formSending,
     successTitle: b.formSuccessTitle,

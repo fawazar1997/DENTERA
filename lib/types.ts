@@ -228,6 +228,8 @@ export type Booking = {
   departmentId: string;
   /** Set when booked from a doctor's page. */
   doctorId?: string;
+  /** Preferred branch (unset: any branch). */
+  branchId?: string;
   /** Page the request was sent from, e.g. "home", "contact", "doctor". */
   source?: string;
   status: BookingStatus;

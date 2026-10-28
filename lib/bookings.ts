@@ -193,7 +193,7 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function createBooking(
-  input: Pick<Booking, "name" | "phone" | "departmentId" | "doctorId" | "source">
+  input: Pick<Booking, "name" | "phone" | "departmentId" | "doctorId" | "branchId" | "source">
 ): Promise<Booking> {
   const now = new Date().toISOString();
   const booking: Booking = { id: newId(), createdAt: now, status: "new", ...input };

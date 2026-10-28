@@ -79,6 +79,7 @@ export default async function AdminBookingsPage({
             bookings={data.bookings}
             departments={data.departments}
             extensions={data.extensions}
+            branches={data.branches}
             locale={locale}
             labels={data.labels}
           />

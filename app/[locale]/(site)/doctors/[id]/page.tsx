@@ -129,9 +129,8 @@ export default async function DoctorProfilePage({
   const department = await getDepartment(doctor.departmentId);
   const allDepartments = await getActiveDepartments();
   const departmentDoctors = await getDoctorsByDepartment(doctor.departmentId);
-  const branches = (await getActiveBranches()).filter((b) =>
-    doctor.branchIds?.includes(b.id)
-  );
+  const activeBranches = await getActiveBranches();
+  const branches = activeBranches.filter((b) => doctor.branchIds?.includes(b.id));
 
   const ar = locale === "ar";
   const BackArrow = ar ? ArrowRight : ArrowLeft;
@@ -383,11 +382,13 @@ export default async function DoctorProfilePage({
                   <BookingForm
                     source="doctor"
                     defaultDepartmentId={doctor.departmentId}
+                    lockDepartment
                     defaultDoctorId={doctor.id}
                     doctors={[
                       doctor,
                       ...departmentDoctors.filter((d) => d.id !== doctor.id),
-                    ].map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn }))}
+                    ].map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn, branchIds: d.branchIds }))}
+                    branches={activeBranches.map((b) => ({ id: b.id, name: ar ? b.nameAr : b.nameEn }))}
                     labels={bookingFormLabels(dict)}
                     departments={allDepartments.map((d) => ({
                       id: d.id,

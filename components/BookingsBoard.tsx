@@ -8,6 +8,7 @@ import {
   Copy,
   History,
   Loader2,
+  MapPin,
   Phone,
   RefreshCw,
   Search,
@@ -26,6 +27,9 @@ export type BoardBooking = {
   departmentId: string;
   department: string;
   doctor?: string;
+  /** Preferred branch (unset: any). */
+  branchId?: string;
+  branch?: string;
   source?: string;
   status: BookingStatus;
   note?: string;
@@ -72,6 +76,7 @@ export type BoardLabels = {
   colPhone: string;
   colStatus: string;
   colExtension: string;
+  allBranches: string;
   allExtensions: string;
   extensionShort: string;
   colActions: string;
@@ -381,6 +386,12 @@ function BookingRow(props: RowProps) {
         <td className={`${cell} min-w-[8rem]`}>
           <span className="block text-ink-900">{booking.department}</span>
           {booking.doctor && <span className="block text-xs text-ink-500">{booking.doctor}</span>}
+          {booking.branch && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-ink-50 px-2 py-0.5 text-[11px] font-bold text-ink-700">
+              <MapPin className="h-3 w-3" />
+              {booking.branch}
+            </span>
+          )}
         </td>
         <td className={`${cell} w-40 min-w-[9.5rem]`}>
           <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
@@ -437,6 +448,7 @@ function BookingItem(props: RowProps) {
           <p className="truncate text-xs text-ink-500">
             {formatWhen(booking.createdAt, locale)} · {booking.department}
             {booking.doctor && ` · ${booking.doctor}`}
+            {booking.branch && ` · ${booking.branch}`}
           </p>
         </div>
         <span className={`flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_STYLE[booking.status].badge}`}>
@@ -479,6 +491,7 @@ export function BookingsBoard({
   bookings: initial,
   departments,
   extensions,
+  branches,
   locale,
   labels,
   accessKey,
@@ -487,6 +500,7 @@ export function BookingsBoard({
   departments: { id: string; name: string }[];
   /** Extensions a request can be assigned to. */
   extensions: string[];
+  branches: { id: string; name: string }[];
   locale: Locale;
   labels: BoardLabels;
   /** The private link's key (call-center page); omitted in the control panel. */
@@ -498,6 +512,7 @@ export function BookingsBoard({
   const [department, setDepartment] = useState("");
   const [period, setPeriod] = useState<"" | "today" | "week">("");
   const [extensionFilter, setExtensionFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
   const [query, setQuery] = useState("");
   const [agent, setAgent] = useState("");
   const [refreshing, startRefresh] = useTransition();
@@ -534,12 +549,13 @@ export function BookingsBoard({
       if (statusFilter && b.status !== statusFilter) return false;
       if (department && b.departmentId !== department) return false;
       if (extensionFilter && b.extension !== extensionFilter) return false;
+      if (branchFilter && b.branchId !== branchFilter) return false;
       if (period === "today" && riyadhDay(b.createdAt) !== today) return false;
       if (period === "week" && new Date(b.createdAt).getTime() < weekAgo) return false;
       const haystack = normalize(`${b.name} ${b.phone} ${b.phone.replace(/^0/, "966")}`);
       return terms.every((t) => haystack.includes(t));
     });
-  }, [bookings, statusFilter, department, period, extensionFilter, query]);
+  }, [bookings, statusFilter, department, period, extensionFilter, branchFilter, query]);
 
   return (
     <div>
@@ -574,7 +590,7 @@ export function BookingsBoard({
           )}
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(4,minmax(0,1fr))]">
+        <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           <div className="relative">
             <Search className="pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
             <input
@@ -591,6 +607,14 @@ export function BookingsBoard({
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
+              </option>
+            ))}
+          </select>
+          <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} aria-label={labels.allBranches} className="input">
+            <option value="">{labels.allBranches}</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
               </option>
             ))}
           </select>

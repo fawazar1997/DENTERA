@@ -83,6 +83,10 @@ export default async function ContactPage({
                     id: d.id,
                     name: locale === "ar" ? d.nameAr : d.nameEn,
                   }))}
+                  branches={branches.map((b) => ({
+                    id: b.id,
+                    name: locale === "ar" ? b.nameAr : b.nameEn,
+                  }))}
                   className="mt-8 text-ink-900"
                 />
               </div>

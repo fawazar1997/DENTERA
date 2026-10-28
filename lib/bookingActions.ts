@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySessionToken } from "./auth";
-import { getActiveDepartments, getDoctor } from "./db";
+import { getActiveBranches, getActiveDepartments, getDoctor } from "./db";
 import {
   BOOKING_EXTENSIONS,
   createBooking,
@@ -43,15 +43,22 @@ export async function submitBookingAction(
   const requested = text("departmentId", 80);
   const departmentId = departments.some((d) => d.id === requested) ? requested : "";
   const doctorId = text("doctorId", 80);
-  const doctor = doctorId ? await getDoctor(doctorId) : undefined;
+  const found = doctorId ? await getDoctor(doctorId) : undefined;
+  const doctor = found?.active ? found : undefined;
+  const requestedBranch = text("branchId", 80);
+  const branchId = (await getActiveBranches()).some((b) => b.id === requestedBranch)
+    ? requestedBranch
+    : undefined;
   const source = text("source", 20).replace(/[^a-z-]/g, "") || undefined;
 
   try {
     await createBooking({
       name,
       phone,
-      departmentId: departmentId || doctor?.departmentId || "",
-      doctorId: doctor?.active ? doctor.id : undefined,
+      // A request for a specific doctor is always for that doctor's department.
+      departmentId: doctor?.departmentId || departmentId,
+      doctorId: doctor?.id,
+      branchId,
       source,
     });
     return { ok: true };

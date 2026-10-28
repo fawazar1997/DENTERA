@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
-import { CalendarCheck, CheckCircle2, Loader2, Phone } from "lucide-react";
+import { CalendarCheck, CheckCircle2, Loader2, Lock, Phone } from "lucide-react";
 import { submitBookingAction, type BookingFormState } from "@/lib/bookingActions";
 import { telHref } from "@/lib/phone";
 
@@ -14,6 +14,8 @@ export type BookingFormLabels = {
   departmentAny: string;
   doctor: string;
   doctorAny: string;
+  branch: string;
+  branchAny: string;
   submit: string;
   sending: string;
   successTitle: string;
@@ -39,17 +41,24 @@ function Submit({ labels }: { labels: BookingFormLabels }) {
 
 type FormProps = {
   departments: { id: string; name: string }[];
+  /** Branches the patient can choose from. */
+  branches: { id: string; name: string }[];
   labels: BookingFormLabels;
   /** Page the form is on, saved with the request. */
   source: string;
   defaultDepartmentId?: string;
-  /** On a doctor's page: doctors to choose from, with this one preselected. */
-  doctors?: { id: string; name: string }[];
+  /** Show the department as fixed text (a doctor's page: their department). */
+  lockDepartment?: boolean;
+  /**
+   * On a doctor's page: doctors to choose from, with this one preselected.
+   * Their branches limit the branch choice.
+   */
+  doctors?: { id: string; name: string; branchIds?: string[] }[];
   defaultDoctorId?: string;
   className?: string;
 };
 
-/** Appointment request: name, Saudi mobile and department. */
+/** Appointment request: name, Saudi mobile, department and branch. */
 export function BookingForm(props: FormProps) {
   // A new key gives a fresh, empty form for "send another request".
   const [round, setRound] = useState(0);
@@ -58,9 +67,11 @@ export function BookingForm(props: FormProps) {
 
 function BookingFormInner({
   departments,
+  branches,
   labels,
   source,
   defaultDepartmentId = "",
+  lockDepartment = false,
   doctors,
   defaultDoctorId = "",
   className = "",
@@ -68,6 +79,23 @@ function BookingFormInner({
 }: FormProps & { onAnother: () => void }) {
   const [state, formAction] = useFormState<BookingFormState, FormData>(submitBookingAction, { ok: false });
   const [shownAt, setShownAt] = useState(0);
+  const [doctorId, setDoctorId] = useState(defaultDoctorId);
+
+  // The chosen doctor's branches (all branches when no doctor is chosen,
+  // or the doctor's branches aren't set).
+  const branchOptions = useMemo(() => {
+    const ids = doctors?.find((d) => d.id === doctorId)?.branchIds;
+    const own = ids?.length ? branches.filter((b) => ids.includes(b.id)) : [];
+    return own.length > 0 ? own : branches;
+  }, [doctors, doctorId, branches]);
+  const onlyBranch = branchOptions.length === 1 ? branchOptions[0].id : "";
+  const [branchId, setBranchId] = useState(onlyBranch);
+
+  // Keep the branch valid when the doctor (and so the branches) changes.
+  useEffect(() => {
+    if (onlyBranch) setBranchId(onlyBranch);
+    else if (branchId && !branchOptions.some((b) => b.id === branchId)) setBranchId("");
+  }, [branchOptions, onlyBranch, branchId]);
 
   // Set on the client so the spam timer starts when a person sees the form.
   useEffect(() => setShownAt(Date.now()), []);
@@ -144,19 +172,29 @@ function BookingFormInner({
 
       <div>
         <label htmlFor={`bk-dept-${source}`} className="label">{labels.department}</label>
-        <select
-          id={`bk-dept-${source}`}
-          name="departmentId"
-          defaultValue={defaultDepartmentId}
-          className="input"
-        >
-          <option value="">{labels.departmentAny}</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+        {lockDepartment ? (
+          <>
+            <input type="hidden" name="departmentId" value={defaultDepartmentId} />
+            <p id={`bk-dept-${source}`} className="input flex cursor-default items-center justify-between gap-2 !bg-ink-50 font-semibold text-ink-900">
+              {departments.find((d) => d.id === defaultDepartmentId)?.name ?? labels.departmentAny}
+              <Lock className="h-4 w-4 flex-shrink-0 text-ink-400" aria-hidden="true" />
+            </p>
+          </>
+        ) : (
+          <select
+            id={`bk-dept-${source}`}
+            name="departmentId"
+            defaultValue={defaultDepartmentId}
+            className="input"
+          >
+            <option value="">{labels.departmentAny}</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {doctors && doctors.length > 0 && (
@@ -165,13 +203,34 @@ function BookingFormInner({
           <select
             id={`bk-doctor-${source}`}
             name="doctorId"
-            defaultValue={defaultDoctorId}
+            value={doctorId}
+            onChange={(e) => setDoctorId(e.target.value)}
             className="input"
           >
             <option value="">{labels.doctorAny}</option>
             {doctors.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {branchOptions.length > 0 && (
+        <div>
+          <label htmlFor={`bk-branch-${source}`} className="label">{labels.branch}</label>
+          <select
+            id={`bk-branch-${source}`}
+            name="branchId"
+            value={branchId}
+            onChange={(e) => setBranchId(e.target.value)}
+            className="input"
+          >
+            {branchOptions.length > 1 && <option value="">{labels.branchAny}</option>}
+            {branchOptions.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
               </option>
             ))}
           </select>
