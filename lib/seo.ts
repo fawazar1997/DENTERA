@@ -11,7 +11,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://dentera.co
 );
 
 /** Image shown when a page is shared (WhatsApp, X, …). */
-export const SHARE_IMAGE = { url: "/og.png", width: 1200, height: 630 };
+export const SHARE_IMAGE = { url: "/og-icon.png", width: 1200, height: 630 };
 
 /** A full address for a site path (full addresses pass through unchanged). */
 export function absoluteUrl(path: string): string {
