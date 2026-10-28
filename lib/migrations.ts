@@ -272,7 +272,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 9;
+export const DATA_VERSION = 10;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -286,6 +286,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 7) migrateV7(db);
   if (version < 8) migrateV8(db);
   if (version < 9) migrateV9(db);
+  if (version < 10) migrateV10(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -449,7 +450,6 @@ function migrateV8(db: Database): void {
 
 /** Doctors the extensions sheet places at one branch only (were set to both). */
 const SINGLE_BRANCH_V9: Record<string, string> = {
-  "mohammad-al-wadaei": "abha",
   "amal-alzaydani": "abha",
   "abdulmajeed-al-shahrani": "abha",
   "waleed-alhogban": "khamis-mushait",
@@ -465,4 +465,14 @@ function migrateV9(db: Database): void {
     const hours = doctor.hours?.[branch] ? { [branch]: doctor.hours[branch] } : undefined;
     return { ...doctor, branchIds: [branch], hours };
   });
+}
+
+function migrateV10(db: Database): void {
+  // v10 — Dr. Mohammad Al-Wadaei works at both branches after all (v9 had
+  // set him to Abha only in a data save made in between).
+  db.doctors = db.doctors.map((doctor) =>
+    doctor.id === "mohammad-al-wadaei" && doctor.branchIds?.join(",") === "abha"
+      ? { ...doctor, branchIds: [...BOTH] }
+      : doctor
+  );
 }
