@@ -2,7 +2,7 @@ import { localePath, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { getActiveBranches, getSettings } from "@/lib/db";
 import { branchSchedule } from "@/lib/hours";
-import { absoluteUrl } from "@/lib/seo";
+import { SHARE_IMAGE, absoluteUrl } from "@/lib/seo";
 import type { Branch } from "@/lib/types";
 
 // Clinic details in the schema.org format search engines read: the
@@ -65,7 +65,7 @@ export async function ClinicJsonLd({ locale }: { locale: Locale }) {
     description: dict.meta.description,
     url: absoluteUrl(localePath(locale)),
     logo,
-    image: absoluteUrl("/og.png"),
+    image: absoluteUrl(SHARE_IMAGE.url),
     telephone: dict.booking.phone,
     email: dict.contact.emailValue,
     areaServed: Object.values(BRANCH_CITY).map((city) => (ar ? city.ar : city.en)),
