@@ -7,7 +7,7 @@ import {
   BOOKING_EXTENSIONS,
   createBooking,
   isBookingStatus,
-  isValidBookingsKey,
+  bookingsRole,
   normalizeSaudiMobile,
   updateBooking,
 } from "./bookings";
@@ -69,24 +69,31 @@ export async function submitBookingAction(
 }
 
 /**
- * Staff: update a request's status from the call-center link (checked by
- * its key) or from the control panel (checked by the admin session).
+ * Staff: update a request from a private bookings link (checked by its
+ * key) or from the control panel (checked by the admin session). Only the
+ * supervisor's link and the control panel can assign the extension.
  */
 export async function updateBookingAction(formData: FormData): Promise<{ ok: boolean }> {
   const key = String(formData.get("key") ?? "");
-  const allowed = key
-    ? await isValidBookingsKey(key)
-    : await verifySessionToken(cookies().get(SESSION_COOKIE)?.value);
-  if (!allowed) return { ok: false };
+  const role = key
+    ? await bookingsRole(key)
+    : (await verifySessionToken(cookies().get(SESSION_COOKIE)?.value))
+      ? "supervisor"
+      : null;
+  if (!role) return { ok: false };
 
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "");
   if (!isBookingStatus(status)) return { ok: false };
   const note = String(formData.get("note") ?? "").trim().slice(0, 500) || undefined;
   const agent = String(formData.get("agent") ?? "").trim().slice(0, 60) || undefined;
-  const ext = String(formData.get("extension") ?? "").trim();
-  if (ext && !BOOKING_EXTENSIONS.includes(ext)) return { ok: false };
-  const extension = ext || undefined;
+  // The call center can't change the extension: whatever it sends is ignored.
+  let extension: string | null | undefined;
+  if (role === "supervisor") {
+    const ext = String(formData.get("extension") ?? "").trim();
+    if (ext && !BOOKING_EXTENSIONS.includes(ext)) return { ok: false };
+    extension = ext || null;
+  }
 
   return { ok: await updateBooking(id, { status, note, agent, extension }) };
 }

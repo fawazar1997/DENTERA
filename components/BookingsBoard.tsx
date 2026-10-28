@@ -134,6 +134,8 @@ function formatTime(iso: string, locale: Locale): { day: string; time: string } 
 type RowProps = {
   booking: BoardBooking;
   extensions: string[];
+  /** Supervisor link / control panel: may assign the extension. */
+  canAssignExtension: boolean;
   locale: Locale;
   labels: BoardLabels;
   accessKey?: string;
@@ -142,7 +144,7 @@ type RowProps = {
 };
 
 /** A request's status/note being edited, and saving it. */
-function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
+function useBookingEditor({ booking, accessKey, agent, onSaved, canAssignExtension }: RowProps) {
   const [status, setStatus] = useState<BookingStatus>(booking.status);
   const [note, setNote] = useState(booking.note ?? "");
   const [extension, setExtension] = useState(booking.extension ?? "");
@@ -169,7 +171,7 @@ function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
     form.set("status", status);
     form.set("note", note);
     form.set("agent", agent);
-    form.set("extension", extension);
+    if (canAssignExtension) form.set("extension", extension);
     if (accessKey) form.set("key", accessKey);
     startTransition(async () => {
       const { ok } = await updateBookingAction(form);
@@ -181,11 +183,16 @@ function useBookingEditor({ booking, accessKey, agent, onSaved }: RowProps) {
           status,
           note: note || undefined,
           agent: agent || booking.agent,
-          extension: extension || undefined,
+          extension: canAssignExtension ? extension || undefined : booking.extension,
           updatedAt: at,
           history: [
             ...booking.history,
-            { status, at, agent: agent || undefined, extension: extension || undefined },
+            {
+              status,
+              at,
+              agent: agent || undefined,
+              extension: canAssignExtension ? extension || undefined : booking.extension,
+            },
           ],
         });
       }
@@ -293,6 +300,31 @@ function ExtensionSelect({
   );
 }
 
+/** The extension: a dropdown for the supervisor, plain text for the call center. */
+function ExtensionField({ editor, props }: { editor: ReturnType<typeof useBookingEditor>; props: RowProps }) {
+  if (props.canAssignExtension) {
+    return (
+      <ExtensionSelect
+        value={editor.extension}
+        onChange={editor.setExtension}
+        extensions={props.extensions}
+        labels={props.labels}
+      />
+    );
+  }
+  return (
+    <span
+      dir="ltr"
+      title={props.labels.colExtension}
+      className={`block rounded-lg px-2 py-1.5 text-center text-xs font-bold tabular-nums ${
+        props.booking.extension ? "bg-ink-50 text-ink-950" : "text-ink-300"
+      }`}
+    >
+      {props.booking.extension ?? "—"}
+    </span>
+  );
+}
+
 function SaveButton({
   editor,
   labels,
@@ -397,7 +429,7 @@ function BookingRow(props: RowProps) {
           <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
         </td>
         <td className={`${cell} w-20 min-w-[5rem]`}>
-          <ExtensionSelect value={editor.extension} onChange={editor.setExtension} extensions={props.extensions} labels={labels} />
+          <ExtensionField editor={editor} props={props} />
         </td>
         <td className={`${cell} min-w-[9rem]`}>
           <input
@@ -463,7 +495,7 @@ function BookingItem(props: RowProps) {
       </div>
       <div className="mt-2 grid grid-cols-[minmax(0,8.5rem)_4.75rem_minmax(0,1fr)] gap-2">
         <StatusSelect value={editor.status} onChange={editor.setStatus} labels={labels} />
-        <ExtensionSelect value={editor.extension} onChange={editor.setExtension} extensions={props.extensions} labels={labels} />
+        <ExtensionField editor={editor} props={props} />
         <input
           value={editor.note}
           onChange={(e) => editor.setNote(e.target.value)}
@@ -495,6 +527,7 @@ export function BookingsBoard({
   locale,
   labels,
   accessKey,
+  canAssignExtension = false,
 }: {
   bookings: BoardBooking[];
   departments: { id: string; name: string }[];
@@ -505,6 +538,8 @@ export function BookingsBoard({
   labels: BoardLabels;
   /** The private link's key (call-center page); omitted in the control panel. */
   accessKey?: string;
+  /** The supervisor's link and the control panel can assign extensions. */
+  canAssignExtension?: boolean;
 }) {
   const router = useRouter();
   const [bookings, setBookings] = useState(initial);
@@ -702,6 +737,7 @@ export function BookingsBoard({
                   key={b.id}
                   booking={b}
                   extensions={extensions}
+                  canAssignExtension={canAssignExtension}
                   locale={locale}
                   labels={labels}
                   accessKey={accessKey}
@@ -718,6 +754,7 @@ export function BookingsBoard({
                 key={b.id}
                 booking={b}
                 extensions={extensions}
+                canAssignExtension={canAssignExtension}
                 locale={locale}
                 labels={labels}
                 accessKey={accessKey}

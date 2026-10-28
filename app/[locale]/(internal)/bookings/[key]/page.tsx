@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
-import { isValidBookingsKey } from "@/lib/bookings";
+import { bookingsRole } from "@/lib/bookings";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { BookingsBoard } from "@/components/BookingsBoard";
 import { Logo } from "@/components/Logo";
@@ -17,9 +17,10 @@ export const metadata: Metadata = {
 };
 
 /**
- * Call center's booking requests, reachable only through the private link
- * created in Control Panel → Booking Requests. A wrong or revoked key gets
- * a plain 404, so the page's existence isn't revealed.
+ * Booking requests, reachable only through a private link created in
+ * Control Panel → Booking Requests: the call center's, or the supervisor's
+ * (who also assigns extensions). A wrong or revoked key gets a plain 404,
+ * so the page's existence isn't revealed.
  */
 export default async function CallCenterBookingsPage({
   params,
@@ -29,7 +30,8 @@ export default async function CallCenterBookingsPage({
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
-  if (!(await isValidBookingsKey(params.key))) notFound();
+  const role = await bookingsRole(params.key);
+  if (!role) notFound();
 
   const data = await getBookingsBoardData(locale);
   const other = locale === "ar" ? "en" : "ar";
@@ -43,6 +45,7 @@ export default async function CallCenterBookingsPage({
               <Logo className="h-8 w-auto flex-shrink-0 sm:h-9" />
               <span className="truncate text-base font-bold text-white sm:text-lg">
                 {data.dict.admin.bookings}
+                {role === "supervisor" && ` — ${data.dict.admin.supervisor}`}
               </span>
             </div>
             <Link
@@ -67,6 +70,7 @@ export default async function CallCenterBookingsPage({
           locale={locale}
           labels={data.labels}
           accessKey={params.key}
+          canAssignExtension={role === "supervisor"}
         />
       </main>
     </div>

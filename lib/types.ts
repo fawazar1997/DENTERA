@@ -79,6 +79,8 @@ export type SiteSettings = {
   directoryKey?: string;
   /** Secret part of the call center's private bookings link. */
   bookingsKey?: string;
+  /** Secret part of the supervisor's bookings link (can assign extensions). */
+  bookingsSupervisorKey?: string;
   /** Home page sections switched off in the control panel. */
   hiddenHomeSections?: HomeSectionKey[];
   /** Home page section order set in the control panel. */

@@ -208,23 +208,32 @@ export async function createBooking(
 
 export async function updateBooking(
   id: string,
-  change: { status: BookingStatus; note?: string; agent?: string; extension?: string }
+  change: {
+    status: BookingStatus;
+    note?: string;
+    agent?: string;
+    /** undefined: keep the current one; null: clear it. */
+    extension?: string | null;
+  }
 ): Promise<boolean> {
   if (!ID_PATTERN.test(id)) return false;
   const now = new Date().toISOString();
 
-  const apply = (b: Booking): Booking => ({
-    ...b,
-    status: change.status,
-    note: change.note,
-    agent: change.agent ?? b.agent,
-    extension: change.extension,
-    updatedAt: now,
-    history: [
-      ...(b.history ?? []),
-      { status: change.status, at: now, agent: change.agent, extension: change.extension },
-    ].slice(-20),
-  });
+  const apply = (b: Booking): Booking => {
+    const extension = change.extension === undefined ? b.extension : change.extension ?? undefined;
+    return {
+      ...b,
+      status: change.status,
+      note: change.note,
+      agent: change.agent ?? b.agent,
+      extension,
+      updatedAt: now,
+      history: [
+        ...(b.history ?? []),
+        { status: change.status, at: now, agent: change.agent, extension },
+      ].slice(-20),
+    };
+  };
 
   if (isBlobConfigured()) {
     const booking = await readOneBlob(id);
@@ -241,13 +250,72 @@ export async function updateBooking(
   return true;
 }
 
-/** True when `key` matches the call-center link saved in the control panel. */
-export async function isValidBookingsKey(key: string | undefined | null): Promise<boolean> {
-  const saved = (await getSettings()).bookingsKey;
+/** A request's arrival time, read from its id (reversed timestamp). */
+function createdAtFromId(id: string): number {
+  return 9_999_999_999_999 - Number(id.slice(0, 13));
+}
+
+/** "YYYY-MM-DD" of a moment in Saudi time. */
+function riyadhDay(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh" }).format(new Date(ms));
+}
+
+/**
+ * Permanently deletes every request received on or before `day`
+ * ("YYYY-MM-DD", Saudi time). Returns how many were deleted.
+ */
+export async function deleteBookingsUpTo(day: string): Promise<number> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return 0;
+  const old = (id: string) => ID_PATTERN.test(id) && riyadhDay(createdAtFromId(id)) <= day;
+  let deleted = 0;
+
+  if (isBlobConfigured()) {
+    // The private store and the public one (copies from before the private
+    // store); each request is counted once even if both hold a copy.
+    const store = privateStore();
+    const ids = new Set<string>();
+    for (const options of store ? [store, {}] : [{}]) {
+      let cursor: string | undefined;
+      do {
+        const page = await list({ prefix: PREFIX, limit: 1000, cursor, ...options });
+        const gone = page.blobs.filter((b) => old(b.pathname.slice(PREFIX.length, -".json".length)));
+        if (gone.length > 0) {
+          await del(gone.map((b) => b.url), options);
+          for (const b of gone) ids.add(b.pathname);
+        }
+        cursor = page.hasMore ? page.cursor : undefined;
+      } while (cursor);
+    }
+    deleted = ids.size;
+  } else {
+    const all = readLocal();
+    const kept = all.filter((b) => !old(b.id));
+    deleted = all.length - kept.length;
+    writeLocal(kept);
+  }
+  revalidateTag(CACHE_TAG);
+  return deleted;
+}
+
+function sameKey(saved: string | undefined, key: string): boolean {
   if (!saved || !key) return false;
   const a = Buffer.from(saved);
   const b = Buffer.from(key);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Who a private bookings link belongs to: the supervisor (who also assigns
+ * extensions) or the call center; null for a wrong or revoked key.
+ */
+export async function bookingsRole(
+  key: string | undefined | null
+): Promise<"supervisor" | "agent" | null> {
+  if (!key) return null;
+  const settings = await getSettings();
+  if (sameKey(settings.bookingsSupervisorKey, key)) return "supervisor";
+  if (sameKey(settings.bookingsKey, key)) return "agent";
+  return null;
 }
 
 /**

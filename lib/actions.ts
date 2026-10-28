@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SESSION_COOKIE, verifySessionToken } from "./auth";
 import {
   createBranch,
@@ -41,6 +42,8 @@ import {
   type WeekSchedule,
 } from "./types";
 import { SOCIAL_PLATFORMS, type SocialLinks } from "./social";
+import { deleteBookingsUpTo } from "./bookings";
+import { defaultLocale, isLocale, localePath } from "./i18n";
 
 /**
  * Server actions can be invoked from any page, not just /admin (which the
@@ -449,6 +452,22 @@ export async function generateBookingsKeyAction() {
   await requireAdmin();
   await updateSettings({ bookingsKey: randomKey() });
   revalidateAll();
+}
+
+/** Creates (or replaces, revoking the old one) the supervisor's bookings link. */
+export async function generateBookingsSupervisorKeyAction() {
+  await requireAdmin();
+  await updateSettings({ bookingsSupervisorKey: randomKey() });
+  revalidateAll();
+}
+
+/** Permanently deletes booking requests received on or before a date. */
+export async function deleteOldBookingsAction(formData: FormData) {
+  await requireAdmin();
+  const locale = str(formData, "locale");
+  const count = await deleteBookingsUpTo(str(formData, "upTo"));
+  revalidateAll();
+  redirect(localePath(isLocale(locale) ? locale : defaultLocale, `/admin/bookings?deleted=${count}`));
 }
 
 // Home page sections
