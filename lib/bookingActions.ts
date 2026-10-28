@@ -9,8 +9,10 @@ import {
   isBookingStatus,
   bookingsRole,
   normalizeSaudiMobile,
+  reassignBookings,
   updateBooking,
 } from "./bookings";
+import { doctorExtension } from "./extensions";
 
 export type BookingFormState =
   | { ok: true }
@@ -60,6 +62,8 @@ export async function submitBookingAction(
       doctorId: doctor?.id,
       branchId,
       source,
+      // Straight to the extension that handles this doctor at that branch.
+      extension: doctorExtension(doctor, branchId),
     });
     return { ok: true };
   } catch (error) {
@@ -68,18 +72,23 @@ export async function submitBookingAction(
   }
 }
 
+/** Who's acting: the private link's key decides, else the admin session. */
+async function staffRole(formData: FormData) {
+  const key = String(formData.get("key") ?? "");
+  return key
+    ? bookingsRole(key)
+    : (await verifySessionToken(cookies().get(SESSION_COOKIE)?.value))
+      ? "supervisor"
+      : null;
+}
+
 /**
  * Staff: update a request from a private bookings link (checked by its
  * key) or from the control panel (checked by the admin session). Only the
  * supervisor's link and the control panel can assign the extension.
  */
 export async function updateBookingAction(formData: FormData): Promise<{ ok: boolean }> {
-  const key = String(formData.get("key") ?? "");
-  const role = key
-    ? await bookingsRole(key)
-    : (await verifySessionToken(cookies().get(SESSION_COOKIE)?.value))
-      ? "supervisor"
-      : null;
+  const role = await staffRole(formData);
   if (!role) return { ok: false };
 
   const id = String(formData.get("id") ?? "");
@@ -96,4 +105,38 @@ export async function updateBookingAction(formData: FormData): Promise<{ ok: boo
   }
 
   return { ok: await updateBooking(id, { status, note, agent, extension }) };
+}
+
+/**
+ * Supervisor / control panel: move a doctor's requests (or everything on
+ * one extension) to another extension at once.
+ */
+export async function reassignBookingsAction(
+  formData: FormData
+): Promise<{ ok: boolean; count?: number }> {
+  if ((await staffRole(formData)) !== "supervisor") return { ok: false };
+  const text = (key: string, max: number) =>
+    String(formData.get(key) ?? "").trim().slice(0, max);
+
+  const to = text("to", 10);
+  const fromExtension = text("from", 10) || undefined;
+  const doctorId = text("doctorId", 80) || undefined;
+  if (!BOOKING_EXTENSIONS.includes(to)) return { ok: false };
+  if (fromExtension && !BOOKING_EXTENSIONS.includes(fromExtension)) return { ok: false };
+  if (doctorId && !(await getDoctor(doctorId))) return { ok: false };
+  if (!doctorId && !fromExtension) return { ok: false };
+  const requestedBranch = text("branchId", 80);
+  const branchId = (await getActiveBranches()).some((b) => b.id === requestedBranch)
+    ? requestedBranch
+    : undefined;
+
+  const count = await reassignBookings({
+    doctorId,
+    fromExtension,
+    branchId,
+    openOnly: formData.get("openOnly") === "on",
+    to,
+    agent: text("agent", 60) || undefined,
+  });
+  return { ok: true, count };
 }

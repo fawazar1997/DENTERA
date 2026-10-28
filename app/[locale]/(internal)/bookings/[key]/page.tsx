@@ -6,6 +6,7 @@ import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { BookingsBoard } from "@/components/BookingsBoard";
+import { BulkReassign } from "@/components/BulkReassign";
 import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +73,17 @@ export default async function CallCenterBookingsPage({
           accessKey={params.key}
           canAssignExtension={role === "supervisor"}
         />
+        {role === "supervisor" && (
+          <div className="mt-8">
+            <BulkReassign
+              doctors={data.doctors}
+              branches={data.branches}
+              extensions={data.extensions}
+              accessKey={params.key}
+              labels={data.reassignLabels}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

@@ -6,6 +6,7 @@ import { SubmitButton } from "./SubmitButton";
 import { PhotoQualityBadge } from "./PhotoQualityBadge";
 import { DoctorBranchesField } from "./DoctorBranchesField";
 import { branchSchedule, defaultSchedule } from "@/lib/hours";
+import { BOOKING_EXTENSIONS } from "@/lib/extensions";
 
 export function DoctorForm({
   action,
@@ -188,6 +189,35 @@ export function DoctorForm({
             },
           }}
         />
+      )}
+
+      {branches.length > 0 && (
+        <div>
+          <label className="label">{dict.admin.doctorExtensions}</label>
+          <p className="-mt-1 mb-2 text-xs text-ink-400">{dict.admin.doctorExtensionsHint}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {branches.map((branch) => (
+              <label key={branch.id} className="block">
+                <span className="mb-1 block text-sm text-ink-600">
+                  {locale === "ar" ? branch.nameAr : branch.nameEn}
+                </span>
+                <select
+                  name={`extension_${branch.id}`}
+                  defaultValue={doctor?.extensions?.[branch.id] ?? ""}
+                  dir="ltr"
+                  className="input"
+                >
+                  <option value="">—</option>
+                  {BOOKING_EXTENSIONS.map((ext) => (
+                    <option key={ext} value={ext}>
+                      {ext}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+        </div>
       )}
 
       <fieldset className="space-y-5 rounded-xl2 border border-ink-100 bg-ink-50/50 p-5">

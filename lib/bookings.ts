@@ -41,11 +41,7 @@ export const BOOKING_STATUSES: BookingStatus[] = [
   "cancelled",
 ];
 
-/** Call-center extensions a request can be assigned to: 601–610 and 771–779. */
-export const BOOKING_EXTENSIONS = [
-  ...Array.from({ length: 10 }, (_, i) => String(601 + i)),
-  ...Array.from({ length: 9 }, (_, i) => String(771 + i)),
-];
+export { BOOKING_EXTENSIONS } from "./extensions";
 
 export function isBookingStatus(value: string): value is BookingStatus {
   return (BOOKING_STATUSES as string[]).includes(value);
@@ -193,7 +189,10 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function createBooking(
-  input: Pick<Booking, "name" | "phone" | "departmentId" | "doctorId" | "branchId" | "source">
+  input: Pick<
+    Booking,
+    "name" | "phone" | "departmentId" | "doctorId" | "branchId" | "source" | "extension"
+  >
 ): Promise<Booking> {
   const now = new Date().toISOString();
   const booking: Booking = { id: newId(), createdAt: now, status: "new", ...input };
@@ -248,6 +247,63 @@ export async function updateBooking(
   }
   revalidateTag(CACHE_TAG);
   return true;
+}
+
+/** Requests the call center still has to work: not booked or cancelled. */
+const OPEN_STATUSES = new Set<BookingStatus>(["new", "no_answer", "contacted", "callback"]);
+
+/**
+ * Moves matching requests to another extension at once (e.g. when the
+ * staff member on an extension is away). Matches by doctor and/or current
+ * extension, optionally one branch, and by default only open requests.
+ * Returns how many were moved.
+ */
+export async function reassignBookings(match: {
+  doctorId?: string;
+  fromExtension?: string;
+  branchId?: string;
+  openOnly: boolean;
+  to: string;
+  agent?: string;
+}): Promise<number> {
+  if (!match.doctorId && !match.fromExtension) return 0;
+  const now = new Date().toISOString();
+  const matches = (b: Booking) =>
+    (!match.doctorId || b.doctorId === match.doctorId) &&
+    (!match.fromExtension || b.extension === match.fromExtension) &&
+    (!match.branchId || b.branchId === match.branchId) &&
+    (!match.openOnly || OPEN_STATUSES.has(b.status)) &&
+    b.extension !== match.to;
+  const apply = (b: Booking): Booking => ({
+    ...b,
+    extension: match.to,
+    agent: match.agent ?? b.agent,
+    updatedAt: now,
+    history: [
+      ...(b.history ?? []),
+      { status: b.status, at: now, agent: match.agent, extension: match.to },
+    ].slice(-20),
+  });
+
+  let moved = 0;
+  if (isBlobConfigured()) {
+    const targets = (await readAllBlobs()).filter(matches);
+    // A few at a time, so a big move doesn't flood the store.
+    for (let i = 0; i < targets.length; i += 10) {
+      await Promise.all(targets.slice(i, i + 10).map((b) => writeBlob(apply(b))));
+    }
+    moved = targets.length;
+  } else {
+    const all = readLocal();
+    const next = all.map((b) => {
+      if (!matches(b)) return b;
+      moved++;
+      return apply(b);
+    });
+    writeLocal(next);
+  }
+  revalidateTag(CACHE_TAG);
+  return moved;
 }
 
 /** A request's arrival time, read from its id (reversed timestamp). */

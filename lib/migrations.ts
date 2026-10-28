@@ -272,7 +272,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 7;
+export const DATA_VERSION = 8;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -284,6 +284,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 5) migrateV5(db);
   if (version < 6) migrateV6(db);
   if (version < 7) migrateV7(db);
+  if (version < 8) migrateV8(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -384,4 +385,63 @@ function migrateV7(db: Database): void {
       }
     }
   }
+}
+
+/**
+ * Call-center extension per doctor and branch, from the extensions sheet
+ * (Oct 2026): 60x handle Abha, 77x handle Khamis Mushait.
+ */
+const ROSTER_EXTENSIONS: Record<string, Record<string, string>> = {
+  "raed-abdullah-al-manea": { abha: "602" },
+  "waleed-saeed-asiri": { abha: "602" },
+  "faisal-ali-abboud": { abha: "602", "khamis-mushait": "772" },
+  "mansour-alamri": { abha: "602", "khamis-mushait": "772" },
+  "mohammad-al-wadaei": { abha: "602" },
+  "mohammed-almagbol": { abha: "603", "khamis-mushait": "772" },
+  "manea-musa-al-ahmari": { abha: "603", "khamis-mushait": "771" },
+  "mohammed-nimer-alqahtani": { abha: "603" },
+  "amal-alzaydani": { abha: "603" },
+  "abdulmajeed-al-shahrani": { abha: "603" },
+  "nahar-abdullah-alqahtani": { abha: "603", "khamis-mushait": "773" },
+  "mohammed-alamri": { abha: "609" },
+  "abdulaziz-al-shahrani": { abha: "609", "khamis-mushait": "772" },
+  "malek-abo-zeed": { abha: "609", "khamis-mushait": "772" },
+  "abdulaziz-abu-melha": { abha: "609" },
+  "alhanuf-almoghamer": { abha: "609", "khamis-mushait": "771" },
+  "ola-daoud": { abha: "610" },
+  "nadaa-alamoudi": { abha: "610" },
+  "ali-alhaizaey": { abha: "610", "khamis-mushait": "772" },
+  "nasser-mesfer-al-ahmari": { abha: "610", "khamis-mushait": "771" },
+  "meelaf-alshahrani": { abha: "610", "khamis-mushait": "771" },
+  "rima-othman-albishri": { abha: "607" },
+  "shaden-bander": { abha: "607", "khamis-mushait": "607" },
+  "ali-alqahtani": { abha: "607", "khamis-mushait": "772" },
+  "ghadeer-saleh-al-wadaei": { abha: "607" },
+  "amel-shaiban": { abha: "607" },
+  "atheer-al-ghanem": { abha: "607", "khamis-mushait": "771" },
+  "abdulrahman-alasiri": { "khamis-mushait": "771" },
+  "abdulelah-daghriri": { "khamis-mushait": "771" },
+  "lujain-alasiri": { "khamis-mushait": "771" },
+  "sanaa-alshahrani": { "khamis-mushait": "771" },
+  "khalid-alhindi": { "khamis-mushait": "771" },
+  "saad-sabrah": { "khamis-mushait": "771" },
+  "waleed-alhogban": { "khamis-mushait": "772" },
+  "mohammed-alsharif": { "khamis-mushait": "772" },
+  "rawan-saddah": { "khamis-mushait": "772" },
+  "mohammed-thamer-alqahtani": { "khamis-mushait": "772" },
+  "ahmed-alelyani": { "khamis-mushait": "773" },
+  "nasser-alshehri": { "khamis-mushait": "773" },
+  "abdulmajeed-alqahtani": { "khamis-mushait": "773" },
+};
+
+function migrateV8(db: Database): void {
+  // v8 — each doctor's booking extension per branch, from the sheet
+  // (only for doctors who don't have any set yet).
+  db.doctors = db.doctors.map((doctor) => {
+    const extensions = ROSTER_EXTENSIONS[doctor.id];
+    if (!extensions || (doctor.extensions && Object.keys(doctor.extensions).length > 0)) {
+      return doctor;
+    }
+    return { ...doctor, extensions: { ...extensions } };
+  });
 }

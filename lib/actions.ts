@@ -30,6 +30,7 @@ import {
 } from "./db";
 import { deleteImage, uploadImage } from "./blob";
 import { scheduleFromForm } from "./hours";
+import { isBookingExtension } from "./extensions";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
 import {
@@ -106,6 +107,17 @@ function doctorHours(formData: FormData) {
   return Object.keys(hours).length > 0 ? hours : undefined;
 }
 
+/** Booking extension per branch ("extension_<branchId>" fields). */
+function doctorExtensions(formData: FormData): Record<string, string> | undefined {
+  const extensions: Record<string, string> = {};
+  for (const [name, value] of formData.entries()) {
+    if (!name.startsWith("extension_")) continue;
+    const ext = String(value).trim();
+    if (isBookingExtension(ext)) extensions[name.slice("extension_".length)] = ext;
+  }
+  return Object.keys(extensions).length > 0 ? extensions : undefined;
+}
+
 function doctorFields(formData: FormData) {
   return {
     nameEn: str(formData, "nameEn"),
@@ -129,6 +141,7 @@ function doctorFields(formData: FormData) {
     branchIds: formData.getAll("branchIds").map(String),
     hours: doctorHours(formData),
     coordinationNumber: optStr(formData, "coordinationNumber"),
+    extensions: doctorExtensions(formData),
     showInDirectory: formData.get("showInDirectory") === "on",
     showCoordinationOnSite: formData.get("showCoordinationOnSite") === "on",
     active: formData.get("active") === "on",

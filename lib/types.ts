@@ -47,6 +47,11 @@ export type Doctor = {
   showInDirectory?: boolean;
   /** Show the "Contact coordination" WhatsApp button on the site (default yes). */
   showCoordinationOnSite?: boolean;
+  /**
+   * Call-center extension per branch id: new booking requests for this
+   * doctor at that branch are assigned to it automatically.
+   */
+  extensions?: Record<string, string>;
   active: boolean;
 };
 

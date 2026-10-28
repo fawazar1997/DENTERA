@@ -11,6 +11,7 @@ import {
 import { CopyField } from "@/components/admin/CopyField";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { BookingsBoard } from "@/components/BookingsBoard";
+import { BulkReassign } from "@/components/BulkReassign";
 import { requireAdminPage } from "@/lib/adminSession";
 import type { Dictionary } from "@/lib/dictionaries";
 
@@ -138,6 +139,15 @@ export default async function AdminBookingsPage({
           locale={locale}
           labels={data.labels}
           canAssignExtension
+        />
+      </div>
+
+      <div className="mt-8">
+        <BulkReassign
+          doctors={data.doctors}
+          branches={data.branches}
+          extensions={data.extensions}
+          labels={data.reassignLabels}
         />
       </div>
 

@@ -4,6 +4,7 @@ import { getBranches, getDepartments, getDoctors } from "./db";
 import { BOOKING_EXTENSIONS, getBookings } from "./bookings";
 import type { BookingStatus } from "./types";
 import type { BoardBooking, BoardLabels } from "@/components/BookingsBoard";
+import type { BulkReassignLabels } from "@/components/BulkReassign";
 
 /** Everything the call-center board needs, with names resolved. */
 export async function getBookingsBoardData(locale: Locale) {
@@ -100,9 +101,31 @@ export async function getBookingsBoardData(locale: Locale) {
     colActions: a.bookingColActions,
   };
 
+  const reassignLabels: BulkReassignLabels = {
+    title: a.reassignTitle,
+    hint: a.reassignHint,
+    doctor: a.bookingDoctor,
+    anyDoctor: a.anyDoctor,
+    from: a.reassignFrom,
+    anyExtension: a.anyExtension,
+    branch: a.reassignBranch,
+    allBranches: a.allBranches,
+    to: a.reassignTo,
+    openOnly: a.reassignOpenOnly,
+    button: a.reassignButton,
+    confirm: a.reassignConfirm,
+    needFilter: a.reassignNeedFilter,
+    done: a.reassignDone,
+    failed: a.saveFailed,
+  };
+
   return {
     dict,
     bookings: list,
+    doctors: doctors
+      .map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn }))
+      .sort((x, y) => x.name.localeCompare(y.name, locale)),
+    reassignLabels,
     departments: departments.map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn })),
     extensions: BOOKING_EXTENSIONS,
     branches: branches.filter((b) => b.active).map((b) => ({ id: b.id, name: ar ? b.nameAr : b.nameEn })),
