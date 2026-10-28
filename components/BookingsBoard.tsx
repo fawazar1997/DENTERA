@@ -543,7 +543,8 @@ export function BookingsBoard({
 }) {
   const router = useRouter();
   const [bookings, setBookings] = useState(initial);
-  const [statusFilter, setStatusFilter] = useState<BookingStatus | "">("");
+  // Opens on the new requests (the ones still to call); "All" shows the rest.
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | "">("new");
   const [department, setDepartment] = useState("");
   const [period, setPeriod] = useState<"" | "today" | "week">("");
   const [extensionFilter, setExtensionFilter] = useState("");
