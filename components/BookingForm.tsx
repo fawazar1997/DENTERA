@@ -16,6 +16,8 @@ export type BookingFormLabels = {
   doctorAny: string;
   branch: string;
   branchAny: string;
+  /** Placeholder when a doctor works at several branches and one must be chosen. */
+  branchChoose: string;
   submit: string;
   sending: string;
   successTitle: string;
@@ -23,6 +25,7 @@ export type BookingFormLabels = {
   another: string;
   errorName: string;
   errorPhone: string;
+  errorBranch: string;
   errorServer: string;
   orCall: string;
   privacy: string;
@@ -89,6 +92,9 @@ function BookingFormInner({
     return own.length > 0 ? own : branches;
   }, [doctors, doctorId, branches]);
   const onlyBranch = branchOptions.length === 1 ? branchOptions[0].id : "";
+  // Booking a specific doctor needs one of their branches (it decides which
+  // call-center extension gets the request); otherwise "any branch" is fine.
+  const branchRequired = !!doctorId && branchOptions.length > 1;
   const [branchId, setBranchId] = useState(onlyBranch);
 
   // Keep the branch valid when the doctor (and so the branches) changes.
@@ -115,10 +121,10 @@ function BookingFormInner({
     );
   }
 
-  const fieldError = (field: "name" | "phone") =>
+  const fieldError = (field: "name" | "phone" | "branch") =>
     error === field ? (
       <p className="mt-1.5 rounded-md bg-accent-100 px-2 py-1 text-xs font-bold text-ink-900">
-        {field === "name" ? labels.errorName : labels.errorPhone}
+        {{ name: labels.errorName, phone: labels.errorPhone, branch: labels.errorBranch }[field]}
       </p>
     ) : null;
 
@@ -227,13 +233,18 @@ function BookingFormInner({
             onChange={(e) => setBranchId(e.target.value)}
             className="input"
           >
-            {branchOptions.length > 1 && <option value="">{labels.branchAny}</option>}
+            {branchOptions.length > 1 && (
+              <option value="" disabled={branchRequired}>
+                {branchRequired ? labels.branchChoose : labels.branchAny}
+              </option>
+            )}
             {branchOptions.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
             ))}
           </select>
+          {fieldError("branch")}
         </div>
       )}
 

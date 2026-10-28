@@ -272,7 +272,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 8;
+export const DATA_VERSION = 9;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -285,6 +285,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 6) migrateV6(db);
   if (version < 7) migrateV7(db);
   if (version < 8) migrateV8(db);
+  if (version < 9) migrateV9(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -443,5 +444,25 @@ function migrateV8(db: Database): void {
       return doctor;
     }
     return { ...doctor, extensions: { ...extensions } };
+  });
+}
+
+/** Doctors the extensions sheet places at one branch only (were set to both). */
+const SINGLE_BRANCH_V9: Record<string, string> = {
+  "mohammad-al-wadaei": "abha",
+  "amal-alzaydani": "abha",
+  "abdulmajeed-al-shahrani": "abha",
+  "waleed-alhogban": "khamis-mushait",
+};
+
+function migrateV9(db: Database): void {
+  // v9 — these doctors work at one branch, so the booking form offers only
+  // that one. Only changed while they still have both roster branches.
+  db.doctors = db.doctors.map((doctor) => {
+    const branch = SINGLE_BRANCH_V9[doctor.id];
+    const current = [...(doctor.branchIds ?? [])].sort().join(",");
+    if (!branch || current !== [...BOTH].sort().join(",")) return doctor;
+    const hours = doctor.hours?.[branch] ? { [branch]: doctor.hours[branch] } : undefined;
+    return { ...doctor, branchIds: [branch], hours };
   });
 }

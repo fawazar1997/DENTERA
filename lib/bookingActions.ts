@@ -16,7 +16,7 @@ import { doctorExtension } from "./extensions";
 
 export type BookingFormState =
   | { ok: true }
-  | { ok: false; error?: "name" | "phone" | "server"; at?: number };
+  | { ok: false; error?: "name" | "phone" | "branch" | "server"; at?: number };
 
 /** Faster than this after the form was shown, it's a bot, not a person. */
 const MIN_FILL_MS = 2500;
@@ -47,10 +47,18 @@ export async function submitBookingAction(
   const doctorId = text("doctorId", 80);
   const found = doctorId ? await getDoctor(doctorId) : undefined;
   const doctor = found?.active ? found : undefined;
+  // The branches the patient may pick: the doctor's own (those still open)
+  // when booking a doctor, otherwise any open branch.
+  const activeBranches = (await getActiveBranches()).map((b) => b.id);
+  const doctorBranches = activeBranches.filter((id) => doctor?.branchIds?.includes(id));
+  const allowed = doctorBranches.length > 0 ? doctorBranches : activeBranches;
   const requestedBranch = text("branchId", 80);
-  const branchId = (await getActiveBranches()).some((b) => b.id === requestedBranch)
-    ? requestedBranch
-    : undefined;
+  let branchId = allowed.includes(requestedBranch) ? requestedBranch : undefined;
+  if (doctorBranches.length > 0 && !branchId) {
+    // A doctor at one branch: that branch. At several: the patient must choose.
+    if (doctorBranches.length > 1) return { ok: false, error: "branch", at: Date.now() };
+    branchId = doctorBranches[0];
+  }
   const source = text("source", 20).replace(/[^a-z-]/g, "") || undefined;
 
   try {
