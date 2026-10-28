@@ -7,6 +7,40 @@ export const config = {
 };
 
 /**
+ * Pages of the previous (WordPress) website, still listed by Google under
+ * Arabic slugs such as "/من-نحن/", and the new page each one moved to.
+ * Matched by their key words, so slug variations ("-2" suffixes, trailing
+ * slashes) are covered too. Checked in order.
+ */
+const LEGACY_PAGES: [RegExp, string][] = [
+  [/هويتنا/, "/about/identity"],
+  [/نحن/, "/about"],
+  [/العيادات|عيادات/, "/departments"],
+  [/الفروع|فروع/, "/contact"],
+  [/الاسعار|الأسعار|اسعار|أسعار/, "/contact"],
+  [/احجز|موعد/, "/contact"],
+];
+
+/** WordPress-only addresses with no counterpart: sent to the home page. */
+const LEGACY_WORDPRESS = /^(wp-admin|wp-login|wp-json|feed|comments\/feed|category|tag|author)(\/|$)/;
+
+/** The new page for an address of the old website, or null. */
+function legacyTarget(pathname: string, search: URLSearchParams): string | null {
+  let path: string;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  path = path.replace(/^\/+|\/+$/g, "");
+  if (!path) return search.has("p") || search.has("page_id") ? "/" : null;
+  if (LEGACY_WORDPRESS.test(path)) return "/";
+  // Only Arabic slugs: the new site's own addresses are all Latin.
+  if (!/[\u0600-\u06FF]/.test(path)) return null;
+  return LEGACY_PAGES.find(([words]) => words.test(path))?.[1] ?? null;
+}
+
+/**
  * Arabic is served at the site root ("/doctors"), English under "/en".
  * Internally every page lives under /[locale], so root paths are rewritten
  * to /ar (the address bar keeps the clean URL) and old /ar/... links are
@@ -14,6 +48,16 @@ export const config = {
  */
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  // Old website addresses still in Google: move them for good (301).
+  const legacy = legacyTarget(pathname, request.nextUrl.searchParams);
+  if (legacy) {
+    const url = request.nextUrl.clone();
+    url.pathname = legacy;
+    url.search = "";
+    return NextResponse.redirect(url, 301);
+  }
+
   const [first, ...rest] = pathname.split("/").filter(Boolean);
 
   if (first === defaultLocale) {
