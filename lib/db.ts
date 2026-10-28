@@ -4,7 +4,7 @@ import os from "node:os";
 import { del, list, put } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
-import { privateStore, readPrivateJson } from "./privateBlob";
+import { privateStore, readBlobJson, readPrivateJson, writeBlobJson } from "./privateBlob";
 import { inDepartment } from "./doctorDepartments";
 import type {
   Branch,
@@ -29,14 +29,13 @@ const TMP_DB_PATH = path.join(os.tmpdir(), "dentera-db.json");
 // Where the data lives:
 //
 // - With Vercel Blob configured (production), the whole database is one
-//   JSON blob. Serverless instances have no shared or persistent disk, so
-//   this is what lets edits made in the control panel stick and show up on
-//   every instance. Each save writes a new blob with a random suffix (so a
-//   cached copy of an old version can never be served) and removes the
-//   older ones. It lives in the private store (see lib/privateBlob.ts);
-//   without one, in the public store under a random, unlisted name.
+//   JSON blob at a fixed name. Serverless instances have no shared or
+//   persistent disk, so this is what lets edits made in the control panel
+//   stick and show up on every instance. It lives in the private store
+//   (see lib/privateBlob.ts); without one, in the public store.
 // - Without Blob (local development), it's a JSON file next to the source,
 //   falling back to the OS temp dir if the project dir is read-only.
+/** Name prefix of database versions saved the old way (see moveLegacyDb). */
 const BLOB_DB_PREFIX = "data/dentera-db";
 const DB_CACHE_TAG = "dentera-db";
 
@@ -66,10 +65,18 @@ function withDefaults(db: Database): Database {
 }
 
 // --- Blob backend ---
+//
+// The database is one file at a fixed name, read directly by name: no
+// listing, which Vercel Blob counts as a costly operation. (It used to be
+// saved under a new random name each time and found by listing; the first
+// read after this change copies that version over once.)
 
 type StoreOptions = ReturnType<typeof privateStore>;
 
-async function listDbBlobs(store: StoreOptions = null) {
+const DB_PATH = "data/site-db.json";
+
+/** Database versions saved the old way (random names), newest first. */
+async function listLegacyDbBlobs(store: StoreOptions = null) {
   const { blobs } = await list({ prefix: BLOB_DB_PREFIX, ...store });
   return [...blobs].sort(
     (a, b) =>
@@ -77,47 +84,56 @@ async function listDbBlobs(store: StoreOptions = null) {
   );
 }
 
-/** The latest database saved in the public store (the place before the private one). */
-async function readPublicDbRaw(): Promise<Database | null> {
-  const [latest] = await listDbBlobs();
-  if (!latest) return null;
-  const response = await fetch(latest.url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Failed to load database blob (${response.status})`);
-  }
-  return (await response.json()) as Database;
-}
-
 /**
- * Deletes database versions left in the public store from before the
- * private store. Only called once the private store holds the database.
+ * One-time move: the latest database saved the old way (private store,
+ * else public) is saved at the fixed name, then the old versions are
+ * removed. Null when nothing was ever saved.
  */
-async function removePublicDbCopies(): Promise<void> {
-  try {
-    const old = await listDbBlobs();
-    if (old.length > 0) await del(old.map((b) => b.url));
-  } catch (error) {
-    console.error("Failed to remove the old public database copies:", error);
+async function moveLegacyDb(): Promise<Database | null> {
+  const store = privateStore();
+  let db: Database | null = null;
+  const [privateLatest] = store ? await listLegacyDbBlobs(store) : [];
+  if (privateLatest) {
+    db = await readPrivateJson<Database>(privateLatest.pathname);
+    if (!db) throw new Error("Failed to load the database from the private store");
+  } else {
+    const [publicLatest] = await listLegacyDbBlobs();
+    if (publicLatest) {
+      const response = await fetch(publicLatest.url, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Failed to load database blob (${response.status})`);
+      }
+      db = (await response.json()) as Database;
+    }
   }
+  if (!db) return null;
+  await putDbBlob(db);
+  try {
+    if (store) {
+      const old = await listLegacyDbBlobs(store);
+      if (old.length > 0) await del(old.map((b) => b.url), store);
+    }
+    const oldPublic = await listLegacyDbBlobs();
+    if (oldPublic.length > 0) await del(oldPublic.map((b) => b.url));
+  } catch (error) {
+    console.error("Failed to remove the old database versions:", error);
+  }
+  return db;
 }
 
 /** The stored database exactly as saved (null when nothing is saved yet). */
 async function readBlobDbRaw(): Promise<Database | null> {
-  const store = privateStore();
-  if (!store) return readPublicDbRaw();
-  const [latest] = await listDbBlobs(store);
-  if (latest) {
-    const db = await readPrivateJson<Database>(latest.pathname);
-    if (!db) throw new Error("Failed to load the database from the private store");
-    await removePublicDbCopies();
-    return db;
-  }
-  // First read after the private store was connected: copy the database
-  // over. The public copy is removed on a later read, once the private
-  // copy is there to be read back.
-  const saved = await readPublicDbRaw();
-  if (saved) await putDbBlob(saved);
-  return saved;
+  const saved = await readBlobJson<Database>(DB_PATH);
+  return saved ? saved.data : moveLegacyDb();
+}
+
+// A build renders every page, and each reads the database: read it once
+// per build instead of once per page.
+let buildRead: Promise<Database | null> | null = null;
+function readBlobDbRawOnce(): Promise<Database | null> {
+  if (process.env.NEXT_PHASE !== "phase-production-build") return readBlobDbRaw();
+  buildRead ??= readBlobDbRaw();
+  return buildRead;
 }
 
 async function readBlobDb(): Promise<Database> {
@@ -130,7 +146,7 @@ async function readBlobDb(): Promise<Database> {
 // Only the raw saved data is cached: Vercel keeps this cache across
 // deployments, so defaults and migrations must run after it, on every
 // read, or a new deployment's data updates would never show up.
-const readBlobDbRawCached = unstable_cache(readBlobDbRaw, [DB_CACHE_TAG, "raw", "private"], {
+const readBlobDbRawCached = unstable_cache(readBlobDbRawOnce, [DB_CACHE_TAG, "raw", "fixed"], {
   tags: [DB_CACHE_TAG],
 });
 
@@ -141,38 +157,14 @@ async function readBlobDbCached(): Promise<Database> {
   return raw ? withDefaults(structuredClone(raw)) : readSeed();
 }
 
-/** Saves a new version (private store when connected, else public). */
+/** Saves the database at its fixed name (private store when connected). */
 async function putDbBlob(db: Database) {
-  const store = privateStore();
-  return put(`${BLOB_DB_PREFIX}.json`, JSON.stringify(db), {
-    access: store ? "private" : "public",
-    addRandomSuffix: true,
-    contentType: "application/json",
-    ...store,
-  });
+  await writeBlobJson(DB_PATH, db);
 }
 
 async function writeBlobDb(db: Database): Promise<void> {
-  const saved = await putDbBlob(db);
+  await putDbBlob(db);
   revalidateTag(DB_CACHE_TAG);
-
-  // Clean up superseded versions. Only delete blobs older than the one we
-  // just wrote, so a concurrent save's newer version is never removed.
-  try {
-    const store = privateStore();
-    const blobs = await listDbBlobs(store);
-    const savedAt = new Date(
-      blobs.find((b) => b.url === saved.url)?.uploadedAt ?? Date.now()
-    ).getTime();
-    const stale = blobs
-      .filter(
-        (b) => b.url !== saved.url && new Date(b.uploadedAt).getTime() <= savedAt
-      )
-      .map((b) => b.url);
-    if (stale.length > 0) await del(stale, { ...store });
-  } catch (error) {
-    console.error("Failed to remove old database versions:", error);
-  }
 }
 
 // --- File backend (local development) ---

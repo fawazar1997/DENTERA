@@ -2,28 +2,25 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { del, list, put } from "@vercel/blob";
+import { BlobPreconditionFailedError, del, list } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
-import { privateStore, readPrivateJson } from "./privateBlob";
+import { privateStore, readBlobJson, readPrivateJson, writeBlobJson } from "./privateBlob";
 import { getSettings } from "./db";
 import type { Booking, BookingStatus } from "./types";
 
 // Online appointment requests, worked by the call center.
 //
-// With Vercel Blob, every request is its own small JSON file. Patients'
-// submissions never rewrite a shared file, so two arriving together can't
-// overwrite each other; a status update rewrites only that request's file.
-// Each file name starts with a reversed timestamp, so listing the folder
-// (which is alphabetical) returns the newest requests first.
-//
-// They're kept in the private store (see lib/privateBlob.ts), where no
-// link can open them. Any left in the public store from before are copied
-// over when read, then deleted from the public store.
+// With Vercel Blob, all requests are one JSON file in the private store
+// (see lib/privateBlob.ts), where no link can open it. Reading the board
+// is then a single read, not a listing plus one read per request (which
+// used up the Blob plan's operations). Every change is saved only if the
+// file hasn't changed since it was read, and redone on the newer version
+// otherwise, so requests arriving at the same moment are all kept.
 //
 // Without Blob (local development) they're kept in a JSON file.
 
-const PREFIX = "bookings/";
+const BOOKINGS_PATH = "data/bookings.json";
 const CACHE_TAG = "dentera-bookings";
 /** Requests shown on the board (newest first). */
 const MAX_SHOWN = 500;
@@ -78,113 +75,119 @@ function writeLocal(bookings: Booking[]): void {
 
 // --- Blob backend ---
 
-async function writeBlob(booking: Booking): Promise<void> {
-  const store = privateStore();
-  await put(`${PREFIX}${booking.id}.json`, JSON.stringify(booking), {
-    access: store ? "private" : "public",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: "application/json",
-    cacheControlMaxAge: 60,
-    ...store,
-  });
-}
+type BookingsFile = { bookings: Booking[] };
 
-/** Requests in the public store (all of them, before the private store). */
-async function readPublicEntries(): Promise<{ booking: Booking; url: string }[]> {
-  const { blobs } = await list({ prefix: PREFIX, limit: MAX_SHOWN });
-  const results = await Promise.all(
-    blobs.map(async (blob) => {
-      // The upload time in the query skips any CDN copy of an older version.
-      const url = `${blob.url}?v=${new Date(blob.uploadedAt).getTime()}`;
-      try {
-        const response = await fetch(url, { cache: "no-store" });
-        return response.ok ? { booking: (await response.json()) as Booking, url: blob.url } : null;
-      } catch {
-        return null;
-      }
-    })
-  );
-  return results.filter((r): r is { booking: Booking; url: string } => r !== null);
-}
+/** Requests saved the old way: one file each, in this folder. */
+const LEGACY_PREFIX = "bookings/";
 
-async function readPublicBlobs(): Promise<Booking[]> {
-  return (await readPublicEntries()).map((r) => r.booking);
-}
-
-/** Requests in the private store, plus the ids of every file listed there. */
-async function readPrivateBlobs(
-  store: NonNullable<ReturnType<typeof privateStore>>
-): Promise<{ bookings: Booking[]; listed: Set<string> }> {
-  const { blobs } = await list({ prefix: PREFIX, limit: MAX_SHOWN, ...store });
-  const results = await Promise.all(
-    blobs.map((blob) => readPrivateJson<Booking>(blob.pathname).catch(() => null))
-  );
-  return {
-    bookings: results.filter((b): b is Booking => b !== null),
-    listed: new Set(blobs.map((blob) => blob.pathname.slice(PREFIX.length, -".json".length))),
-  };
-}
-
-async function readAllBlobs(): Promise<Booking[]> {
-  const store = privateStore();
-  if (!store) return readPublicBlobs();
-  const [{ bookings: kept, listed }, older] = await Promise.all([
-    readPrivateBlobs(store),
-    readPublicEntries(),
-  ]);
-  // Requests still in the public store (from before the private one) are
-  // copied over, and each public file is deleted once its private copy
-  // exists. Going by the private listing (not by what could be read) means
-  // a private copy that failed to load is never overwritten with the older
-  // public one.
-  const copied: Booking[] = [];
-  const toDelete: string[] = [];
-  await Promise.all(
-    older.map(async ({ booking, url }) => {
-      if (!listed.has(booking.id)) {
-        try {
-          await writeBlob(booking);
-          copied.push(booking);
-        } catch (error) {
-          console.error("Failed to copy a booking request:", error);
-          return;
-        }
-      }
-      toDelete.push(url);
-    })
-  );
-  if (toDelete.length > 0) {
-    await del(toDelete).catch((error) =>
-      console.error("Failed to remove old public booking files:", error)
+/** Every legacy request file in a store, with its URL (for removal). */
+async function readLegacyBookings(
+  store: ReturnType<typeof privateStore>
+): Promise<{ booking: Booking; url: string }[]> {
+  const found: { booking: Booking; url: string }[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix: LEGACY_PREFIX, limit: 1000, cursor, ...store });
+    const read = await Promise.all(
+      page.blobs.map(async (blob) => {
+        const booking = store
+          ? await readPrivateJson<Booking>(blob.pathname)
+          : await fetch(`${blob.url}?v=${new Date(blob.uploadedAt).getTime()}`, { cache: "no-store" })
+              .then((r) => (r.ok ? (r.json() as Promise<Booking>) : null));
+        return booking ? { booking, url: blob.url } : null;
+      })
     );
-  }
-  return [...kept, ...copied];
+    found.push(...read.filter((r): r is { booking: Booking; url: string } => r !== null));
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+  return found;
 }
 
-/** One request by id, from the private store first, then the public one. */
-async function readOneBlob(id: string): Promise<Booking | null> {
+/**
+ * One-time move: requests saved one file each (private store, and any
+ * left in the public store) go into the single bookings file, then those
+ * files are removed. If another instance creates the file first, its copy
+ * is kept and this one does nothing.
+ */
+async function moveLegacyBookings(): Promise<void> {
   const store = privateStore();
-  if (store) {
-    const kept = await readPrivateJson<Booking>(`${PREFIX}${id}.json`).catch(() => null);
-    if (kept) return kept;
+  const [kept, older] = await Promise.all([
+    store ? readLegacyBookings(store) : Promise.resolve([]),
+    readLegacyBookings(null),
+  ]);
+  const byId = new Map<string, Booking>();
+  // The private copy wins over an older public one of the same request.
+  for (const { booking } of [...older, ...kept]) byId.set(booking.id, booking);
+  try {
+    await writeBlobJson(BOOKINGS_PATH, { bookings: [...byId.values()] } satisfies BookingsFile, {
+      create: true,
+    });
+  } catch (error) {
+    if (await readBlobJson<BookingsFile>(BOOKINGS_PATH)) return;
+    throw error;
   }
-  const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
-  const blob = blobs[0];
-  if (!blob) return null;
-  const response = await fetch(`${blob.url}?v=${Date.now()}`, { cache: "no-store" });
-  return response.ok ? ((await response.json()) as Booking) : null;
+  try {
+    if (kept.length > 0) await del(kept.map((r) => r.url), store ?? undefined);
+    if (older.length > 0) await del(older.map((r) => r.url));
+  } catch (error) {
+    console.error("Failed to remove the old booking files:", error);
+  }
 }
 
-const readAllBlobsCached = unstable_cache(readAllBlobs, [CACHE_TAG, "private"], {
+async function readBookingsFile(): Promise<{ bookings: Booking[]; etag: string }> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const saved = await readBlobJson<BookingsFile>(BOOKINGS_PATH);
+    if (saved) return { bookings: saved.data.bookings ?? [], etag: saved.etag };
+    await moveLegacyBookings();
+  }
+  throw new Error("Failed to set up the bookings file");
+}
+
+async function readAllBlob(): Promise<Booking[]> {
+  return (await readBookingsFile()).bookings;
+}
+
+const readAllBlobCached = unstable_cache(readAllBlob, [CACHE_TAG, "file"], {
   tags: [CACHE_TAG],
 });
+
+/**
+ * Applies a change to the saved requests. On Blob the file is saved only
+ * if nobody else saved it in between; otherwise the change is re-applied
+ * to the newer version, so two requests arriving together are both kept.
+ * `change` returns the new list (null: nothing to save) and a result.
+ */
+async function changeBookings<T>(
+  change: (all: Booking[]) => { next: Booking[] | null; result: T }
+): Promise<T> {
+  if (!isBlobConfigured()) {
+    const { next, result } = change(readLocal());
+    if (next) writeLocal(next);
+    revalidateTag(CACHE_TAG);
+    return result;
+  }
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const { bookings, etag } = await readBookingsFile();
+    const { next, result } = change(bookings);
+    if (!next) return result;
+    try {
+      await writeBlobJson(BOOKINGS_PATH, { bookings: next } satisfies BookingsFile, { ifMatch: etag });
+      revalidateTag(CACHE_TAG);
+      return result;
+    } catch (error) {
+      if (!(error instanceof BlobPreconditionFailedError)) throw error;
+      // Saved by someone else meanwhile: wait a moment, then redo on theirs.
+      await new Promise((r) => setTimeout(r, 50 + Math.random() * 200));
+    }
+  }
+  throw new Error("Bookings file is busy, try again");
+}
 
 // --- API ---
 
 /** Newest first. */
 export async function getBookings(): Promise<Booking[]> {
-  const all = isBlobConfigured() ? await readAllBlobsCached() : readLocal();
+  const all = isBlobConfigured() ? await readAllBlobCached() : readLocal();
   return [...all].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, MAX_SHOWN);
 }
 
@@ -196,13 +199,7 @@ export async function createBooking(
 ): Promise<Booking> {
   const now = new Date().toISOString();
   const booking: Booking = { id: newId(), createdAt: now, status: "new", ...input };
-  if (isBlobConfigured()) {
-    await writeBlob(booking);
-  } else {
-    writeLocal([booking, ...readLocal()]);
-  }
-  revalidateTag(CACHE_TAG);
-  return booking;
+  return changeBookings((all) => ({ next: [booking, ...all], result: booking }));
 }
 
 export async function updateBooking(
@@ -234,19 +231,13 @@ export async function updateBooking(
     };
   };
 
-  if (isBlobConfigured()) {
-    const booking = await readOneBlob(id);
-    if (!booking) return false;
-    await writeBlob(apply(booking));
-  } else {
-    const all = readLocal();
+  return changeBookings((all) => {
     const index = all.findIndex((b) => b.id === id);
-    if (index === -1) return false;
-    all[index] = apply(all[index]);
-    writeLocal(all);
-  }
-  revalidateTag(CACHE_TAG);
-  return true;
+    if (index === -1) return { next: null, result: false };
+    const next = [...all];
+    next[index] = apply(all[index]);
+    return { next, result: true };
+  });
 }
 
 /** Requests the call center still has to work: not booked or cancelled. */
@@ -285,25 +276,10 @@ export async function reassignBookings(match: {
     ].slice(-20),
   });
 
-  let moved = 0;
-  if (isBlobConfigured()) {
-    const targets = (await readAllBlobs()).filter(matches);
-    // A few at a time, so a big move doesn't flood the store.
-    for (let i = 0; i < targets.length; i += 10) {
-      await Promise.all(targets.slice(i, i + 10).map((b) => writeBlob(apply(b))));
-    }
-    moved = targets.length;
-  } else {
-    const all = readLocal();
-    const next = all.map((b) => {
-      if (!matches(b)) return b;
-      moved++;
-      return apply(b);
-    });
-    writeLocal(next);
-  }
-  revalidateTag(CACHE_TAG);
-  return moved;
+  return changeBookings((all) => {
+    const moved = all.filter(matches).length;
+    return { next: moved > 0 ? all.map((b) => (matches(b) ? apply(b) : b)) : null, result: moved };
+  });
 }
 
 /** A request's arrival time, read from its id (reversed timestamp). */
@@ -322,35 +298,12 @@ function riyadhDay(ms: number): string {
  */
 export async function deleteBookingsUpTo(day: string): Promise<number> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return 0;
-  const old = (id: string) => ID_PATTERN.test(id) && riyadhDay(createdAtFromId(id)) <= day;
-  let deleted = 0;
-
-  if (isBlobConfigured()) {
-    // The private store and the public one (copies from before the private
-    // store); each request is counted once even if both hold a copy.
-    const store = privateStore();
-    const ids = new Set<string>();
-    for (const options of store ? [store, {}] : [{}]) {
-      let cursor: string | undefined;
-      do {
-        const page = await list({ prefix: PREFIX, limit: 1000, cursor, ...options });
-        const gone = page.blobs.filter((b) => old(b.pathname.slice(PREFIX.length, -".json".length)));
-        if (gone.length > 0) {
-          await del(gone.map((b) => b.url), options);
-          for (const b of gone) ids.add(b.pathname);
-        }
-        cursor = page.hasMore ? page.cursor : undefined;
-      } while (cursor);
-    }
-    deleted = ids.size;
-  } else {
-    const all = readLocal();
-    const kept = all.filter((b) => !old(b.id));
-    deleted = all.length - kept.length;
-    writeLocal(kept);
-  }
-  revalidateTag(CACHE_TAG);
-  return deleted;
+  const old = (b: Booking) => ID_PATTERN.test(b.id) && riyadhDay(createdAtFromId(b.id)) <= day;
+  return changeBookings((all) => {
+    const kept = all.filter((b) => !old(b));
+    const deleted = all.length - kept.length;
+    return { next: deleted > 0 ? kept : null, result: deleted };
+  });
 }
 
 function sameKey(saved: string | undefined, key: string): boolean {
