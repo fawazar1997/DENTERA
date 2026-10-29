@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { BlobPreconditionFailedError, del, list } from "@vercel/blob";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
-import { privateStore, readBlobJson, readPrivateJson, writeBlobJson } from "./privateBlob";
+import { blobEtag, privateStore, readBlobJson, readPrivateJson, writeBlobJson } from "./privateBlob";
 import { getSettings } from "./db";
 import type { Booking, BookingStatus } from "./types";
 
@@ -134,9 +134,11 @@ async function moveLegacyBookings(): Promise<void> {
   }
 }
 
-async function readBookingsFile(): Promise<{ bookings: Booking[]; etag: string }> {
+async function readBookingsFile(
+  forWrite = false
+): Promise<{ bookings: Booking[]; etag: string }> {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const saved = await readBlobJson<BookingsFile>(BOOKINGS_PATH);
+    const saved = await readBlobJson<BookingsFile>(BOOKINGS_PATH, { forWrite });
     if (saved) return { bookings: saved.data.bookings ?? [], etag: saved.etag };
     await moveLegacyBookings();
   }
@@ -166,16 +168,32 @@ async function changeBookings<T>(
     revalidateTag(CACHE_TAG);
     return result;
   }
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const { bookings, etag } = await readBookingsFile();
+  const ATTEMPTS = 6;
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    const { bookings, etag } = await readBookingsFile(true);
     const { next, result } = change(bookings);
     if (!next) return result;
+    // The last attempt saves without the check: a patient's request must
+    // never be lost to a stuck check (worst case, a change made in the
+    // same instant is overwritten).
+    const last = attempt === ATTEMPTS - 1;
+    if (last) console.error("Bookings file: conditional save kept failing; saving anyway");
     try {
-      await writeBlobJson(BOOKINGS_PATH, { bookings: next } satisfies BookingsFile, { ifMatch: etag });
+      await writeBlobJson(
+        BOOKINGS_PATH,
+        { bookings: next } satisfies BookingsFile,
+        last ? {} : { ifMatch: etag }
+      );
       revalidateTag(CACHE_TAG);
       return result;
     } catch (error) {
-      if (!(error instanceof BlobPreconditionFailedError)) throw error;
+      if (!(error instanceof BlobPreconditionFailedError) || last) throw error;
+      if (attempt === 0) {
+        console.warn("Bookings file changed since read; retrying", {
+          read: etag,
+          now: await blobEtag(BOOKINGS_PATH).catch(() => "?"),
+        });
+      }
       // Saved by someone else meanwhile: wait a moment, then redo on theirs.
       await new Promise((r) => setTimeout(r, 50 + Math.random() * 200));
     }

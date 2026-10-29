@@ -1,4 +1,4 @@
-import { get, put } from "@vercel/blob";
+import { BlobNotFoundError, get, head, put } from "@vercel/blob";
 
 // The private Blob store holds what must never be reachable by a link:
 // patients' booking requests and the site database (which includes the
@@ -39,16 +39,32 @@ function dataStore() {
     : { access: "public" as const };
 }
 
+/** A data file's current ETag, from the Blob API (null when it doesn't exist). */
+export async function blobEtag(pathname: string): Promise<string | null> {
+  try {
+    return (await head(pathname, privateStore() ?? {})).etag;
+  } catch (error) {
+    if (error instanceof BlobNotFoundError) return null;
+    throw error;
+  }
+}
+
 /**
- * Reads a JSON data file by name, straight from storage (no CDN copy), with
- * its ETag for a conditional save. Null when it doesn't exist.
+ * Reads a JSON data file by name, straight from storage (no CDN copy).
+ * Null when it doesn't exist. With `forWrite`, also its ETag for a
+ * conditional save: taken from the Blob API (the same source the save is
+ * checked against) and before the content, so if the file changes in
+ * between, the save is refused and redone rather than overwriting.
  */
 export async function readBlobJson<T>(
-  pathname: string
+  pathname: string,
+  { forWrite = false }: { forWrite?: boolean } = {}
 ): Promise<{ data: T; etag: string } | null> {
+  const etag = forWrite ? await blobEtag(pathname) : "";
+  if (etag === null) return null;
   const result = await get(pathname, { useCache: false, ...dataStore() });
   if (!result || result.statusCode !== 200 || !result.stream) return null;
-  return { data: (await new Response(result.stream).json()) as T, etag: result.blob.etag };
+  return { data: (await new Response(result.stream).json()) as T, etag: etag || result.blob.etag };
 }
 
 /**
