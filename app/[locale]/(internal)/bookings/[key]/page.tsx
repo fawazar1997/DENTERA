@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock } from "lucide-react";
+import { BookUser, Lock, Receipt } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
+import { getSettings } from "@/lib/db";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { BookingsBoard } from "@/components/BookingsBoard";
 import { BulkReassign } from "@/components/BulkReassign";
@@ -36,6 +37,22 @@ export default async function CallCenterBookingsPage({
 
   const data = await getBookingsBoardData(locale);
   const other = locale === "ar" ? "en" : "ar";
+  // Shortcuts to the staff pages the call center uses while calling
+  // (shown only once their private links exist; they open in a new tab so
+  // the board keeps its place).
+  const settings = await getSettings();
+  const shortcuts = [
+    settings.directoryKey && {
+      href: localePath(locale, `/directory/${settings.directoryKey}`),
+      label: data.dict.admin.directory,
+      icon: BookUser,
+    },
+    settings.pricesKey && {
+      href: localePath(locale, `/prices/${settings.pricesKey}`),
+      label: data.dict.admin.prices,
+      icon: Receipt,
+    },
+  ].filter((s): s is { href: string; label: string; icon: typeof BookUser } => !!s);
 
   return (
     <div className="min-h-screen">
@@ -56,10 +73,28 @@ export default async function CallCenterBookingsPage({
               {other === "ar" ? "العربية" : "English"}
             </Link>
           </div>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sand-200">
-            <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-            {data.dict.admin.internalOnly}
-          </span>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sand-200">
+              <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+              {data.dict.admin.internalOnly}
+            </span>
+            {shortcuts.length > 0 && (
+              <div className="flex items-center gap-2">
+                {shortcuts.map(({ href, label, icon: Icon }) => (
+                  <a
+                    key={href}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
+                  >
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    {label}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </header>
       <main className="container-x min-w-0 py-5 sm:py-6">

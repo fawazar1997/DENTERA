@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   MapPin,
+  Receipt,
   Share2,
   Stethoscope,
   Tag,
@@ -45,6 +46,7 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
     sections: [
       { path: "/bookings", label: "bookings", hint: "hintBookings", icon: CalendarCheck },
       { path: "/directory", label: "directory", hint: "hintDirectory", icon: BookUser },
+      { path: "/prices", label: "prices", hint: "hintPrices", icon: Receipt },
     ],
   },
   {

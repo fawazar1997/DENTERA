@@ -31,6 +31,7 @@ import {
 import { deleteImage, uploadImage } from "./blob";
 import { scheduleFromForm } from "./hours";
 import { isBookingExtension } from "./extensions";
+import { parsePriceWorkbook, savePriceList, type PriceList } from "./prices";
 import { CONTENT_SECTIONS, defaultText } from "./content";
 import { googleMapsSearchUrl } from "./defaults";
 import {
@@ -468,6 +469,31 @@ export async function generateDirectoryKeyAction() {
   await requireAdmin();
   await updateSettings({ directoryKey: randomKey() });
   revalidateAll();
+}
+
+/** Creates (or replaces, revoking the old one) the staff price list link. */
+export async function generatePricesKeyAction() {
+  await requireAdmin();
+  await updateSettings({ pricesKey: randomKey() });
+  revalidateAll();
+}
+
+/** Replaces the price list with the one in an uploaded Excel file. */
+export async function uploadPricesAction(formData: FormData) {
+  await requireAdmin();
+  const locale = str(formData, "locale");
+  const back = (query: string) =>
+    redirect(localePath(isLocale(locale) ? locale : defaultLocale, `/admin/prices?${query}`));
+  const file = fileOrNull(formData, "file");
+  if (!file || file.size === 0 || file.size > 5 * 1024 * 1024) back("error=file");
+  let list: PriceList;
+  try {
+    list = parsePriceWorkbook(new Uint8Array(await file!.arrayBuffer()));
+  } catch {
+    return back("error=format");
+  }
+  await savePriceList(list);
+  back(`imported=${list.sections.reduce((n, s) => n + s.items.length, 0)}`);
 }
 
 /** Creates (or replaces, revoking the old one) the call center's bookings link. */

@@ -13,7 +13,8 @@ const nextConfig = {
   async headers() {
     // Pages that must never show up in search results.
     const privatePaths = ["/admin", "/admin/:path*", "/en/admin", "/en/admin/:path*",
-      "/bookings/:path*", "/en/bookings/:path*", "/directory/:path*", "/en/directory/:path*"];
+      "/bookings/:path*", "/en/bookings/:path*", "/directory/:path*", "/en/directory/:path*",
+      "/prices/:path*", "/en/prices/:path*"];
     return [
       {
         source: "/:path*",

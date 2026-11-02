@@ -15,6 +15,8 @@ export default function robots(): MetadataRoute.Robots {
         "/en/directory/",
         "/bookings/",
         "/en/bookings/",
+        "/prices/",
+        "/en/prices/",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
