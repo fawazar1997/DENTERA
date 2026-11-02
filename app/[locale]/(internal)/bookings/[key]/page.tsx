@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookUser, Lock, Receipt } from "lucide-react";
+import { BookUser, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
 import { getSettings } from "@/lib/db";
+import { RiyalIcon } from "@/components/RiyalIcon";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
 import { BookingsBoard } from "@/components/BookingsBoard";
 import { BulkReassign } from "@/components/BulkReassign";
@@ -50,9 +51,9 @@ export default async function CallCenterBookingsPage({
     settings.pricesKey && {
       href: localePath(locale, `/prices/${settings.pricesKey}`),
       label: data.dict.admin.prices,
-      icon: Receipt,
+      icon: RiyalIcon,
     },
-  ].filter((s): s is { href: string; label: string; icon: typeof BookUser } => !!s);
+  ].filter((s): s is { href: string; label: string; icon: typeof RiyalIcon } => !!s);
 
   return (
     <div className="min-h-screen">

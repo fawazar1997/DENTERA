@@ -7,13 +7,13 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   MapPin,
-  Receipt,
   Share2,
   Stethoscope,
   Tag,
   Type,
-  type LucideIcon,
 } from "lucide-react";
+import type { ComponentType } from "react";
+import { RiyalIcon } from "@/components/RiyalIcon";
 import type { Dictionary } from "@/lib/dictionaries";
 
 type AdminText = keyof Dictionary["admin"];
@@ -24,7 +24,7 @@ export type AdminSection = {
   label: AdminText;
   /** One line on what the section is for (shown on the dashboard). */
   hint?: AdminText;
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
 };
 
 export type AdminSectionGroup = {
@@ -46,7 +46,7 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
     sections: [
       { path: "/bookings", label: "bookings", hint: "hintBookings", icon: CalendarCheck },
       { path: "/directory", label: "directory", hint: "hintDirectory", icon: BookUser },
-      { path: "/prices", label: "prices", hint: "hintPrices", icon: Receipt },
+      { path: "/prices", label: "prices", hint: "hintPrices", icon: RiyalIcon },
     ],
   },
   {
