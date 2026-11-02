@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { PriceList } from "@/lib/prices";
+import { RiyalIcon } from "./RiyalIcon";
 
 export type PriceListLabels = {
   search: string;
@@ -149,8 +150,14 @@ export function PriceListView({
                     </p>
                   )}
                 </div>
-                <span className="flex-shrink-0 rounded-lg bg-primary-50 px-2.5 py-1 text-sm font-extrabold tabular-nums text-primary-700">
-                  {formatPrice(item.price)} <span className="text-xs font-bold">{labels.currency}</span>
+                {/* The riyal sign sits to the left of the amount (SAMA guidance). */}
+                <span
+                  dir="ltr"
+                  className="inline-flex flex-shrink-0 items-center gap-1 rounded-lg bg-primary-50 px-2.5 py-1 text-sm font-extrabold tabular-nums text-primary-700"
+                >
+                  <RiyalIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="sr-only">{labels.currency}</span>
+                  {formatPrice(item.price)}
                 </span>
               </li>
             ))}
