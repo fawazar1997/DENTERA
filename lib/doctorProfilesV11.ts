@@ -257,3 +257,46 @@ export const DOCTOR_PROFILES_V11: DoctorProfileUpdate[] = [
     "experienceEn": "Senior Registrar in Family Dentistry and Adult Special Needs Dentistry"
   }
 ];
+
+/**
+ * Update to the sheet (Nov 2026, second version): Arabic qualifications for
+ * six more doctors (English translated to match). Applied by migrateV12.
+ */
+export const DOCTOR_PROFILES_V12: DoctorProfileUpdate[] = [
+  {
+    "name": "الهنوف ال مغامر",
+    "id": "alhanuf-almoghamer",
+    "qualificationsAr": "نائب أول طب أسنان أطفال وذوي الاحتياجات الخاصة\nالبورد السعودي في طب أسنان الأطفال",
+    "qualificationsEn": "Senior Registrar in Pediatric and Special Needs Dentistry\nSaudi Board of Pediatric Dentistry"
+  },
+  {
+    "name": "ريما البشري",
+    "id": "rima-othman-albishri",
+    "qualificationsAr": "بكالوريوس طب وجراحة الفم والأسنان من جامعة الملك خالد مع مرتبة الشرف الأولى\nطبيبة أسنان مصنفة من الهيئة السعودية للتخصصات الصحية\nحاصلة على عدة شهادات ودورات تدريبية في مجال الحشوات التجميلية والترميمية، وعلاج جذور الأسنان، وتبييض الأسنان\nتدريب وخبرة سريرية في مختلف تخصصات طب الأسنان",
+    "qualificationsEn": "Bachelor of Dental Medicine and Surgery, King Khalid University, with First-Class Honours\nDentist classified by the Saudi Commission for Health Specialties\nSeveral certificates and training courses in cosmetic and restorative fillings, root canal treatment and teeth whitening\nClinical training and experience across dental specialties"
+  },
+  {
+    "name": "عبدالمجيد القحطاني",
+    "id": "abdulmajeed-alqahtani",
+    "qualificationsAr": "طبيب أسنان عام، بكالوريوس طب وجراحة الفم والأسنان (BDS)\nتدريب علمي وخبرة سريرية في قسم التركيبات والاستعاضة السنية (Prosthodontics) في مستشفى جامعة الملك خالد\nتدريب علمي وخبرة سريرية في قسم التركيبات والاستعاضة السنية (Prosthodontics) في مستشفى القوات المسلحة بالمنطقة الجنوبية\nحاصل على دورات مكثفة وورش عمل وخبرة سريرية في استخدام تقنيات طب الأسنان الرقمي",
+    "qualificationsEn": "General Dentist, Bachelor of Dental Medicine and Surgery (BDS)\nAcademic training and clinical experience in Prosthodontics, King Khalid University Hospital\nAcademic training and clinical experience in Prosthodontics, Armed Forces Hospital, Southern Region\nIntensive courses, workshops and clinical experience in digital dentistry"
+  },
+  {
+    "name": "وليد عسيري",
+    "id": "waleed-saeed-asiri",
+    "qualificationsAr": "أستاذ إصلاح وتجميل الأسنان المشارك\nاستشاري إصلاح وتجميل الأسنان\nشهادة الاختصاص في إصلاح وتجميل الأسنان\nالبورد السعودي في إصلاح وتجميل الأسنان",
+    "qualificationsEn": "Associate Professor of Restorative and Esthetic Dentistry\nConsultant in Restorative and Esthetic Dentistry\nSpecialty Certificate in Restorative and Esthetic Dentistry\nSaudi Board of Restorative and Esthetic Dentistry"
+  },
+  {
+    "name": "محمد الشريف",
+    "id": "mohammed-alsharif",
+    "qualificationsAr": "استشاري إصلاح وتجميل الأسنان\nالبورد السعودي في إصلاح وتجميل الأسنان\nرئيس قسم إصلاح وتجميل الأسنان بمستشفى القوات المسلحة بالجنوب\nمشرف على برنامج الزمالة (البورد السعودي) لإصلاح الأسنان بمستشفى القوات المسلحة بالجنوب",
+    "qualificationsEn": "Consultant in Restorative and Esthetic Dentistry\nSaudi Board of Restorative and Esthetic Dentistry\nHead of Restorative and Esthetic Dentistry, Armed Forces Hospital, Southern Region\nSupervisor of the Saudi Board (fellowship) program in Restorative Dentistry, Armed Forces Hospital, Southern Region"
+  },
+  {
+    "name": "مالك ابا زيد",
+    "id": "malek-abo-zeed",
+    "qualificationsAr": "أخصائي الاستعاضة السنية وتركيبات وتجميل الأسنان\nماجستير الاستعاضة السنية – جامعة سيينا، إيطاليا\nزمالة كلية الجراحين الملكية في طب الأسنان العام – أيرلندا",
+    "qualificationsEn": "Specialist in Prosthodontics and Esthetic Dentistry\nMaster's in Prosthodontics – University of Siena, Italy\nFellowship in General Dentistry, Royal College of Surgeons in Ireland"
+  }
+];

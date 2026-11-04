@@ -1,6 +1,6 @@
 import type { Database, Doctor, Partner } from "./types";
 import { ABHA_SCHEDULE, KHAMIS_SCHEDULE } from "./defaults";
-import { DOCTOR_PROFILES_V11 } from "./doctorProfilesV11";
+import { DOCTOR_PROFILES_V11, DOCTOR_PROFILES_V12, type DoctorProfileUpdate } from "./doctorProfilesV11";
 
 // One-time data updates applied to the saved database. Each runs once:
 // it's applied whenever the data is read (so the site shows it right
@@ -273,7 +273,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 11;
+export const DATA_VERSION = 12;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -289,6 +289,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 9) migrateV9(db);
   if (version < 10) migrateV10(db);
   if (version < 11) migrateV11(db);
+  if (version < 12) applyProfileUpdates(db, DOCTOR_PROFILES_V12);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -494,10 +495,17 @@ function nameWords(name: string): string[] {
 
 function migrateV11(db: Database): void {
   // v11 — doctors' qualifications and professional experience from the
-  // clinic's sheet. A field the sheet fills replaces the current one;
-  // fields it leaves empty are kept. Doctors added in the control panel
-  // (not in the roster) are matched by every word of their Arabic name.
-  for (const update of DOCTOR_PROFILES_V11) {
+  // clinic's sheet (v12: the sheet's update).
+  applyProfileUpdates(db, DOCTOR_PROFILES_V11);
+}
+
+/**
+ * A field an update fills replaces the current one; fields it leaves
+ * empty are kept. Doctors added in the control panel (not in the roster)
+ * are matched by every word of their Arabic name.
+ */
+function applyProfileUpdates(db: Database, updates: DoctorProfileUpdate[]): void {
+  for (const update of updates) {
     const words = nameWords(update.name);
     const doctor =
       (update.id && db.doctors.find((d) => d.id === update.id)) ||
