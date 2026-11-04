@@ -1,5 +1,6 @@
 import type { Database, Doctor, Partner } from "./types";
 import { ABHA_SCHEDULE, KHAMIS_SCHEDULE } from "./defaults";
+import { DOCTOR_PROFILES_V11 } from "./doctorProfilesV11";
 
 // One-time data updates applied to the saved database. Each runs once:
 // it's applied whenever the data is read (so the site shows it right
@@ -272,7 +273,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 10;
+export const DATA_VERSION = 11;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -287,6 +288,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 8) migrateV8(db);
   if (version < 9) migrateV9(db);
   if (version < 10) migrateV10(db);
+  if (version < 11) migrateV11(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -475,4 +477,37 @@ function migrateV10(db: Database): void {
       ? { ...doctor, branchIds: [...BOTH] }
       : doctor
   );
+}
+
+/** An Arabic name reduced for matching: no titles, diacritics or spelling variants. */
+function nameWords(name: string): string[] {
+  return name
+    .replace(/(أ\.?\s*د|د)\s*\.\s*/g, " ")
+    .replace(/[ً-ْـ]/g, "")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/(^|\s)ال\s+/g, "$1ال")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function migrateV11(db: Database): void {
+  // v11 — doctors' qualifications and professional experience from the
+  // clinic's sheet. A field the sheet fills replaces the current one;
+  // fields it leaves empty are kept. Doctors added in the control panel
+  // (not in the roster) are matched by every word of their Arabic name.
+  for (const update of DOCTOR_PROFILES_V11) {
+    const words = nameWords(update.name);
+    const doctor =
+      (update.id && db.doctors.find((d) => d.id === update.id)) ||
+      db.doctors.find((d) => {
+        const have = nameWords(d.nameAr);
+        return words.every((w) => have.includes(w));
+      });
+    if (!doctor) continue;
+    for (const key of ["qualificationsAr", "qualificationsEn", "experienceAr", "experienceEn"] as const) {
+      if (update[key]) doctor[key] = update[key];
+    }
+  }
 }
