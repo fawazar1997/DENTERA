@@ -96,8 +96,8 @@ function sameKey(saved: string | undefined, key: string): boolean {
 /**
  * Which forms page link `key` is: the staff link, the supervisor's (the
  * same page plus the letters register, view only), or neither (null). The
- * supervisor is the bookings supervisor, so their link uses the same key as
- * the bookings supervisor link, and each page links to the other.
+ * supervisor has one key (Control Panel → Supervisor link, stored as the
+ * bookings supervisor key) for their home page and every page it leads to.
  */
 export async function formsKeyRole(key: string): Promise<"staff" | "supervisor" | null> {
   const settings = await getSettings();

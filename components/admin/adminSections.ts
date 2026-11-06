@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
   MapPin,
   Share2,
+  ShieldCheck,
   Stethoscope,
   Tag,
   Type,
@@ -41,7 +42,10 @@ export type AdminSectionGroup = {
 export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
   {
     label: "navGroupOverview",
-    sections: [{ path: "", label: "dashboardTitle", icon: LayoutDashboard }],
+    sections: [
+      { path: "", label: "dashboardTitle", icon: LayoutDashboard },
+      { path: "/supervisor", label: "supervisorLink", hint: "hintSupervisor", icon: ShieldCheck },
+    ],
   },
   {
     label: "navGroupBookings",

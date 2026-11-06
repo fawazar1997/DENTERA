@@ -200,7 +200,7 @@ export default async function AdminFormsPage({
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {settings.bookingsSupervisorKey && (
                 <a
-                  href={localePath(locale, `/forms/${settings.bookingsSupervisorKey}`)}
+                  href={localePath(locale, `/supervisor/${settings.bookingsSupervisorKey}`)}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:underline"
@@ -209,7 +209,7 @@ export default async function AdminFormsPage({
                   {t.openPage}
                 </a>
               )}
-              <Link href={localePath(locale, "/admin/bookings")} className="text-sm font-semibold text-ink-600 hover:text-primary-700 hover:underline">
+              <Link href={localePath(locale, "/admin/supervisor")} className="text-sm font-semibold text-ink-600 hover:text-primary-700 hover:underline">
                 {t.supervisorManage}
               </Link>
             </div>

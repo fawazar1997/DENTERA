@@ -1,81 +1,20 @@
 import { headers } from "next/headers";
-import { ExternalLink, Link2, ShieldCheck, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Link2, ShieldCheck, Trash2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSettings } from "@/lib/db";
 import { getBookingsBoardData } from "@/lib/bookingBoard";
-import {
-  deleteOldBookingsAction,
-  generateBookingsKeyAction,
-  generateBookingsSupervisorKeyAction,
-} from "@/lib/actions";
-import { CopyField } from "@/components/admin/CopyField";
+import { deleteOldBookingsAction, generateBookingsKeyAction } from "@/lib/actions";
+import { supervisorText } from "@/lib/supervisorText";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
+import { LinkCard } from "@/components/admin/LinkCard";
 import { BookingsBoard } from "@/components/BookingsBoard";
 import { BulkReassign } from "@/components/BulkReassign";
 import { requireAdminPage } from "@/lib/adminSession";
-import type { Dictionary } from "@/lib/dictionaries";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
 export const dynamic = "force-dynamic";
-
-/** One private bookings link: copy, create/replace, open. */
-function LinkCard({
-  title,
-  hint,
-  icon: Icon,
-  link,
-  path,
-  openLabel,
-  action,
-  dict,
-}: {
-  title: string;
-  hint: string;
-  icon: typeof Link2;
-  link: string;
-  path: string;
-  openLabel: string;
-  action: () => Promise<void>;
-  dict: Dictionary;
-}) {
-  return (
-    <section className="card p-6">
-      <h2 className="flex items-center gap-2 font-bold text-ink-900">
-        <Icon className="h-5 w-5 text-primary-600" />
-        {title}
-      </h2>
-      <p className="mt-1 text-sm text-ink-500">{hint}</p>
-      <div className="mt-4">
-        {link ? (
-          <CopyField value={link} copyLabel={dict.admin.copyLink} copiedLabel={dict.admin.copied} />
-        ) : (
-          <p className="rounded-lg bg-ink-50 px-4 py-3 text-sm text-ink-500">{dict.admin.noLink}</p>
-        )}
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <form action={action}>
-          <ConfirmSubmit
-            label={link ? dict.admin.regenerateLink : dict.admin.createLink}
-            confirmText={link ? dict.admin.regenerateConfirm : undefined}
-            className={link ? "btn-outline" : "btn-primary"}
-          />
-        </form>
-        {link && (
-          <a
-            href={path}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:underline"
-          >
-            <ExternalLink className="h-4 w-4" />
-            {openLabel}
-          </a>
-        )}
-      </div>
-    </section>
-  );
-}
 
 export default async function AdminBookingsPage({
   params,
@@ -101,7 +40,7 @@ export default async function AdminBookingsPage({
     return { path, link: key ? `${proto}://${host}${path}` : "" };
   };
   const agent = linkFor(settings.bookingsKey);
-  const supervisor = linkFor(settings.bookingsSupervisorKey);
+  const st = supervisorText(locale);
   const deleted = searchParams.deleted;
 
   return (
@@ -119,15 +58,16 @@ export default async function AdminBookingsPage({
           action={generateBookingsKeyAction}
           dict={dict}
         />
-        <LinkCard
-          title={dict.admin.supervisorLink}
-          hint={dict.admin.supervisorLinkHint}
-          icon={ShieldCheck}
-          {...supervisor}
-          openLabel={dict.admin.openSupervisor}
-          action={generateBookingsSupervisorKeyAction}
-          dict={dict}
-        />
+        <section className="card p-6">
+          <h2 className="flex items-center gap-2 font-bold text-ink-900">
+            <ShieldCheck className="h-5 w-5 text-primary-600" />
+            {dict.admin.supervisorLink}
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">{st.manageHere}</p>
+          <Link href={localePath(locale, "/admin/supervisor")} className="btn-outline mt-4">
+            {st.openManage}
+          </Link>
+        </section>
       </div>
 
       <div className="mt-8">

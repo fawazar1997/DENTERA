@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookUser, FolderOpen, Lock } from "lucide-react";
+import { BookUser, LayoutGrid, Lock } from "lucide-react";
+import { supervisorText } from "@/lib/supervisorText";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
 import { getSettings } from "@/lib/db";
@@ -43,13 +44,6 @@ export default async function CallCenterBookingsPage({
   // the board keeps its place).
   const settings = await getSettings();
   const shortcuts = [
-    // The supervisor also oversees the letters: the same link opens the
-    // forms page with the letters register (view only).
-    role === "supervisor" && {
-      href: localePath(locale, `/forms/${params.key}`),
-      label: data.dict.admin.formsArchive,
-      icon: FolderOpen,
-    },
     settings.directoryKey && {
       href: localePath(locale, `/directory/${settings.directoryKey}`),
       label: data.dict.admin.directory,
@@ -86,8 +80,17 @@ export default async function CallCenterBookingsPage({
               <Lock className="h-3.5 w-3.5 flex-shrink-0" />
               {data.dict.admin.internalOnly}
             </span>
-            {shortcuts.length > 0 && (
-              <div className="flex items-center gap-2">
+            {(shortcuts.length > 0 || role === "supervisor") && (
+              <div className="flex flex-wrap items-center gap-2">
+                {role === "supervisor" && (
+                  <Link
+                    href={localePath(locale, `/supervisor/${params.key}`)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-950 hover:bg-sand-100"
+                  >
+                    <LayoutGrid className="h-4 w-4 flex-shrink-0" />
+                    {supervisorText(locale).home}
+                  </Link>
+                )}
                 {shortcuts.map(({ href, label, icon: Icon }) => (
                   <a
                     key={href}

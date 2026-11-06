@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarCheck, Lock } from "lucide-react";
+import { LayoutGrid, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getBranches, getSettings, getStaffForms } from "@/lib/db";
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/lib/archive";
 import { getDriveConnection } from "@/lib/googleDrive";
 import { formsText } from "@/lib/formsText";
-import { getDictionary } from "@/lib/dictionaries";
+import { supervisorText } from "@/lib/supervisorText";
 import { FormsPortal, type PortalEntry } from "@/components/FormsPortal";
 import { Logo } from "@/components/Logo";
 
@@ -104,11 +104,11 @@ export default async function StaffFormsPage({
             </span>
             {supervisor && (
               <Link
-                href={localePath(locale, `/bookings/${params.key}`)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
+                href={localePath(locale, `/supervisor/${params.key}`)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-950 hover:bg-sand-100"
               >
-                <CalendarCheck className="h-4 w-4 flex-shrink-0" />
-                {getDictionary(locale).admin.bookings}
+                <LayoutGrid className="h-4 w-4 flex-shrink-0" />
+                {supervisorText(locale).home}
               </Link>
             )}
           </div>
