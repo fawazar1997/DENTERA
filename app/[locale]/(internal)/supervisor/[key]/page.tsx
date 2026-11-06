@@ -1,7 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookUser, CalendarCheck, ExternalLink, FolderOpen, LayoutGrid, Lock } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookUser,
+  CalendarCheck,
+  ExternalLink,
+  FolderOpen,
+  LayoutGrid,
+  Lock,
+  Monitor,
+  PhoneCall,
+  Users,
+} from "lucide-react";
 import type { ComponentType } from "react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
@@ -36,7 +48,14 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
   const other = locale === "ar" ? "en" : "ar";
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
 
-  type Card = { href: string; title: string; hint: string; icon: ComponentType<{ className?: string }> };
+  type Card = {
+    href: string;
+    title: string;
+    hint: string;
+    icon: ComponentType<{ className?: string }>;
+    /** Another website (the clinic's systems): its full address. */
+    external?: boolean;
+  };
   // The supervisor's own pages, as large cards.
   const cards: Card[] = [
     { href: `/bookings/${params.key}`, title: dict.admin.bookings, hint: t.bookingsHint, icon: CalendarCheck },
@@ -63,6 +82,10 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
       hint: t.pricesHint,
       icon: RiyalIcon,
     },
+    // The clinic's other systems (they have their own sign-in).
+    { href: "https://dentera.microchips-cloud.com/pms", title: t.pms, hint: t.pmsHint, icon: Monitor, external: true },
+    { href: "https://dentera.microchips-cloud.com/hr/Default/Login", title: t.hr, hint: t.hrHint, icon: Users, external: true },
+    { href: "https://dentera.ras.yeastar.com/", title: t.yeastar, hint: t.yeastarHint, icon: PhoneCall, external: true },
   ] as (Card | "" | undefined)[]).filter((c): c is Card => !!c);
 
   return (
@@ -137,10 +160,10 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
             <div className="mt-8">
               <h2 className="text-center text-sm font-bold text-ink-500">{t.quickAccess}</h2>
               <ul className="mx-auto mt-3 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {quick.map(({ href, title, hint, icon: Icon }) => (
+                {quick.map(({ href, title, hint, icon: Icon, external }) => (
                   <li key={href}>
                     <Link
-                      href={localePath(locale, href)}
+                      href={external ? href : localePath(locale, href)}
                       target="_blank"
                       rel="noreferrer"
                       className="group flex items-center gap-3 rounded-2xl bg-white p-3.5 ring-1 ring-ink-100 transition hover:-translate-y-0.5 hover:shadow-soft hover:ring-primary-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
