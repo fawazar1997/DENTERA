@@ -8,12 +8,11 @@ import {
   ARCHIVE_BRANCHES,
   getArchiveFolders,
   isValidFormsKey,
-  listArchive,
   nextLetterNumbers,
 } from "@/lib/archive";
 import { getDriveConnection } from "@/lib/googleDrive";
 import { formsText } from "@/lib/formsText";
-import { FormsPortal, type PortalEntry } from "@/components/FormsPortal";
+import { FormsPortal } from "@/components/FormsPortal";
 import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
@@ -39,14 +38,13 @@ export default async function StaffFormsPage({
 
   const t = formsText(locale);
   const ar = locale === "ar";
-  const [branches, forms, settings, folders, connection, numbers, entries] = await Promise.all([
+  const [branches, forms, settings, folders, connection, numbers] = await Promise.all([
     getBranches(),
     getStaffForms(),
     getSettings(),
     getArchiveFolders(),
     getDriveConnection(),
     nextLetterNumbers(),
-    listArchive(),
   ]);
   const other = locale === "ar" ? "en" : "ar";
 
@@ -61,19 +59,6 @@ export default async function StaffFormsPage({
         incoming: Boolean(connection && folders[b.id]?.incoming),
       },
     }));
-  const log: PortalEntry[] = entries.slice(0, 300).map((e) => ({
-    id: e.id,
-    kind: e.kind,
-    branch: e.branch,
-    number: e.number,
-    title: e.title,
-    party: e.party,
-    letterNo: e.letterNo,
-    department: e.department,
-    letterDate: e.letterDate,
-    driveLink: e.driveLink,
-  }));
-
   return (
     <div className="min-h-screen">
       <header className="bg-ink-950">
@@ -104,7 +89,6 @@ export default async function StaffFormsPage({
           forms={forms
             .filter((f) => f.active)
             .map(({ id, branch, nameAr, nameEn, docId }) => ({ id, branch, nameAr, nameEn, docId }))}
-          entries={log}
           departmentsOut={settings.archiveDepartmentsOut ?? []}
           departmentsIn={settings.archiveDepartmentsIn ?? []}
           t={t}

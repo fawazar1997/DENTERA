@@ -31,20 +31,7 @@ export type PortalBranch = {
   ready: { outgoing: boolean; incoming: boolean };
 };
 export type PortalForm = { id: string; branch: string; nameAr: string; nameEn: string; docId: string };
-export type PortalEntry = {
-  id: string;
-  kind: "outgoing" | "incoming";
-  branch: string;
-  number?: string;
-  title: string;
-  party?: string;
-  letterNo?: string;
-  department: string;
-  letterDate: string;
-  driveLink?: string;
-};
-
-type Tab = "forms" | "outgoing" | "incoming" | "log";
+type Tab = "forms" | "outgoing" | "incoming";
 
 const BRANCH_KEY = "dentera-forms-branch";
 const EMPLOYEE_KEY = "dentera-employee-no";
@@ -364,13 +351,12 @@ function LetterForm({
   );
 }
 
-/** The staff forms page: branch → forms, outgoing/incoming letter forms, and the log. */
+/** The staff forms page: branch → forms, and the outgoing/incoming letter forms. */
 export function FormsPortal({
   accessKey,
   locale,
   branches,
   forms,
-  entries,
   departmentsOut,
   departmentsIn,
   t,
@@ -379,7 +365,6 @@ export function FormsPortal({
   locale: Locale;
   branches: PortalBranch[];
   forms: PortalForm[];
-  entries: PortalEntry[];
   departmentsOut: string[];
   departmentsIn: string[];
   t: FormsText;
@@ -389,8 +374,6 @@ export function FormsPortal({
   const [branchId, setBranchId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("forms");
   const [query, setQuery] = useState("");
-  const [logKind, setLogKind] = useState<"outgoing" | "incoming">("outgoing");
-  const [logQuery, setLogQuery] = useState("");
 
   useEffect(() => {
     try {
@@ -420,17 +403,6 @@ export function FormsPortal({
       .filter((f) => terms.every((w) => normalize(`${f.nameAr} ${f.nameEn}`).includes(w)));
   }, [forms, branch, query]);
 
-  const shownLog = useMemo(() => {
-    const terms = normalize(logQuery).split(" ").filter(Boolean);
-    return entries
-      .filter((e) => branch && e.branch === branch.id && e.kind === logKind)
-      .filter((e) =>
-        terms.every((w) =>
-          normalize(`${e.number ?? ""} ${e.title} ${e.party ?? ""} ${e.letterNo ?? ""} ${e.department}`).includes(w)
-        )
-      );
-  }, [entries, branch, logKind, logQuery]);
-
   if (!branch) {
     return (
       <div className="mx-auto max-w-xl">
@@ -456,7 +428,6 @@ export function FormsPortal({
     { id: "forms", label: t.tabForms, icon: FileText },
     { id: "outgoing", label: t.tabOutgoing, icon: Send },
     { id: "incoming", label: t.tabIncoming, icon: Inbox },
-    { id: "log", label: t.tabLog, icon: Search },
   ];
   const doc = (id: string, path: string) => `https://docs.google.com/document/d/${id}/${path}`;
 
@@ -472,7 +443,7 @@ export function FormsPortal({
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist">
+      <div className="mt-4 grid grid-cols-3 gap-2" role="tablist">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -551,65 +522,6 @@ export function FormsPortal({
           />
         )}
 
-        {tab === "log" && (
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              {(["outgoing", "incoming"] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setLogKind(k)}
-                  className={`rounded-full px-4 py-1.5 text-sm font-bold ${
-                    logKind === k ? "bg-ink-950 text-white" : "bg-ink-50 text-ink-700 hover:bg-ink-100"
-                  }`}
-                >
-                  {k === "outgoing" ? t.logOutgoing : t.logIncoming}
-                </button>
-              ))}
-            </div>
-            <input
-              type="search"
-              value={logQuery}
-              onChange={(e) => setLogQuery(e.target.value)}
-              placeholder={t.searchLog}
-              className="input mt-3"
-            />
-            {shownLog.length === 0 ? (
-              <p className="mt-6 rounded-xl bg-ink-50 px-4 py-6 text-center text-ink-500">{t.noLog}</p>
-            ) : (
-              <ul className="card mt-4 divide-y divide-ink-100 overflow-hidden">
-                {shownLog.map((e) => (
-                  <li key={e.id} className="flex items-center gap-3 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-ink-900">
-                        {e.number && (
-                          <span dir="ltr" className="me-2 text-primary-700">
-                            {e.number}
-                          </span>
-                        )}
-                        {e.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-ink-500">
-                        {[e.party, e.letterNo, e.department, e.letterDate].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    {e.driveLink && (
-                      <a
-                        href={e.driveLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-primary-700 hover:underline"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Drive
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
