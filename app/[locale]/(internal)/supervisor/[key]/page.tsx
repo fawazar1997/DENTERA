@@ -90,22 +90,29 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
               <li key={href}>
                 <Link
                   href={localePath(locale, href)}
-                  className="group relative isolate flex h-full min-h-[11rem] flex-col overflow-hidden rounded-[1.75rem] bg-white p-6 shadow-soft ring-1 ring-ink-100 transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:ring-primary-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 sm:p-7"
+                  className="group relative isolate flex h-full min-h-[12rem] flex-col overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-ink-900 via-ink-950 to-ink-950 p-6 text-white shadow-soft ring-1 ring-ink-900/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300 sm:p-7"
                 >
-                  {/* The identity's fingerprint lines, fading out of the corner. */}
+                  {/* The identity's fingerprint lines and tooth mark, as on the branch cards. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/brand/fingerprint-corner.svg"
                     alt=""
                     aria-hidden="true"
-                    className="pointer-events-none absolute -end-10 -top-10 -z-10 h-44 w-44 transition duration-500 [mask-image:radial-gradient(circle,black_30%,transparent_68%)] group-hover:scale-110"
+                    className="pointer-events-none absolute -end-10 -top-10 -z-10 h-48 w-48 opacity-40 transition duration-500 [mask-image:radial-gradient(circle,black_30%,transparent_70%)] group-hover:scale-110"
                   />
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-950 text-white shadow-soft transition group-hover:bg-ink-900">
-                    <Icon className="h-7 w-7" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/brand/dentera-mark.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-10 -end-6 -z-10 h-44 w-auto opacity-[0.12] transition duration-500 group-hover:-rotate-6 group-hover:opacity-20"
+                  />
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white ring-1 ring-white/15">
+                    <Icon className="h-6 w-6" />
                   </span>
-                  <span className="mt-5 text-xl font-extrabold text-ink-950">{title}</span>
-                  <span className="mt-1 text-sm leading-relaxed text-ink-500">{hint}</span>
-                  <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-bold text-primary-700">
+                  <span className="mt-5 text-2xl font-extrabold leading-tight">{title}</span>
+                  <span className="mt-1.5 text-sm leading-relaxed text-white/70">{hint}</span>
+                  <span className="mt-auto inline-flex items-center gap-1.5 self-end pt-5 text-sm font-bold text-white/80 transition group-hover:text-white">
                     {t.open}
                     <Arrow className="h-4 w-4 transition rtl:group-hover:-translate-x-1 ltr:group-hover:translate-x-1" />
                   </span>
