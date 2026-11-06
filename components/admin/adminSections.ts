@@ -48,8 +48,12 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
       { path: "/bookings", label: "bookings", hint: "hintBookings", icon: CalendarCheck },
       { path: "/directory", label: "directory", hint: "hintDirectory", icon: BookUser },
       { path: "/prices", label: "prices", hint: "hintPrices", icon: RiyalIcon },
-      { path: "/forms", label: "formsArchive", hint: "hintForms", icon: FolderOpen },
     ],
+  },
+  {
+    // Internal admin tools for the branches; more will be added here.
+    label: "navGroupAdminSystems",
+    sections: [{ path: "/forms", label: "formsArchive", hint: "hintForms", icon: FolderOpen }],
   },
   {
     label: "navGroupMedical",
