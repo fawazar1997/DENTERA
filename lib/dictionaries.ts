@@ -513,7 +513,7 @@ export const dictionaries = {
       supervisor: "Supervisor",
       supervisorLink: "Supervisor link",
       supervisorLinkHint:
-        "For the call-center supervisor only: everything on the call center page, plus assigning each request's extension. The call center link can't change extensions.",
+        "For the call-center supervisor only: everything on the call center page, plus assigning each request's extension. The call center link can't change extensions. The same link also opens the forms and letters page with the letters register (view only).",
       openSupervisor: "Open supervisor page",
       deleteOldTitle: "Delete old requests",
       deleteOldHint: "Permanently deletes every request received on or before this date (Saudi time). This can't be undone.",
@@ -1130,7 +1130,7 @@ export const dictionaries = {
       supervisor: "المشرف",
       supervisorLink: "رابط المشرف",
       supervisorLinkHint:
-        "لمشرف مركز الاتصال فقط: كل ما في صفحة مركز الاتصال، مع تعيين رقم التحويلة لكل طلب. رابط مركز الاتصال لا يستطيع تعديل التحويلة.",
+        "لمشرف مركز الاتصال فقط: كل ما في صفحة مركز الاتصال، مع تعيين رقم التحويلة لكل طلب. رابط مركز الاتصال لا يستطيع تعديل التحويلة. ومن أيقونة أعلى الصفحة يفتح المشرف النماذج والخطابات مع سجل الخطابات (اطلاع فقط).",
       openSupervisor: "فتح صفحة المشرف",
       deleteOldTitle: "حذف الطلبات القديمة",
       deleteOldHint: "يحذف نهائيًا كل الطلبات التي وصلت في هذا التاريخ أو قبله (بتوقيت السعودية). لا يمكن التراجع عن الحذف.",

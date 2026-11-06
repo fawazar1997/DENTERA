@@ -6,6 +6,9 @@ import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
 import { readBlobJson, writeBlobJson } from "./privateBlob";
 import { getSettings } from "./db";
+import { foldArabic } from "./arabicSearch";
+
+export { foldArabic };
 
 // The letters archive register: outgoing letters (الصادر), numbered
 // ABH-2026-0061 / KHA-2026-… per branch and year, and incoming mail
@@ -83,13 +86,29 @@ export const ARCHIVE_FILE_TYPES: Record<string, string> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
 };
 
-/** True when `key` matches the forms page link saved in the control panel. */
-export async function isValidFormsKey(key: string): Promise<boolean> {
-  const saved = (await getSettings()).formsKey;
+function sameKey(saved: string | undefined, key: string): boolean {
   if (!saved || !key) return false;
   const a = Buffer.from(saved);
   const b = Buffer.from(key);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Which forms page link `key` is: the staff link, the supervisor's (the
+ * same page plus the letters register, view only), or neither (null). The
+ * supervisor is the bookings supervisor, so their link uses the same key as
+ * the bookings supervisor link, and each page links to the other.
+ */
+export async function formsKeyRole(key: string): Promise<"staff" | "supervisor" | null> {
+  const settings = await getSettings();
+  if (sameKey(settings.formsKey, key)) return "staff";
+  if (sameKey(settings.bookingsSupervisorKey, key)) return "supervisor";
+  return null;
+}
+
+/** True when `key` is either forms page link (both can send letters). */
+export async function isValidFormsKey(key: string): Promise<boolean> {
+  return (await formsKeyRole(key)) !== null;
 }
 
 /** The current year in Saudi time (numbers restart every year). */
@@ -318,20 +337,6 @@ export async function setNextLetterNumber(branch: string, next: number): Promise
       result: "ok" as const,
     };
   });
-}
-
-/** Arabic text folded for searching (alef forms, taa marbuta, digits…). */
-export function foldArabic(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
-    .replace(/[أإآٱ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /** Entries matching a search (number, sender, title, department, date…). */

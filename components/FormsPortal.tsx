@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Archive,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -17,6 +18,7 @@ import {
   Send,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
+import { foldArabic } from "@/lib/arabicSearch";
 import type { FormsText } from "@/lib/formsText";
 import {
   cancelArchiveUploadAction,
@@ -33,7 +35,24 @@ export type PortalBranch = {
   ready: { outgoing: boolean; incoming: boolean };
 };
 export type PortalForm = { id: string; branch: string; nameAr: string; nameEn: string; docId: string };
-type Tab = "forms" | "outgoing" | "incoming";
+/** A register line, shown on the supervisors' link only (view only). */
+export type PortalEntry = {
+  id: string;
+  kind: "outgoing" | "incoming";
+  branch: string;
+  number?: string;
+  letterNo?: string;
+  party?: string;
+  title: string;
+  department: string;
+  letterType?: string;
+  employeeNo?: string;
+  letterDate: string;
+  driveLink?: string;
+};
+type Tab = "forms" | "outgoing" | "incoming" | "log";
+
+const LOG_PAGE = 50;
 
 const BRANCH_KEY = "dentera-forms-branch";
 const EMPLOYEE_KEY = "dentera-employee-no";
@@ -52,16 +71,7 @@ const TYPE_BY_EXT: Record<string, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
-function normalize(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[ً-ْـ]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+const normalize = foldArabic;
 
 /** Today in Saudi time, YYYY-MM-DD. */
 function today(): string {
@@ -361,6 +371,7 @@ export function FormsPortal({
   forms,
   departmentsOut,
   departmentsIn,
+  entries,
   t,
 }: {
   accessKey: string;
@@ -369,6 +380,8 @@ export function FormsPortal({
   forms: PortalForm[];
   departmentsOut: string[];
   departmentsIn: string[];
+  /** The letters register: given only on the supervisors' link. */
+  entries?: PortalEntry[];
   t: FormsText;
 }) {
   const router = useRouter();
@@ -376,6 +389,9 @@ export function FormsPortal({
   const [branchId, setBranchId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("forms");
   const [query, setQuery] = useState("");
+  const [logKind, setLogKind] = useState<"all" | "outgoing" | "incoming">("all");
+  const [logQuery, setLogQuery] = useState("");
+  const [logLimit, setLogLimit] = useState(LOG_PAGE);
 
   useEffect(() => {
     try {
@@ -404,6 +420,20 @@ export function FormsPortal({
       .filter((f) => branch && (f.branch === branch.id || f.branch === "both"))
       .filter((f) => terms.every((w) => normalize(`${f.nameAr} ${f.nameEn}`).includes(w)));
   }, [forms, branch, query]);
+
+  const shownLog = useMemo(() => {
+    if (!entries || !branch) return [];
+    const terms = normalize(logQuery).split(" ").filter(Boolean);
+    return entries
+      .filter((e) => e.branch === branch.id && (logKind === "all" || e.kind === logKind))
+      .filter((e) =>
+        terms.every((w) =>
+          normalize(
+            [e.number, e.letterNo, e.party, e.title, e.department, e.letterType, e.employeeNo, e.letterDate].join(" ")
+          ).includes(w)
+        )
+      );
+  }, [entries, branch, logKind, logQuery]);
 
   if (!branch) {
     const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
@@ -468,6 +498,7 @@ export function FormsPortal({
     { id: "forms", label: t.tabForms, icon: FileText },
     { id: "outgoing", label: t.tabOutgoing, icon: Send },
     { id: "incoming", label: t.tabIncoming, icon: Inbox },
+    ...(entries ? [{ id: "log" as const, label: t.tabLog, icon: Archive }] : []),
   ];
   const doc = (id: string, path: string) => `https://docs.google.com/document/d/${id}/${path}`;
 
@@ -483,7 +514,7 @@ export function FormsPortal({
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2" role="tablist">
+      <div className={`mt-4 grid gap-2 ${entries ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`} role="tablist">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -560,6 +591,110 @@ export function FormsPortal({
             t={t}
             onDone={() => router.refresh()}
           />
+        )}
+
+        {tab === "log" && entries && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              {(["all", "outgoing", "incoming"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => {
+                    setLogKind(k);
+                    setLogLimit(LOG_PAGE);
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-sm font-bold ${
+                    logKind === k ? "bg-ink-950 text-white" : "bg-white text-ink-700 ring-1 ring-ink-100 hover:bg-ink-50"
+                  }`}
+                >
+                  {k === "all" ? t.logAll : k === "outgoing" ? t.logOutgoing : t.logIncoming}
+                </button>
+              ))}
+              <a
+                href={`/api/forms/${encodeURIComponent(accessKey)}/archive?${new URLSearchParams({
+                  branch: branch.id,
+                  ...(logKind !== "all" ? { kind: logKind } : {}),
+                  ...(logQuery.trim() ? { q: logQuery.trim() } : {}),
+                })}`}
+                className="btn-outline ms-auto px-3 py-1.5 text-sm"
+              >
+                <Download className="h-4 w-4" />
+                {t.downloadLog}
+              </a>
+            </div>
+            <div className="relative mt-3">
+              <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+              <input
+                type="search"
+                value={logQuery}
+                onChange={(e) => {
+                  setLogQuery(e.target.value);
+                  setLogLimit(LOG_PAGE);
+                }}
+                placeholder={t.searchLog}
+                className="input ps-9"
+              />
+            </div>
+            <p className="mt-3 text-sm text-ink-500">
+              <b className="text-ink-900">{shownLog.length}</b> {t.logCount}
+            </p>
+            {shownLog.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-ink-50 px-4 py-6 text-center text-ink-500">{t.noLog}</p>
+            ) : (
+              <ul className="card mt-3 divide-y divide-ink-100 overflow-hidden">
+                {shownLog.slice(0, logLimit).map((e) => (
+                  <li key={e.id} className="flex items-start gap-3 px-4 py-3">
+                    <span
+                      className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+                        e.kind === "outgoing" ? "bg-primary-50 text-primary-700" : "bg-sand-100 text-ink-700"
+                      }`}
+                      title={e.kind === "outgoing" ? t.logOutgoing : t.logIncoming}
+                    >
+                      {e.kind === "outgoing" ? <Send className="h-4 w-4" /> : <Inbox className="h-4 w-4" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      {(e.number || e.letterNo) && (
+                        <p className="text-xs font-bold tracking-wide text-primary-700">
+                          <bdi dir="ltr">{e.number || e.letterNo}</bdi>
+                        </p>
+                      )}
+                      <p className="font-bold text-ink-900">{e.title}</p>
+                      <p className="mt-0.5 text-xs text-ink-500">
+                        {[e.party, e.department, e.letterType, e.employeeNo, e.letterDate]
+                          .filter(Boolean)
+                          .map((part, i) => (
+                            <span key={i}>
+                              {i > 0 && " · "}
+                              <bdi>{part}</bdi>
+                            </span>
+                          ))}
+                      </p>
+                    </div>
+                    {e.driveLink && (
+                      <a
+                        href={e.driveLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex flex-shrink-0 items-center gap-1 text-sm font-semibold text-primary-700 hover:underline"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t.logOpen}</span>
+                        <span className="sm:hidden">Drive</span>
+                      </a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {shownLog.length > logLimit && (
+              <div className="mt-4 text-center">
+                <button type="button" onClick={() => setLogLimit((n) => n + LOG_PAGE)} className="btn-outline px-5 py-2 text-sm">
+                  {t.showMore}
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
       </div>

@@ -1,18 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock } from "lucide-react";
+import { CalendarCheck, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getBranches, getSettings, getStaffForms } from "@/lib/db";
 import {
   ARCHIVE_BRANCHES,
+  formsKeyRole,
   getArchiveFolders,
-  isValidFormsKey,
+  listArchive,
   nextLetterNumbers,
 } from "@/lib/archive";
 import { getDriveConnection } from "@/lib/googleDrive";
 import { formsText } from "@/lib/formsText";
-import { FormsPortal } from "@/components/FormsPortal";
+import { getDictionary } from "@/lib/dictionaries";
+import { FormsPortal, type PortalEntry } from "@/components/FormsPortal";
 import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +27,9 @@ export const metadata: Metadata = {
 
 /**
  * Staff forms and letters archive, reachable only through the private link
- * created in Control Panel → Forms & Archive. A wrong or revoked key gets a
- * plain 404, so the page's existence isn't revealed.
+ * created in Control Panel → Forms & Archive. The supervisors' link is the
+ * same page plus the letters register (view only). A wrong or revoked key
+ * gets a plain 404, so the page's existence isn't revealed.
  */
 export default async function StaffFormsPage({
   params,
@@ -34,7 +37,9 @@ export default async function StaffFormsPage({
   params: { locale: string; key: string };
 }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
-  if (!(await isValidFormsKey(params.key))) notFound();
+  const role = await formsKeyRole(params.key);
+  if (!role) notFound();
+  const supervisor = role === "supervisor";
 
   const t = formsText(locale);
   const ar = locale === "ar";
@@ -46,6 +51,23 @@ export default async function StaffFormsPage({
     getDriveConnection(),
     nextLetterNumbers(),
   ]);
+  // The register goes to the supervisors' link only, and only what it shows.
+  const entries: PortalEntry[] | undefined = supervisor
+    ? (await listArchive()).map((e) => ({
+        id: e.id,
+        kind: e.kind,
+        branch: e.branch,
+        number: e.number,
+        letterNo: e.letterNo,
+        party: e.party,
+        title: e.title,
+        department: e.department,
+        letterType: e.letterType,
+        employeeNo: e.employeeNo,
+        letterDate: e.letterDate,
+        driveLink: e.driveLink,
+      }))
+    : undefined;
   const other = locale === "ar" ? "en" : "ar";
 
   const portalBranches = branches
@@ -75,10 +97,21 @@ export default async function StaffFormsPage({
               {other === "ar" ? "العربية" : "English"}
             </Link>
           </div>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sand-200">
-            <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-            {t.internalOnly}
-          </span>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-sand-200">
+              <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+              {supervisor ? t.supervisorOnly : t.internalOnly}
+            </span>
+            {supervisor && (
+              <Link
+                href={localePath(locale, `/bookings/${params.key}`)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
+              >
+                <CalendarCheck className="h-4 w-4 flex-shrink-0" />
+                {getDictionary(locale).admin.bookings}
+              </Link>
+            )}
+          </div>
         </div>
       </header>
       <main className="container-x min-w-0 py-5 sm:py-6">
@@ -91,6 +124,7 @@ export default async function StaffFormsPage({
             .map(({ id, branch, nameAr, nameEn, docId }) => ({ id, branch, nameAr, nameEn, docId }))}
           departmentsOut={settings.archiveDepartmentsOut ?? []}
           departmentsIn={settings.archiveDepartmentsIn ?? []}
+          entries={entries}
           t={t}
         />
       </main>

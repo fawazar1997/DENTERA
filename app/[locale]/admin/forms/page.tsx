@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { Archive, ArrowDown, ArrowUp, ExternalLink, FolderOpen, Hash, Link2, Pencil, Plus } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, ExternalLink, FolderOpen, Hash, Link2, Pencil, Plus, ShieldCheck } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getSettings, getStaffForms } from "@/lib/db";
@@ -190,6 +190,29 @@ export default async function AdminFormsPage({
                 {t.openPage}
               </a>
             )}
+          </div>
+          <div className="mt-6 border-t border-ink-100 pt-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-ink-900">
+              <ShieldCheck className="h-4 w-4 text-primary-600" />
+              {t.supervisorTitle}
+            </h3>
+            <p className="mt-1 text-sm text-ink-500">{t.supervisorHint}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              {settings.bookingsSupervisorKey && (
+                <a
+                  href={localePath(locale, `/forms/${settings.bookingsSupervisorKey}`)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-700 hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {t.openPage}
+                </a>
+              )}
+              <Link href={localePath(locale, "/admin/bookings")} className="text-sm font-semibold text-ink-600 hover:text-primary-700 hover:underline">
+                {t.supervisorManage}
+              </Link>
+            </div>
           </div>
         </section>
 

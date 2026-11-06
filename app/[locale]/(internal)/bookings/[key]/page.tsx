@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookUser, Lock } from "lucide-react";
+import { BookUser, FolderOpen, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
 import { getSettings } from "@/lib/db";
@@ -43,6 +43,13 @@ export default async function CallCenterBookingsPage({
   // the board keeps its place).
   const settings = await getSettings();
   const shortcuts = [
+    // The supervisor also oversees the letters: the same link opens the
+    // forms page with the letters register (view only).
+    role === "supervisor" && {
+      href: localePath(locale, `/forms/${params.key}`),
+      label: data.dict.admin.formsArchive,
+      icon: FolderOpen,
+    },
     settings.directoryKey && {
       href: localePath(locale, `/directory/${settings.directoryKey}`),
       label: data.dict.admin.directory,
