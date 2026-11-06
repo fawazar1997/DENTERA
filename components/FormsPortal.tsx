@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
+  ArrowRight,
   Check,
   Copy,
   Download,
@@ -404,19 +406,57 @@ export function FormsPortal({
   }, [forms, branch, query]);
 
   if (!branch) {
+    const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
+    // "فرع أبها" → "أبها" (the word "branch" is shown small above it).
+    const city = (name: string) => name.replace(/^فرع\s+/, "").replace(/\s+branch$/i, "");
     return (
-      <div className="mx-auto max-w-xl">
-        <h1 className="text-center text-xl font-extrabold text-ink-950">{t.chooseBranch}</h1>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mx-auto max-w-3xl pt-4 sm:pt-8">
+        <div className="text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/dentera-mark.svg" alt="" aria-hidden="true" className="mx-auto h-14 w-auto opacity-90" />
+          <h1 className="mt-4 text-2xl font-extrabold text-ink-950 sm:text-3xl">{t.chooseBranch}</h1>
+          <p className="mt-2 text-sm text-ink-500 sm:text-base">{t.chooseBranchHint}</p>
+        </div>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2">
           {branches.map((b) => (
             <button
               key={b.id}
               type="button"
               onClick={() => choose(b.id)}
-              className="card flex flex-col items-center gap-3 p-8 text-lg font-extrabold text-ink-950 transition hover:-translate-y-0.5 hover:border-primary-300"
+              className="group relative isolate flex min-h-[13rem] flex-col overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-ink-900 via-ink-950 to-ink-950 p-7 text-start text-white shadow-soft ring-1 ring-ink-900/10 transition duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
             >
-              <MapPin className="h-8 w-8 text-primary-600" />
-              {b.name}
+              {/* The identity's fingerprint lines and tooth mark, as a watermark. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/fingerprint-corner.svg"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -end-10 -top-10 -z-10 h-48 w-48 opacity-40 transition duration-500 [mask-image:radial-gradient(circle,black_30%,transparent_70%)] group-hover:scale-110"
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/dentera-mark.svg"
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-10 -end-6 -z-10 h-44 w-auto opacity-[0.12] transition duration-500 group-hover:-rotate-6 group-hover:opacity-20"
+              />
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/15">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/dentera-mark.svg" alt="" aria-hidden="true" className="h-7 w-auto" />
+              </span>
+              <span className="mt-5 text-xs font-semibold tracking-wide text-primary-300">
+                {t.clinics} · {t.branchWord}
+              </span>
+              <span className="mt-1 text-3xl font-extrabold leading-tight">{city(b.name)}</span>
+              <span className="mt-auto flex items-center justify-between gap-3 pt-6">
+                <span dir="ltr" className="rounded-full bg-white/10 px-3 py-1 font-mono text-xs font-bold tracking-wider text-sand-200">
+                  {b.nextNumber.split("-")[0]}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-sm font-bold text-white/80 transition group-hover:text-white">
+                  {t.enter}
+                  <Arrow className="h-4 w-4 transition rtl:group-hover:-translate-x-1 ltr:group-hover:translate-x-1" />
+                </span>
+              </span>
             </button>
           ))}
         </div>

@@ -49,6 +49,10 @@ export type ArchiveEntry = {
   driveLink?: string;
   createdAt: string;
   completedAt?: string;
+  /** Added from the old records (the Google Sheet), not sent from the form. */
+  imported?: boolean;
+  /** Which import it came with, so a whole import can be undone. */
+  importBatch?: string;
 };
 
 type ArchiveFile = {
@@ -313,6 +317,112 @@ export async function setNextLetterNumber(branch: string, next: number): Promise
       next: { ...file, counters: { ...file.counters, [counterKey]: next } },
       result: "ok" as const,
     };
+  });
+}
+
+/** Arabic text folded for searching (alef forms, taa marbuta, digits…). */
+export function foldArabic(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Entries matching a search (number, sender, title, department, date…). */
+export function searchArchive(entries: ArchiveEntry[], query: string): ArchiveEntry[] {
+  const words = foldArabic(query).split(" ").filter(Boolean);
+  if (!words.length) return entries;
+  return entries.filter((e) => {
+    const text = foldArabic(
+      [e.number, e.letterNo, e.party, e.title, e.department, e.letterType, e.employeeNo, e.letterDate].join(" ")
+    );
+    return words.every((w) => text.includes(w));
+  });
+}
+
+/** A past letter to add to the register (from the old Sheet or typed in). */
+export type PastLetter = Omit<ArchiveEntry, "id" | "status" | "importBatch" | "imported" | "fileName" | "mimeType" | "size"> &
+  Partial<Pick<ArchiveEntry, "fileName" | "mimeType" | "size">>;
+
+// The same letter, when an import is run twice. (The old Sheet has a few
+// different letters sharing one number; those are all kept.)
+function duplicateKey(
+  e: Pick<ArchiveEntry, "kind" | "branch" | "number" | "party" | "letterNo" | "title" | "letterDate" | "employeeNo">
+) {
+  return `${e.kind}:${e.branch}:${foldArabic([e.number, e.party, e.letterNo, e.title, e.letterDate, e.employeeNo].join("|"))}`;
+}
+
+/**
+ * Adds past letters to the register. Letters already in it (same number,
+ * sender, title, date and employee) are skipped. When a past
+ * letter's number is this year's and higher than the counter, the counter
+ * moves past it, so a new letter never repeats an old number.
+ */
+export async function addPastLetters(
+  letters: PastLetter[]
+): Promise<{ added: number; duplicates: number; batch: string }> {
+  const batch = randomBytes(6).toString("base64url");
+  const year = archiveYear();
+  const now = new Date().toISOString();
+  return changeArchive((file) => {
+    const seen = new Set(file.entries.filter((e) => e.status !== "cancelled").map(duplicateKey));
+    const counters = { ...file.counters };
+    const added: ArchiveEntry[] = [];
+    let duplicates = 0;
+    for (const letter of letters) {
+      const key = duplicateKey(letter);
+      if (seen.has(key)) {
+        duplicates++;
+        continue;
+      }
+      seen.add(key);
+      added.push({
+        fileName: "",
+        mimeType: "",
+        size: 0,
+        ...letter,
+        id: randomBytes(9).toString("base64url"),
+        status: "done",
+        completedAt: now,
+        imported: true,
+        importBatch: batch,
+      });
+      const match = letter.number?.match(/^([A-Z]+)-(\d{4})-(\d+)$/);
+      if (match && Number(match[2]) === year && Object.values(ARCHIVE_BRANCHES).includes(match[1])) {
+        const counterKey = `${match[1]}-${match[2]}`;
+        counters[counterKey] = Math.max(counters[counterKey] ?? 1, Number(match[3]) + 1);
+      }
+    }
+    if (!added.length) return { next: null, result: { added: 0, duplicates, batch } };
+    return { next: { counters, entries: [...file.entries, ...added] }, result: { added: added.length, duplicates, batch } };
+  });
+}
+
+/** The imports so far (newest first), to undo one. */
+export async function listImportBatches(): Promise<{ batch: string; count: number; at: string; kind: ArchiveKind }[]> {
+  const file = isBlobConfigured() ? await readArchiveCached() : readLocal();
+  const batches = new Map<string, { batch: string; count: number; at: string; kind: ArchiveKind }>();
+  for (const e of file.entries) {
+    if (!e.importBatch) continue;
+    const b = batches.get(e.importBatch) ?? { batch: e.importBatch, count: 0, at: e.completedAt ?? e.createdAt, kind: e.kind };
+    b.count++;
+    batches.set(e.importBatch, b);
+  }
+  return [...batches.values()].sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/** Removes every letter added by one import (the Drive files stay). */
+export async function deleteImportBatch(batch: string): Promise<number> {
+  return changeArchive((file) => {
+    const entries = file.entries.filter((e) => e.importBatch !== batch);
+    const removed = file.entries.length - entries.length;
+    return removed ? { next: { ...file, entries }, result: removed } : { next: null, result: 0 };
   });
 }
 

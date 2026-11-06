@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
-import { ArrowDown, ArrowUp, Download, ExternalLink, FolderOpen, Hash, Link2, Pencil, Plus } from "lucide-react";
+import Link from "next/link";
+import { Archive, ArrowDown, ArrowUp, ExternalLink, FolderOpen, Hash, Link2, Pencil, Plus } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getBranches, getSettings, getStaffForms } from "@/lib/db";
@@ -8,7 +9,6 @@ import { checkDriveFolder, getDriveConnection, isDriveAppConfigured } from "@/li
 import { formsAdminText } from "@/lib/formsText";
 import {
   createStaffFormAction,
-  deleteArchiveEntryAction,
   deleteStaffFormAction,
   disconnectDriveAction,
   generateFormsKeyAction,
@@ -103,8 +103,9 @@ export default async function AdminFormsPage({
     getArchiveFolders(),
     getDriveConnection(),
     nextLetterNumbers(),
-    listArchive({ all: true }),
+    listArchive(),
   ]);
+  const count = entries.length;
   const branches = allBranches
     .filter((b) => ARCHIVE_BRANCHES[b.id])
     .map((b) => ({ id: b.id, name: ar ? b.nameAr : b.nameEn }));
@@ -140,14 +141,11 @@ export default async function AdminFormsPage({
     if (g === "disconnected") return { ok: true, text: t.googleDisconnected };
     if (searchParams.saved === "settings") return { ok: true, text: t.savedSettings };
     if (searchParams.saved === "number") return { ok: true, text: t.savedNumber };
-    if (searchParams.saved === "deleted") return { ok: true, text: t.savedDeleted };
     if (searchParams.numberError === "too-low") return { ok: false, text: t.numberTooLow };
     if (searchParams.numberError) return { ok: false, text: t.numberInvalid };
     if (searchParams.formError) return { ok: false, text: t.formError };
     return null;
   })();
-
-  const statusLabel = { done: t.statusDone, pending: t.statusPending, cancelled: t.statusCancelled };
 
   return (
     <div className="container-x py-10">
@@ -379,77 +377,19 @@ export default async function AdminFormsPage({
         </ul>
       </section>
 
-      <section className="card mt-6 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="card mt-6 flex flex-wrap items-center justify-between gap-3 p-6">
+        <div>
           <h2 className="flex items-center gap-2 font-bold text-ink-900">
-            <FolderOpen className="h-5 w-5 text-primary-600" />
-            {t.archiveTitle}
+            <Archive className="h-5 w-5 text-primary-600" />
+            {dict.admin.lettersLog}
           </h2>
-          <a href="/api/admin/archive" className="btn-outline text-sm">
-            <Download className="h-4 w-4" />
-            {t.downloadCsv}
-          </a>
+          <p className="mt-1 text-sm text-ink-500">
+            {t.lettersLinkHint} {count > 0 && <b className="text-ink-800">({count} {t.shown})</b>}
+          </p>
         </div>
-        {entries.length === 0 ? (
-          <p className="mt-4 rounded-xl bg-ink-50 px-4 py-6 text-center text-ink-500">{t.noEntries}</p>
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="text-start text-xs text-ink-500">
-                  <th className="px-2 py-2 text-start">{t.colKind}</th>
-                  <th className="px-2 py-2 text-start">{t.colNumber}</th>
-                  <th className="px-2 py-2 text-start">{t.colDetails}</th>
-                  <th className="px-2 py-2 text-start">{t.colDate}</th>
-                  <th className="px-2 py-2 text-start">{t.colStatus}</th>
-                  <th className="px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {entries.slice(0, 300).map((e) => (
-                  <tr key={e.id} className="align-top">
-                    <td className="px-2 py-2">
-                      {e.kind === "outgoing" ? t.outgoing : t.incoming}
-                      <span className="block text-xs text-ink-400">{branchName.get(e.branch) ?? e.branch}</span>
-                    </td>
-                    <td className="px-2 py-2 font-bold text-primary-700" dir="ltr">
-                      {e.number ?? e.letterNo ?? "—"}
-                    </td>
-                    <td className="px-2 py-2">
-                      <span className="font-semibold text-ink-900">{e.title}</span>
-                      <span className="block text-xs text-ink-500">
-                        {[e.party, e.department, e.letterType, e.employeeNo].filter(Boolean).join(" · ")}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 text-ink-600" dir="ltr">
-                      {e.letterDate}
-                    </td>
-                    <td className="px-2 py-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                          e.status === "done" ? "bg-primary-100 text-primary-800" : "bg-accent-100 text-accent-800"
-                        }`}
-                      >
-                        {statusLabel[e.status]}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="flex items-center justify-end gap-1">
-                        {e.driveLink && (
-                          <a href={e.driveLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary-700 hover:underline">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Drive
-                          </a>
-                        )}
-                        <DeleteButton action={deleteArchiveEntryAction} id={e.id} locale={locale} label={t.delete} confirmText={t.confirmDeleteEntry} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Link href={localePath(locale, "/admin/letters")} className="btn-outline">
+          {t.openLetters}
+        </Link>
       </section>
     </div>
   );

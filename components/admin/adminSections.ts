@@ -1,4 +1,5 @@
 import {
+  Archive,
   BookUser,
   Building2,
   CalendarCheck,
@@ -53,7 +54,10 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
   {
     // Internal admin tools for the branches; more will be added here.
     label: "navGroupAdminSystems",
-    sections: [{ path: "/forms", label: "formsArchive", hint: "hintForms", icon: FolderOpen }],
+    sections: [
+      { path: "/forms", label: "formsArchive", hint: "hintForms", icon: FolderOpen },
+      { path: "/letters", label: "lettersLog", hint: "hintLetters", icon: Archive },
+    ],
   },
   {
     label: "navGroupMedical",

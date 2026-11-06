@@ -13,7 +13,16 @@ import {
   updateSettings,
   updateStaffForm,
 } from "./db";
-import { ARCHIVE_BRANCHES, deleteArchiveEntry, setNextLetterNumber } from "./archive";
+import {
+  ARCHIVE_BRANCHES,
+  addPastLetters,
+  deleteArchiveEntry,
+  deleteImportBatch,
+  setNextLetterNumber,
+  type PastLetter,
+} from "./archive";
+import { readPastLetters } from "./archiveImport";
+import { readSpreadsheet } from "./spreadsheet";
 import { disconnectDrive, driveIdFromLink } from "./googleDrive";
 import { defaultLocale, isLocale, localePath } from "./i18n";
 
@@ -25,9 +34,14 @@ async function requireAdmin(): Promise<void> {
 
 const str = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 
-function back(form: FormData, query = ""): never {
+function back(form: FormData, query = "", page = "/admin/forms"): never {
   const locale = str(form, "locale");
-  redirect(localePath(isLocale(locale) ? locale : defaultLocale, `/admin/forms${query ? `?${query}` : ""}`));
+  redirect(localePath(isLocale(locale) ? locale : defaultLocale, `${page}${query ? `?${query}` : ""}`));
+}
+
+/** Back to the letters register page. */
+function backToLetters(form: FormData, query = ""): never {
+  back(form, query, "/admin/letters");
 }
 
 function refresh() {
@@ -131,7 +145,78 @@ export async function deleteArchiveEntryAction(form: FormData) {
   await requireAdmin();
   await deleteArchiveEntry(str(form, "id"));
   refresh();
-  back(form, "saved=deleted");
+  backToLetters(form, "saved=deleted");
+}
+
+/**
+ * Adds the old letters from the Google Sheet (downloaded as Excel or CSV),
+ * one sheet per upload: outgoing or incoming.
+ */
+export async function importPastLettersAction(form: FormData) {
+  await requireAdmin();
+  const file = form.get("file");
+  const kind = str(form, "kind") === "incoming" ? "incoming" : "outgoing";
+  const branch = ARCHIVE_BRANCHES[str(form, "branch")] ? str(form, "branch") : "";
+  if (!branch) backToLetters(form, "importError=branch");
+  if (!(file instanceof File) || file.size === 0) backToLetters(form, "importError=file");
+  if (file.size > 6 * 1024 * 1024) backToLetters(form, "importError=size");
+  let reading: ReturnType<typeof readPastLetters>;
+  try {
+    reading = readPastLetters(readSpreadsheet(new Uint8Array(await file.arrayBuffer()), file.name), kind, branch);
+  } catch {
+    backToLetters(form, "importError=read");
+  }
+  if (!reading.letters.length) backToLetters(form, "importError=empty");
+  const result = await addPastLetters(reading.letters);
+  refresh();
+  backToLetters(
+    form,
+    `imported=${result.added}&duplicates=${result.duplicates}&incomplete=${reading.incomplete}&batch=${result.batch}`
+  );
+}
+
+/** Adds one past letter typed in by hand (its file already in Drive). */
+export async function addPastLetterAction(form: FormData) {
+  await requireAdmin();
+  const kind = str(form, "kind") === "incoming" ? "incoming" : "outgoing";
+  const branch = str(form, "branch");
+  const title = str(form, "title").slice(0, 300);
+  const number = str(form, "number").toUpperCase().slice(0, 40);
+  const letterDate = /^\d{4}-\d{2}-\d{2}$/.test(str(form, "letterDate")) ? str(form, "letterDate") : "";
+  if (!ARCHIVE_BRANCHES[branch] || !title || !letterDate || (kind === "outgoing" && !number)) {
+    backToLetters(form, "addError=1");
+  }
+  const link = str(form, "link").slice(0, 500);
+  const driveFileId = link ? driveIdFromLink(link) : "";
+  const letter: PastLetter = {
+    kind,
+    branch,
+    title,
+    letterDate,
+    department: str(form, "department").slice(0, 120),
+    createdAt: new Date(`${letterDate}T12:00:00+03:00`).toISOString(),
+    driveFileId: driveFileId || undefined,
+    driveLink: /^https:\/\//.test(link) ? link : driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : undefined,
+  };
+  if (kind === "outgoing") {
+    letter.number = number;
+    letter.employeeNo = str(form, "employeeNo").slice(0, 40) || undefined;
+    letter.letterType = str(form, "letterType").slice(0, 120) || undefined;
+  } else {
+    letter.party = str(form, "party").slice(0, 200) || undefined;
+    letter.letterNo = number || undefined;
+  }
+  const result = await addPastLetters([letter]);
+  refresh();
+  backToLetters(form, result.added ? "saved=added" : "addError=duplicate");
+}
+
+/** Undoes one import: removes the letters it added (the Drive files stay). */
+export async function undoImportAction(form: FormData) {
+  await requireAdmin();
+  const removed = await deleteImportBatch(str(form, "batch"));
+  refresh();
+  backToLetters(form, `undone=${removed}`);
 }
 
 export async function disconnectDriveAction(form: FormData) {

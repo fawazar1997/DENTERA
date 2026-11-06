@@ -285,7 +285,8 @@ export const dictionaries = {
       hintBookings: "Appointment requests from the website: follow up and update each one's status.",
       hintDirectory: "Internal list of doctors' coordination numbers for staff.",
       hintPrices: "Internal price list for staff, uploaded from Excel.",
-      hintForms: "Branch forms and the outgoing/incoming letters archive (saved in Google Drive).",
+      hintForms: "Branch forms, the staff link, Google Drive and the letter numbers.",
+      hintLetters: "The outgoing and incoming letters register, with each file in Google Drive.",
       hintDoctors: "Add a doctor, or edit their photo, title, CV, branches and hours.",
       hintDepartments: "The clinic's departments, their icons and descriptions.",
       hintHome: "Order the home page sections and show or hide each one.",
@@ -463,6 +464,7 @@ export const dictionaries = {
       openDirectory: "Open directory",
       prices: "Price List",
       formsArchive: "Forms & Letters",
+      lettersLog: "Letters register",
       pricesSubtitle:
         "The clinic's internal price list for staff. It's kept private (not on the website) and opened only through its private link.",
       pricesLinkHint:
@@ -906,7 +908,8 @@ export const dictionaries = {
       hintBookings: "طلبات المواعيد من الموقع: متابعتها وتحديث حالة كل طلب.",
       hintDirectory: "قائمة داخلية بأرقام تنسيق الأطباء للموظفين.",
       hintPrices: "قائمة أسعار داخلية للموظفين تُرفع من ملف Excel.",
-      hintForms: "نماذج الفروع وأرشيف الخطابات الصادرة والواردة (يُحفظ في Google Drive).",
+      hintForms: "نماذج الفروع ورابط الموظفين وربط Google Drive وأرقام الخطابات.",
+      hintLetters: "سجل الخطابات الصادرة والواردة، مع ملف كل خطاب في Google Drive.",
       hintDoctors: "إضافة طبيب، أو تعديل صورته ولقبه وسيرته وفروعه وأوقاته.",
       hintDepartments: "أقسام العيادة وأيقوناتها ونصوصها.",
       hintHome: "ترتيب أقسام الصفحة الرئيسية وإظهار أو إخفاء كل قسم.",
@@ -1078,6 +1081,7 @@ export const dictionaries = {
       openDirectory: "فتح الدليل",
       prices: "قائمة الأسعار",
       formsArchive: "النماذج والخطابات",
+      lettersLog: "سجل الخطابات",
       pricesSubtitle:
         "قائمة الأسعار الداخلية للموظفين. محفوظة بشكل خاص (لا تظهر في الموقع) وتُفتح فقط عبر رابطها الخاص.",
       pricesLinkHint:

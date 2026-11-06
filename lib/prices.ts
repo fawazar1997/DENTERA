@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { timingSafeEqual } from "node:crypto";
-import { unzipSync, strFromU8 } from "fflate";
 import { revalidateTag, unstable_cache } from "next/cache";
 import { isBlobConfigured } from "./blob";
 import { readBlobJson, writeBlobJson } from "./privateBlob";
 import { getSettings } from "./db";
+import { readFirstSheet } from "./spreadsheet";
 import type { Dictionary } from "./dictionaries";
 import type { Locale } from "./i18n";
 import type { PriceListLabels } from "@/components/PriceListView";
@@ -58,65 +58,6 @@ export async function savePriceList(list: PriceList): Promise<void> {
 }
 
 // --- Excel import ---
-
-function decodeXml(text: string): string {
-  return text
-    .replace(/<[^>]+>/g, "")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/&amp;/g, "&");
-}
-
-/** The first worksheet's cells, as rows of { column letter: text }. */
-function readFirstSheet(file: Uint8Array): Record<string, string>[] {
-  const zip = unzipSync(file, {
-    filter: (f) =>
-      f.name === "xl/sharedStrings.xml" ||
-      f.name === "xl/workbook.xml" ||
-      f.name === "xl/_rels/workbook.xml.rels" ||
-      /^xl\/worksheets\/sheet\d+\.xml$/.test(f.name),
-  });
-  const text = (name: string) => (zip[name] ? strFromU8(zip[name]) : "");
-
-  const shared = [...text("xl/sharedStrings.xml").matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) =>
-    decodeXml(m[1])
-  );
-  // The first sheet in the workbook's order (not necessarily sheet1.xml).
-  const firstId = text("xl/workbook.xml").match(/<sheet\b[^>]*\br:id="([^"]+)"/)?.[1];
-  const target = firstId
-    ? text("xl/_rels/workbook.xml.rels").match(
-        new RegExp(`<Relationship\\b[^>]*Id="${firstId}"[^>]*Target="([^"]+)"`)
-      )?.[1] ??
-      text("xl/_rels/workbook.xml.rels").match(
-        new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${firstId}"`)
-      )?.[1]
-    : undefined;
-  const sheetName = target ? `xl/${target.replace(/^\/?xl\//, "").replace(/^\//, "")}` : "";
-  const sheet = text(sheetName) || text("xl/worksheets/sheet1.xml");
-  if (!sheet) throw new Error("no-sheet");
-
-  return [...sheet.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)].map((row) => {
-    const cells: Record<string, string> = {};
-    for (const c of row[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
-      const col = c[1].match(/\br="([A-Z]+)\d+"/)?.[1];
-      if (!col) continue;
-      const type = c[1].match(/\bt="(\w+)"/)?.[1];
-      const body = c[2] ?? "";
-      const raw = body.match(/<v>([\s\S]*?)<\/v>/)?.[1];
-      let value = "";
-      if (type === "s" && raw !== undefined) value = shared[Number(raw)] ?? "";
-      else if (type === "inlineStr") value = decodeXml(body.match(/<is>([\s\S]*?)<\/is>/)?.[1] ?? "");
-      else if (raw !== undefined) value = decodeXml(raw);
-      value = value.replace(/\s+/g, " ").trim();
-      if (value) cells[col] = value;
-    }
-    return cells;
-  });
-}
 
 /**
  * Reads the price list from an Excel file in the clinic's format: columns
