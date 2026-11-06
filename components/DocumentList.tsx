@@ -4,7 +4,17 @@ import { useMemo, useState } from "react";
 import { ExternalLink, FileText, Search } from "lucide-react";
 import { foldArabic } from "@/lib/arabicSearch";
 
-export type ListedDocument = { id: string; title: string; subtitle?: string; kind: string; link: string };
+export type ListedDocument = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  kind: string;
+  link: string;
+  /** Added in the last two weeks. */
+  isNew: boolean;
+  /** "Added 6 November 2026". */
+  added: string;
+};
 
 /** A section's documents on the staff page, with a search box. */
 export function DocumentList({
@@ -12,7 +22,7 @@ export function DocumentList({
   labels,
 }: {
   documents: ListedDocument[];
-  labels: { search: string; empty: string; noMatch: string; open: string };
+  labels: { search: string; empty: string; noMatch: string; open: string; newBadge: string };
 }) {
   const [query, setQuery] = useState("");
   const shown = useMemo(() => {
@@ -53,13 +63,23 @@ export function DocumentList({
                   <FileText className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-extrabold text-ink-950">{d.title}</span>
+                  <span className="flex flex-wrap items-center gap-2 font-extrabold text-ink-950">
+                    {d.title}
+                    {d.isNew && (
+                      <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[11px] font-extrabold text-ink-950">
+                        {labels.newBadge}
+                      </span>
+                    )}
+                  </span>
                   {d.subtitle && <span className="mt-0.5 block text-xs text-ink-500">{d.subtitle}</span>}
-                  {d.kind && (
-                    <span dir="ltr" className="mt-2 inline-block rounded-full bg-ink-50 px-2 py-0.5 text-[11px] font-bold text-ink-500">
-                      {d.kind}
-                    </span>
-                  )}
+                  <span className="mt-2 flex flex-wrap items-center gap-2">
+                    {d.kind && (
+                      <span dir="ltr" className="rounded-full bg-ink-50 px-2 py-0.5 text-[11px] font-bold text-ink-500">
+                        {d.kind}
+                      </span>
+                    )}
+                    {d.added && <span className="text-[11px] text-ink-400">{d.added}</span>}
+                  </span>
                 </span>
                 <span className="inline-flex flex-shrink-0 items-center gap-1 text-sm font-bold text-primary-700">
                   <ExternalLink className="h-4 w-4" />

@@ -3,7 +3,7 @@ import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getDocCategories, getSettings, getStaffDocuments } from "@/lib/db";
 import { documentsText, type DocumentsText } from "@/lib/documentsText";
-import { documentKind } from "@/lib/documents";
+import { documentDate, documentKind, isNewDocument } from "@/lib/documents";
 import {
   addDocumentLinkAction,
   createDocCategoryAction,
@@ -274,9 +274,14 @@ export default async function AdminDocumentsPage({
                               </span>
                             )}
                           </p>
-                          {(d.titleEn || d.note) && (
-                            <p className="text-xs text-ink-500">{[d.titleEn, d.note].filter(Boolean).join(" · ")}</p>
-                          )}
+                          <p className="text-xs text-ink-500">
+                            {[d.titleEn, d.note, `${t.addedOn} ${documentDate(d.createdAt, locale)}`].filter(Boolean).join(" · ")}
+                            {isNewDocument(d.createdAt) && (
+                              <span className="ms-2 rounded-full bg-primary-100 px-2 py-0.5 text-[11px] font-bold text-primary-800">
+                                {t.newBadge}
+                              </span>
+                            )}
+                          </p>
                         </div>
                         <a
                           href={d.link}

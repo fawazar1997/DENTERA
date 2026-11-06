@@ -11,3 +11,23 @@ export function documentKind(link: string): string {
   if (/drive\.google\.com/.test(link)) return "Drive";
   return "";
 }
+
+/** Documents added within this many days show as new to staff. */
+export const NEW_DOCUMENT_DAYS = 14;
+
+export function isNewDocument(createdAt: string, now = Date.now()): boolean {
+  const at = Date.parse(createdAt);
+  return Number.isFinite(at) && now - at < NEW_DOCUMENT_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/** The day a document was added, as staff read it (Saudi time). */
+export function documentDate(createdAt: string, locale: "ar" | "en"): string {
+  const at = new Date(createdAt);
+  if (Number.isNaN(at.getTime())) return "";
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Riyadh",
+  }).format(at);
+}

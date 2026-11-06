@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 import { connectDrive } from "@/lib/googleDrive";
 import { GOOGLE_STATE_COOKIE, googleRedirectUri } from "../shared";
 
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
   if (!state || !sameText(state, params.get("state") ?? "")) return back("failed");
   if (!code) return back(params.get("error") === "access_denied" ? "denied" : "failed");
   try {
-    await connectDrive(code, googleRedirectUri(request));
+    const email = await connectDrive(code, googleRedirectUri(request));
+    await logActivity("admin", "/forms", "connect", email);
     return back("connected");
   } catch (error) {
     console.error("Google Drive connect failed:", error);

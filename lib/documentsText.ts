@@ -23,6 +23,8 @@ const ar = {
   noDocuments: "لا توجد مستندات في هذا القسم بعد.",
   noMatch: "لا توجد مستندات مطابقة.",
   openDocument: "فتح",
+  newBadge: "جديد",
+  addedOn: "أُضيف",
   // Control panel
   adminSubtitle:
     "مستندات الموظفين مقسّمة إلى أقسام (السياسات واللوائح، الأدلة…). تظهر في صفحة «الأنظمة الإدارية» للموظفين، وكل قسم فيه مستندات يُفتح، والقسم الفارغ يظهر «جاري التطوير».",
@@ -84,6 +86,8 @@ const en: typeof ar = {
   noDocuments: "No documents in this section yet.",
   noMatch: "No matching documents.",
   openDocument: "Open",
+  newBadge: "New",
+  addedOn: "Added",
   adminSubtitle:
     "Staff documents in sections (policies, guides…). They show on the staff Administrative systems page; a section with documents opens, an empty one shows “Coming soon”.",
   sectionsTitle: "Sections",

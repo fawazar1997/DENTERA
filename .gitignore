@@ -28,3 +28,4 @@ next-env.d.ts
 /data/prices.local.json
 /data/archive.local.json
 /data/google-drive.local.json
+/data/activity.local.json

@@ -6,6 +6,7 @@ import {
   Files,
   FolderOpen,
   Handshake,
+  History,
   Image as ImageIcon,
   LayoutDashboard,
   LayoutTemplate,
@@ -46,6 +47,7 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
     sections: [
       { path: "", label: "dashboardTitle", icon: LayoutDashboard },
       { path: "/supervisor", label: "supervisorLink", hint: "hintSupervisor", icon: ShieldCheck },
+      { path: "/activity", label: "activity", hint: "hintActivity", icon: History },
     ],
   },
   {

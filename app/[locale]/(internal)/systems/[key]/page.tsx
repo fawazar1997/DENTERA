@@ -8,6 +8,7 @@ import { formsKeyRole } from "@/lib/archive";
 import { getDocCategories, getSettings, getStaffDocuments } from "@/lib/db";
 import { getPriceList } from "@/lib/prices";
 import { documentsText } from "@/lib/documentsText";
+import { isNewDocument } from "@/lib/documents";
 import { supervisorText } from "@/lib/supervisorText";
 import { DocIcon } from "@/components/DocIcon";
 import { RiyalIcon } from "@/components/RiyalIcon";
@@ -31,6 +32,8 @@ type Card = {
   /** Another staff page: opens in a new tab. */
   external?: boolean;
   count?: number;
+  /** Documents added in the last two weeks. */
+  fresh?: number;
 };
 
 /**
@@ -57,7 +60,9 @@ export default async function SystemsHubPage({ params }: { params: { locale: str
   const cards: Card[] = [
     { key: "forms", title: t.forms, hint: t.formsHint, icon: <FolderOpen className={iconClass} />, href: `/forms/${params.key}` },
     ...categories.map((c): Card => {
-      const count = documents.filter((d) => d.category === c.id).length;
+      const inSection = documents.filter((d) => d.category === c.id);
+      const count = inSection.length;
+      const fresh = inSection.filter((d) => isNewDocument(d.createdAt)).length;
       return {
         key: c.id,
         title: ar ? c.nameAr : c.nameEn || c.nameAr,
@@ -65,6 +70,7 @@ export default async function SystemsHubPage({ params }: { params: { locale: str
         icon: <DocIcon icon={c.icon} className={iconClass} />,
         href: count > 0 ? `/systems/${params.key}/${c.id}` : undefined,
         count,
+        fresh,
       };
     }),
     {
@@ -131,8 +137,13 @@ export default async function SystemsHubPage({ params }: { params: { locale: str
                       {card.icon}
                     </span>
                     <span className="mt-4 text-xl font-extrabold leading-tight">{card.title}</span>
-                    <span className="mt-1 text-sm leading-relaxed text-white/70">
+                    <span className="mt-1 flex flex-wrap items-center gap-2 text-sm leading-relaxed text-white/70">
                       {card.count !== undefined ? `${card.count} ${t.documentsCount}` : card.hint}
+                      {!!card.fresh && (
+                        <span className="rounded-full bg-primary-500 px-2 py-0.5 text-[11px] font-extrabold text-ink-950">
+                          {card.fresh} {t.newBadge}
+                        </span>
+                      )}
                     </span>
                     <span className="mt-auto inline-flex items-center gap-1.5 self-end pt-4 text-sm font-bold text-white/80 transition group-hover:text-white">
                       {t.open}

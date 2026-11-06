@@ -155,6 +155,23 @@ async function refreshAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+/**
+ * Whether the letters archive can reach Google Drive right now: the app is
+ * set up in Vercel, an account is connected, and Google still accepts its
+ * token (it can cancel it, e.g. after 7 days while the Google app is in
+ * "Testing"). The token check is cached for about an hour.
+ */
+export async function driveHealth(): Promise<"ok" | "not-configured" | "not-connected" | "failing"> {
+  if (!isDriveAppConfigured()) return "not-configured";
+  if (!(await getDriveConnection().catch(() => null))) return "not-connected";
+  try {
+    await accessToken();
+    return "ok";
+  } catch {
+    return "failing";
+  }
+}
+
 const FILE_FIELDS = "id,name,parents,webViewLink,size";
 
 /**

@@ -4,7 +4,7 @@ import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { formsKeyRole } from "@/lib/archive";
 import { getDocCategories, getStaffDocuments } from "@/lib/db";
 import { documentsText } from "@/lib/documentsText";
-import { documentKind } from "@/lib/documents";
+import { documentDate, documentKind, isNewDocument } from "@/lib/documents";
 import { DocIcon } from "@/components/DocIcon";
 import { DocumentList } from "@/components/DocumentList";
 import { SystemsHeader } from "@/components/SystemsHeader";
@@ -41,7 +41,11 @@ export default async function SystemsSectionPage({
       subtitle: [ar ? d.titleEn : d.titleEn && d.titleAr, d.note].filter(Boolean).join(" · ") || undefined,
       kind: documentKind(d.link),
       link: d.link,
-    }));
+      isNew: isNewDocument(d.createdAt),
+      added: `${t.addedOn} ${documentDate(d.createdAt, locale)}`,
+    }))
+    // New documents first; otherwise the order set in the control panel.
+    .sort((a, b) => Number(b.isNew) - Number(a.isNew));
 
   return (
     <div className="min-h-screen">
@@ -62,7 +66,7 @@ export default async function SystemsSectionPage({
           </h1>
           <DocumentList
             documents={listed}
-            labels={{ search: t.search, empty: t.noDocuments, noMatch: t.noMatch, open: t.openDocument }}
+            labels={{ search: t.search, empty: t.noDocuments, noMatch: t.noMatch, open: t.openDocument, newBadge: t.newBadge }}
           />
         </div>
       </main>

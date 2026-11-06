@@ -7,6 +7,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { ADMIN_SECTION_GROUPS } from "@/components/admin/adminSections";
 import { currentAdminUser } from "@/lib/adminSession";
 import { canUseSection } from "@/lib/adminRoles";
+import { driveHealth } from "@/lib/googleDrive";
 
 // The control panel is private: keep it out of search results.
 export const metadata: Metadata = {
@@ -33,6 +34,10 @@ export default async function AdminLayout({
       : ADMIN_SECTION_GROUPS.flatMap((g) => g.sections)
           .map((s) => s.path)
           .filter((path) => canUseSection(user, path));
+  // The admin is told at once when the letters archive can't reach Google
+  // Drive (staff can't send letters then).
+  const drive = user === "admin" ? await driveHealth() : "ok";
+  const driveAlert = drive === "not-connected" || drive === "failing" ? drive : null;
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>
@@ -40,7 +45,7 @@ export default async function AdminLayout({
         <FontLinks />
       </head>
       <body className={`bg-ink-50 ${rtl ? "font-arabic" : "font-sans"}`}>
-        <AdminShell locale={locale} dict={dict} sections={sections}>
+        <AdminShell locale={locale} dict={dict} sections={sections} driveAlert={driveAlert}>
           {children}
         </AdminShell>
       </body>

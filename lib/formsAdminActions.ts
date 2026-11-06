@@ -9,6 +9,7 @@ import {
   createStaffForm,
   deleteStaffForm,
   getSettings,
+  getStaffForms,
   moveStaffForm,
   updateSettings,
   updateStaffForm,
@@ -17,11 +18,13 @@ import {
   ARCHIVE_BRANCHES,
   addPastLetters,
   deleteArchiveEntry,
+  getArchiveEntry,
   deleteImportBatch,
   setNextLetterNumber,
   type PastLetter,
 } from "./archive";
 import { readPastLetters } from "./archiveImport";
+import { logActivity } from "./activity";
 import { readSpreadsheet } from "./spreadsheet";
 import { disconnectDrive, driveIdFromLink } from "./googleDrive";
 import { defaultLocale, isLocale, localePath } from "./i18n";
@@ -70,6 +73,7 @@ export async function createStaffFormAction(form: FormData) {
   const fields = formFields(form);
   if (!fields.nameAr || !fields.docId) back(form, "formError=1");
   await createStaffForm(fields);
+  await logActivity("admin", "/forms", "create", fields.nameAr);
   refresh();
   back(form);
 }
@@ -79,20 +83,25 @@ export async function updateStaffFormAction(form: FormData) {
   const fields = formFields(form);
   if (!fields.nameAr || !fields.docId) back(form, "formError=1");
   await updateStaffForm(str(form, "id"), fields);
+  await logActivity("admin", "/forms", "update", fields.nameAr);
   refresh();
   back(form);
 }
 
 export async function moveStaffFormAction(form: FormData) {
   await requireAdmin();
+  const name = (await getStaffForms()).find((f) => f.id === str(form, "id"))?.nameAr;
   await moveStaffForm(str(form, "id"), str(form, "dir") === "up" ? -1 : 1);
+  await logActivity("admin", "/forms", "move", name);
   refresh();
   back(form);
 }
 
 export async function deleteStaffFormAction(form: FormData) {
   await requireAdmin();
+  const name = (await getStaffForms()).find((f) => f.id === str(form, "id"))?.nameAr;
   await deleteStaffForm(str(form, "id"));
+  await logActivity("admin", "/forms", "delete", name);
   refresh();
   back(form);
 }
@@ -101,6 +110,7 @@ export async function deleteStaffFormAction(form: FormData) {
 export async function generateFormsKeyAction(form: FormData) {
   await requireAdmin();
   await updateSettings({ formsKey: randomBytes(24).toString("base64url") });
+  await logActivity("admin", "/forms", "link");
   refresh();
   back(form);
 }
@@ -129,6 +139,7 @@ export async function saveArchiveSettingsAction(form: FormData) {
     archiveDepartmentsOut: out.length ? out : current.archiveDepartmentsOut,
     archiveDepartmentsIn: incoming.length ? incoming : current.archiveDepartmentsIn,
   });
+  await logActivity("admin", "/forms", "settings");
   refresh();
   back(form, "saved=settings");
 }
@@ -137,13 +148,16 @@ export async function saveArchiveSettingsAction(form: FormData) {
 export async function setNextLetterNumberAction(form: FormData) {
   await requireAdmin();
   const result = await setNextLetterNumber(str(form, "branch"), Number(str(form, "next")));
+  if (result === "ok") await logActivity("admin", "/forms", "settings", `${str(form, "branch")}: ${str(form, "next")}`);
   refresh();
   back(form, result === "ok" ? "saved=number" : `numberError=${result}`);
 }
 
 export async function deleteArchiveEntryAction(form: FormData) {
   await requireAdmin();
+  const entry = await getArchiveEntry(str(form, "id"));
   await deleteArchiveEntry(str(form, "id"));
+  await logActivity("admin", "/letters", "delete", entry?.number || entry?.letterNo || entry?.title);
   refresh();
   backToLetters(form, "saved=deleted");
 }
@@ -168,6 +182,7 @@ export async function importPastLettersAction(form: FormData) {
   }
   if (!reading.letters.length) backToLetters(form, "importError=empty");
   const result = await addPastLetters(reading.letters);
+  await logActivity("admin", "/letters", "import", `${result.added}`);
   refresh();
   backToLetters(
     form,
@@ -207,6 +222,7 @@ export async function addPastLetterAction(form: FormData) {
     letter.letterNo = number || undefined;
   }
   const result = await addPastLetters([letter]);
+  if (result.added) await logActivity("admin", "/letters", "create", letter.number || letter.letterNo || letter.title);
   refresh();
   backToLetters(form, result.added ? "saved=added" : "addError=duplicate");
 }
@@ -215,6 +231,7 @@ export async function addPastLetterAction(form: FormData) {
 export async function undoImportAction(form: FormData) {
   await requireAdmin();
   const removed = await deleteImportBatch(str(form, "batch"));
+  await logActivity("admin", "/letters", "undo", `${removed}`);
   refresh();
   backToLetters(form, `undone=${removed}`);
 }
@@ -222,6 +239,7 @@ export async function undoImportAction(form: FormData) {
 export async function disconnectDriveAction(form: FormData) {
   await requireAdmin();
   await disconnectDrive();
+  await logActivity("admin", "/forms", "disconnect");
   refresh();
   back(form, "google=disconnected");
 }

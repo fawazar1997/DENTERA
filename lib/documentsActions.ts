@@ -10,12 +10,14 @@ import {
   deleteDocCategory,
   deleteStaffDocument,
   getDocCategories,
+  getStaffDocuments,
   moveDocCategory,
   moveStaffDocument,
   updateDocCategory,
   updateStaffDocument,
 } from "./db";
 import { defaultLocale, isLocale, localePath } from "./i18n";
+import { logActivity } from "./activity";
 import type { DocCategoryIcon } from "./types";
 
 // Control Panel → Documents: the sections (policies, guides…) and their
@@ -52,6 +54,7 @@ export async function createDocCategoryAction(form: FormData) {
   const fields = categoryFields(form);
   if (!fields.nameAr) back(form, "error=section");
   await createDocCategory(fields);
+  await logActivity("admin", "/documents", "create", fields.nameAr);
   refresh();
   back(form, "saved=section");
 }
@@ -61,20 +64,25 @@ export async function updateDocCategoryAction(form: FormData) {
   const fields = categoryFields(form);
   if (!fields.nameAr) back(form, "error=section");
   await updateDocCategory(str(form, "id"), fields);
+  await logActivity("admin", "/documents", "update", fields.nameAr);
   refresh();
   back(form, "saved=section");
 }
 
 export async function moveDocCategoryAction(form: FormData) {
   await requireAdmin();
+  const name = (await getDocCategories()).find((c) => c.id === str(form, "id"))?.nameAr;
   await moveDocCategory(str(form, "id"), str(form, "dir") === "up" ? -1 : 1);
+  await logActivity("admin", "/documents", "move", name);
   refresh();
   back(form);
 }
 
 export async function deleteDocCategoryAction(form: FormData) {
   await requireAdmin();
+  const name = (await getDocCategories()).find((c) => c.id === str(form, "id"))?.nameAr;
   const result = await deleteDocCategory(str(form, "id"));
+  if (result === "ok") await logActivity("admin", "/documents", "delete", name);
   refresh();
   back(form, result === "ok" ? "saved=deleted" : "error=not-empty");
 }
@@ -99,6 +107,7 @@ export async function addDocumentLinkAction(form: FormData) {
     back(form, "error=document");
   }
   await createStaffDocument({ category, link, ...text, createdAt: new Date().toISOString() });
+  await logActivity("admin", "/documents", "create", text.titleAr);
   refresh();
   back(form, `saved=document&section=${encodeURIComponent(category)}`);
 }
@@ -113,13 +122,16 @@ export async function updateDocumentAction(form: FormData) {
     back(form, "error=document");
   }
   await updateStaffDocument(str(form, "id"), { category, link, ...text });
+  await logActivity("admin", "/documents", "update", text.titleAr);
   refresh();
   back(form, "saved=document");
 }
 
 export async function moveDocumentAction(form: FormData) {
   await requireAdmin();
+  const name = (await getStaffDocuments()).find((d) => d.id === str(form, "id"))?.titleAr;
   await moveStaffDocument(str(form, "id"), str(form, "dir") === "up" ? -1 : 1);
+  await logActivity("admin", "/documents", "move", name);
   refresh();
   back(form);
 }
@@ -127,7 +139,9 @@ export async function moveDocumentAction(form: FormData) {
 /** Removes a document from the list (the file itself is untouched). */
 export async function deleteDocumentAction(form: FormData) {
   await requireAdmin();
+  const name = (await getStaffDocuments()).find((d) => d.id === str(form, "id"))?.titleAr;
   await deleteStaffDocument(str(form, "id"));
+  await logActivity("admin", "/documents", "delete", name);
   refresh();
   back(form, "saved=deleted");
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ExternalLink, LogOut, Menu, X } from "lucide-react";
+import { AlertTriangle, ExternalLink, LogOut, Menu, X } from "lucide-react";
 import { localePath, type Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -19,12 +19,15 @@ export function AdminShell({
   locale,
   dict,
   sections,
+  driveAlert,
   children,
 }: {
   locale: Locale;
   dict: Dictionary;
   /** The section paths this account may open (null: all of them). */
   sections: string[] | null;
+  /** Google Drive can't be reached (the letters archive is stopped). */
+  driveAlert?: "not-connected" | "failing" | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -177,7 +180,27 @@ export function AdminShell({
         </div>
       )}
 
-      <main className="min-h-screen lg:ps-64">{children}</main>
+      <main className="min-h-screen lg:ps-64">
+        {driveAlert && (
+          <div role="alert" className="bg-red-700 text-white">
+            <div className="container-x flex flex-wrap items-center justify-between gap-3 py-3">
+              <p className="flex items-center gap-2 text-sm font-bold">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                {driveAlert === "failing" ? dict.admin.driveAlertFailing : dict.admin.driveAlertNotConnected}
+              </p>
+              {!pathname.startsWith(`${admin}/forms`) && (
+                <Link
+                  href={`${admin}/forms`}
+                  className="rounded-full bg-white px-4 py-1.5 text-sm font-bold text-red-800 hover:bg-red-50"
+                >
+                  {dict.admin.driveAlertAction}
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

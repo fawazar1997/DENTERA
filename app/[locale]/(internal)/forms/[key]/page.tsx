@@ -11,7 +11,7 @@ import {
   listArchive,
   nextLetterNumbers,
 } from "@/lib/archive";
-import { getDriveConnection } from "@/lib/googleDrive";
+import { driveHealth } from "@/lib/googleDrive";
 import { formsText } from "@/lib/formsText";
 import { supervisorText } from "@/lib/supervisorText";
 import { documentsText } from "@/lib/documentsText";
@@ -46,12 +46,14 @@ export default async function StaffFormsPage({
 
   const t = formsText(locale);
   const ar = locale === "ar";
-  const [branches, forms, settings, folders, connection, numbers] = await Promise.all([
+  const [branches, forms, settings, folders, drive, numbers] = await Promise.all([
     getBranches(),
     getStaffForms(),
     getSettings(),
     getArchiveFolders(),
-    getDriveConnection(),
+    // Connected, and Google still accepts the connection (else the page says
+    // the archive isn't ready, instead of failing when a letter is sent).
+    driveHealth(),
     nextLetterNumbers(),
   ]);
   // The register goes to the supervisors' link only, and only what it shows.
@@ -95,8 +97,8 @@ export default async function StaffFormsPage({
       name: ar ? b.nameAr : b.nameEn,
       nextNumber: numbers[b.id] ?? "",
       ready: {
-        outgoing: Boolean(connection && folders[b.id]?.outgoing),
-        incoming: Boolean(connection && folders[b.id]?.incoming),
+        outgoing: drive === "ok" && Boolean(folders[b.id]?.outgoing),
+        incoming: drive === "ok" && Boolean(folders[b.id]?.incoming),
       },
     }));
   return (

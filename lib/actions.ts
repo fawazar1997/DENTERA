@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, sessionUser, verifySessionToken } from "./auth";
+import { SESSION_COOKIE, sessionUser, verifySessionToken, type AdminUser } from "./auth";
+import { logActivity } from "./activity";
 import { canUseSection } from "./adminRoles";
 import {
   createBranch,
@@ -17,6 +18,8 @@ import {
   deleteDoctor,
   deletePartner,
   reorderPartners,
+  getBranches,
+  getDepartments,
   getDoctor,
   getOffer,
   getPartners,
@@ -52,11 +55,12 @@ import { defaultLocale, isLocale, localePath } from "./i18n";
  * Server actions can be invoked from any page, not just /admin (which the
  * middleware guards), so each action checks the admin session itself.
  */
-async function requireAdmin(): Promise<void> {
+async function requireAdmin(): Promise<AdminUser> {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!(await verifySessionToken(token))) {
     throw new Error("Unauthorized");
   }
+  return "admin";
 }
 
 /**
@@ -64,11 +68,12 @@ async function requireAdmin(): Promise<void> {
  * medical team, website content, clinic information): the admin, or an
  * account allowed that section.
  */
-async function requireSection(...sections: string[]): Promise<void> {
+async function requireSection(...sections: string[]): Promise<AdminUser> {
   const user = await sessionUser(cookies().get(SESSION_COOKIE)?.value);
   if (!user || !sections.some((section) => canUseSection(user, section))) {
     throw new Error("Unauthorized");
   }
+  return user;
 }
 
 function str(formData: FormData, key: string): string {
@@ -173,14 +178,15 @@ function doctorFields(formData: FormData) {
 }
 
 export async function createDoctorAction(formData: FormData) {
-  await requireSection("/doctors");
+  const user = await requireSection("/doctors");
   const photoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
   await createDoctor({ ...doctorFields(formData), photoUrl });
+  await logActivity(user, "/doctors", "create", str(formData, "nameAr"));
   revalidateAll();
 }
 
 export async function updateDoctorAction(formData: FormData) {
-  await requireSection("/doctors");
+  const user = await requireSection("/doctors");
   const id = str(formData, "id");
   const oldPhotoUrl = (await getDoctor(id))?.photoUrl;
   const newPhotoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
@@ -189,19 +195,22 @@ export async function updateDoctorAction(formData: FormData) {
   const photoUrl = newPhotoUrl ?? (removePhoto ? undefined : oldPhotoUrl);
   await updateDoctor(id, { ...doctorFields(formData), photoUrl });
   if (oldPhotoUrl && oldPhotoUrl !== photoUrl) await deleteImage(oldPhotoUrl);
+  await logActivity(user, "/doctors", "update", str(formData, "nameAr"));
   revalidateAll();
 }
 
 export async function deleteDoctorAction(formData: FormData) {
-  await requireSection("/doctors");
+  const user = await requireSection("/doctors");
+  const name = (await getDoctor(str(formData, "id")))?.nameAr;
   const id = str(formData, "id");
   const photoUrl = (await getDoctor(id))?.photoUrl;
   if (await deleteDoctor(id)) await deleteImage(photoUrl);
+  await logActivity(user, "/doctors", "delete", name);
   revalidateAll();
 }
 
 export async function createDepartmentAction(formData: FormData) {
-  await requireSection("/departments");
+  const user = await requireSection("/departments");
   await createDepartment({
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
@@ -210,11 +219,12 @@ export async function createDepartmentAction(formData: FormData) {
     icon: str(formData, "icon") || "auto",
     active: formData.get("active") === "on",
   });
+  await logActivity(user, "/departments", "create", str(formData, "nameAr"));
   revalidateAll();
 }
 
 export async function updateDepartmentAction(formData: FormData) {
-  await requireSection("/departments");
+  const user = await requireSection("/departments");
   const id = str(formData, "id");
   await updateDepartment(id, {
     nameEn: str(formData, "nameEn"),
@@ -224,12 +234,15 @@ export async function updateDepartmentAction(formData: FormData) {
     icon: str(formData, "icon") || "auto",
     active: formData.get("active") === "on",
   });
+  await logActivity(user, "/departments", "update", str(formData, "nameAr"));
   revalidateAll();
 }
 
 export async function deleteDepartmentAction(formData: FormData) {
-  await requireSection("/departments");
+  const user = await requireSection("/departments");
+  const name = (await getDepartments()).find((d) => d.id === str(formData, "id"))?.nameAr;
   await deleteDepartment(str(formData, "id"));
+  await logActivity(user, "/departments", "delete", name);
   revalidateAll();
 }
 
@@ -246,51 +259,57 @@ function bannerVariant(formData: FormData): "desktop" | "mobile" {
 }
 
 export async function updateBannerAction(formData: FormData) {
-  await requireSection("/banners");
+  const user = await requireSection("/banners");
   const page = pageKey(formData);
   if (!page) return;
   const url = await uploadImage(fileOrNull(formData, "banner"), "banners");
   if (url) await setPageBanner(page, url, bannerVariant(formData));
+  await logActivity(user, "/banners", "upload", `${str(formData, "page")} (${bannerVariant(formData)})`);
   revalidateAll();
 }
 
 export async function removeBannerAction(formData: FormData) {
-  await requireSection("/banners");
+  const user = await requireSection("/banners");
   const page = pageKey(formData);
   if (!page) return;
   await setPageBanner(page, undefined, bannerVariant(formData));
+  await logActivity(user, "/banners", "delete", `${str(formData, "page")} (${bannerVariant(formData)})`);
   revalidateAll();
 }
 
 export async function setHomeBannerVisibilityAction(formData: FormData) {
-  await requireSection("/banners");
+  const user = await requireSection("/banners");
   await updateSettings({ showHomeBanner: formData.get("visible") === "on" });
+  await logActivity(user, "/banners", "settings", "home");
   revalidateAll();
 }
 
 export async function updateHeroImageAction(formData: FormData) {
-  await requireSection("/banners");
+  const user = await requireSection("/banners");
   const url = await uploadImage(fileOrNull(formData, "image"), "hero");
   if (url) await updateSettings({ heroImageUrl: url });
+  await logActivity(user, "/banners", "upload", "hero");
   revalidateAll();
 }
 
 export async function removeHeroImageAction() {
-  await requireSection("/banners");
+  const user = await requireSection("/banners");
   await updateSettings({ heroImageUrl: undefined });
+  await logActivity(user, "/banners", "delete", "hero");
   revalidateAll();
 }
 
 // Social media
 
 export async function saveSocialAction(formData: FormData) {
-  await requireSection("/social");
+  const user = await requireSection("/social");
   const social: SocialLinks = {};
   for (const platform of SOCIAL_PLATFORMS) {
     const url = optUrl(formData, platform.key);
     if (url) social[platform.key] = url;
   }
   await updateSettings({ social });
+  await logActivity(user, "/social", "update", undefined);
   revalidateAll();
 }
 
@@ -310,33 +329,39 @@ function partnerFields(formData: FormData) {
 }
 
 export async function createPartnerAction(formData: FormData) {
-  await requireSection("/partners");
+  const user = await requireSection("/partners");
   const logoUrl = await uploadImage(fileOrNull(formData, "logo"), "partners");
   await createPartner({ ...partnerFields(formData), logoUrl });
+  await logActivity(user, "/partners", "create", str(formData, "nameAr") || str(formData, "nameEn"));
   revalidateAll();
 }
 
 export async function updatePartnerAction(formData: FormData) {
-  await requireSection("/partners");
+  const user = await requireSection("/partners");
   const id = str(formData, "id");
   const newLogoUrl = await uploadImage(fileOrNull(formData, "logo"), "partners");
   const logoUrl =
     newLogoUrl ?? (await getPartners()).find((p) => p.id === id)?.logoUrl;
   await updatePartner(id, { ...partnerFields(formData), logoUrl });
+  await logActivity(user, "/partners", "update", str(formData, "nameAr") || str(formData, "nameEn"));
   revalidateAll();
 }
 
 export async function reorderPartnersAction(formData: FormData) {
-  await requireSection("/partners");
+  const user = await requireSection("/partners");
   const group = str(formData, "group");
   if (!(LOGO_GROUPS as readonly string[]).includes(group)) return;
   await reorderPartners(group as LogoGroup, formData.getAll("order").map(String));
+  await logActivity(user, "/partners", "move", str(formData, "group"));
   revalidateAll();
 }
 
 export async function deletePartnerAction(formData: FormData) {
-  await requireSection("/partners");
+  const user = await requireSection("/partners");
+  const partner = (await getPartners()).find((p) => p.id === str(formData, "id"));
+  const name = partner?.nameAr || partner?.nameEn;
   await deletePartner(str(formData, "id"));
+  await logActivity(user, "/partners", "delete", name);
   revalidateAll();
 }
 
@@ -365,20 +390,24 @@ function branchFields(formData: FormData) {
 }
 
 export async function createBranchAction(formData: FormData) {
-  await requireSection("/branches");
+  const user = await requireSection("/branches");
   await createBranch(branchFields(formData));
+  await logActivity(user, "/branches", "create", str(formData, "nameAr"));
   revalidateAll();
 }
 
 export async function updateBranchAction(formData: FormData) {
-  await requireSection("/branches");
+  const user = await requireSection("/branches");
   await updateBranch(str(formData, "id"), branchFields(formData));
+  await logActivity(user, "/branches", "update", str(formData, "nameAr"));
   revalidateAll();
 }
 
 export async function deleteBranchAction(formData: FormData) {
-  await requireSection("/branches");
+  const user = await requireSection("/branches");
+  const name = (await getBranches()).find((b) => b.id === str(formData, "id"))?.nameAr;
   await deleteBranch(str(formData, "id"));
+  await logActivity(user, "/branches", "delete", name);
   revalidateAll();
 }
 
@@ -389,7 +418,7 @@ export async function deleteBranchAction(formData: FormData) {
  * "en:section.key" / "ar:section.key"; only known fields are accepted.
  */
 export async function saveContentAction(formData: FormData) {
-  await requireSection("/texts");
+  const user = await requireSection("/texts");
   const sectionId = str(formData, "section");
   const section = CONTENT_SECTIONS.find((s) => s.id === sectionId);
   if (!section) return;
@@ -406,6 +435,7 @@ export async function saveContentAction(formData: FormData) {
     })
   );
   await saveContentOverrides(values);
+  await logActivity(user, "/texts", "update", section.label.ar);
   revalidateAll();
 }
 
@@ -438,15 +468,16 @@ function offerFields(formData: FormData) {
 }
 
 export async function createOfferAction(formData: FormData) {
-  await requireSection("/offers");
+  const user = await requireSection("/offers");
   const imageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
   const mobileImageUrl = await uploadImage(fileOrNull(formData, "mobileImage"), "offers");
   await createOffer({ ...offerFields(formData), imageUrl, mobileImageUrl });
+  await logActivity(user, "/offers", "create", str(formData, "titleAr"));
   revalidateAll();
 }
 
 export async function updateOfferAction(formData: FormData) {
-  await requireSection("/offers");
+  const user = await requireSection("/offers");
   const id = str(formData, "id");
   const current = await getOffer(id);
   const newImageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
@@ -457,12 +488,15 @@ export async function updateOfferAction(formData: FormData) {
     newMobileUrl ??
     (formData.get("removeMobileImage") === "on" ? undefined : current?.mobileImageUrl);
   await updateOffer(id, { ...offerFields(formData), imageUrl, mobileImageUrl });
+  await logActivity(user, "/offers", "update", str(formData, "titleAr"));
   revalidateAll();
 }
 
 export async function deleteOfferAction(formData: FormData) {
-  await requireSection("/offers");
+  const user = await requireSection("/offers");
+  const name = (await getOffer(str(formData, "id")))?.titleAr;
   await deleteOffer(str(formData, "id"));
+  await logActivity(user, "/offers", "delete", name);
   revalidateAll();
 }
 
@@ -479,21 +513,23 @@ function randomKey(): string {
 
 /** Creates (or replaces, revoking the old one) the private directory link. */
 export async function generateDirectoryKeyAction() {
-  await requireAdmin();
+  const user = await requireAdmin();
   await updateSettings({ directoryKey: randomKey() });
+  await logActivity(user, "/directory", "link", undefined);
   revalidateAll();
 }
 
 /** Creates (or replaces, revoking the old one) the staff price list link. */
 export async function generatePricesKeyAction() {
-  await requireAdmin();
+  const user = await requireAdmin();
   await updateSettings({ pricesKey: randomKey() });
+  await logActivity(user, "/prices", "link", undefined);
   revalidateAll();
 }
 
 /** Replaces the price list with the one in an uploaded Excel file. */
 export async function uploadPricesAction(formData: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const locale = str(formData, "locale");
   const back = (query: string) =>
     redirect(localePath(isLocale(locale) ? locale : defaultLocale, `/admin/prices?${query}`));
@@ -506,28 +542,32 @@ export async function uploadPricesAction(formData: FormData) {
     return back("error=format");
   }
   await savePriceList(list);
+  await logActivity(user, "/prices", "upload", `${list.sections.reduce((n, s) => n + s.items.length, 0)}`);
   back(`imported=${list.sections.reduce((n, s) => n + s.items.length, 0)}`);
 }
 
 /** Creates (or replaces, revoking the old one) the call center's bookings link. */
 export async function generateBookingsKeyAction() {
-  await requireAdmin();
+  const user = await requireAdmin();
   await updateSettings({ bookingsKey: randomKey() });
+  await logActivity(user, "/bookings", "link", undefined);
   revalidateAll();
 }
 
 /** Creates (or replaces, revoking the old one) the supervisor's bookings link. */
 export async function generateBookingsSupervisorKeyAction() {
-  await requireAdmin();
+  const user = await requireAdmin();
   await updateSettings({ bookingsSupervisorKey: randomKey() });
+  await logActivity(user, "/supervisor", "link", undefined);
   revalidateAll();
 }
 
 /** Permanently deletes booking requests received on or before a date. */
 export async function deleteOldBookingsAction(formData: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const locale = str(formData, "locale");
   const count = await deleteBookingsUpTo(str(formData, "upTo"));
+  await logActivity(user, "/bookings", "delete", `${str(formData, "upTo")} (${count})`);
   revalidateAll();
   redirect(localePath(isLocale(locale) ? locale : defaultLocale, `/admin/bookings?deleted=${count}`));
 }
@@ -536,11 +576,12 @@ export async function deleteOldBookingsAction(formData: FormData) {
 
 /** Saves the home page section order and which sections are shown. */
 export async function updateHomeSectionsAction(formData: FormData) {
-  await requireSection("/home");
+  const user = await requireSection("/home");
   const shown = new Set(formData.getAll("shown").map(String));
   await updateSettings({
     hiddenHomeSections: HOME_SECTIONS.filter((section) => !shown.has(section)),
     homeSectionOrder: homeSectionOrder(formData.getAll("order").map(String)),
   });
+  await logActivity(user, "/home", "update", undefined);
   revalidateAll();
 }
