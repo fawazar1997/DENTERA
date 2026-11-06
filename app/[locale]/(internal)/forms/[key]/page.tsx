@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LayoutGrid, Lock } from "lucide-react";
+import { BookUser, LayoutGrid, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getBranches, getSettings, getStaffForms } from "@/lib/db";
 import {
@@ -16,6 +16,8 @@ import { formsText } from "@/lib/formsText";
 import { supervisorText } from "@/lib/supervisorText";
 import { FormsPortal, type PortalEntry } from "@/components/FormsPortal";
 import { Logo } from "@/components/Logo";
+import { RiyalIcon } from "@/components/RiyalIcon";
+import { getDictionary } from "@/lib/dictionaries";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,21 @@ export default async function StaffFormsPage({
       }))
     : undefined;
   const other = locale === "ar" ? "en" : "ar";
+  // Shortcuts to the other staff pages (shown once their private links
+  // exist; they open in a new tab so this page keeps its place).
+  const dict = getDictionary(locale);
+  const shortcuts = [
+    settings.directoryKey && {
+      href: localePath(locale, `/directory/${settings.directoryKey}`),
+      label: dict.admin.directory,
+      icon: BookUser,
+    },
+    settings.pricesKey && {
+      href: localePath(locale, `/prices/${settings.pricesKey}`),
+      label: dict.admin.prices,
+      icon: RiyalIcon,
+    },
+  ].filter((s): s is { href: string; label: string; icon: typeof RiyalIcon } => !!s);
 
   const portalBranches = branches
     .filter((b) => b.active && ARCHIVE_BRANCHES[b.id])
@@ -102,15 +119,29 @@ export default async function StaffFormsPage({
               <Lock className="h-3.5 w-3.5 flex-shrink-0" />
               {supervisor ? t.supervisorOnly : t.internalOnly}
             </span>
-            {supervisor && (
-              <Link
-                href={localePath(locale, `/supervisor/${params.key}`)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-950 hover:bg-sand-100"
-              >
-                <LayoutGrid className="h-4 w-4 flex-shrink-0" />
-                {supervisorText(locale).home}
-              </Link>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {supervisor && (
+                <Link
+                  href={localePath(locale, `/supervisor/${params.key}`)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-950 hover:bg-sand-100"
+                >
+                  <LayoutGrid className="h-4 w-4 flex-shrink-0" />
+                  {supervisorText(locale).home}
+                </Link>
+              )}
+              {shortcuts.map(({ href, label, icon: Icon }) => (
+                <a
+                  key={href}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {label}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </header>
