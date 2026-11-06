@@ -112,7 +112,36 @@ export default async function SystemsHubPage({ params }: { params: { locale: str
             <p className="mt-2 text-sm text-ink-500 sm:text-base">{t.hubChoose}</p>
           </div>
 
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* The clinic's other systems (their own sign-in), as small links. */}
+          <div className="mt-8">
+            <h2 className="text-center text-sm font-bold text-ink-500">{t.quickAccess}</h2>
+            <ul className="mx-auto mt-3 grid max-w-2xl gap-3 sm:grid-cols-2">
+              {systems.map((system) => {
+                const Icon = SYSTEM_ICONS[system.id];
+                return (
+                  <li key={system.id}>
+                    <a
+                      href={system.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex items-center gap-3 rounded-2xl bg-white p-3.5 ring-1 ring-ink-100 transition hover:-translate-y-0.5 hover:shadow-soft hover:ring-primary-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
+                    >
+                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-ink-950 text-white">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-bold text-ink-950">{system.title}</span>
+                        <span className="block truncate text-xs text-ink-500">{system.hint}</span>
+                      </span>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 text-ink-300 transition group-hover:text-primary-700" />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map((card) => (
               <li key={card.key}>
                 {card.href ? (
@@ -174,34 +203,6 @@ export default async function SystemsHubPage({ params }: { params: { locale: str
             ))}
           </ul>
 
-          {/* The clinic's other systems (their own sign-in), as small links. */}
-          <div className="mt-8">
-            <h2 className="text-center text-sm font-bold text-ink-500">{t.quickAccess}</h2>
-            <ul className="mx-auto mt-3 grid max-w-2xl gap-3 sm:grid-cols-2">
-              {systems.map((system) => {
-                const Icon = SYSTEM_ICONS[system.id];
-                return (
-                  <li key={system.id}>
-                    <a
-                      href={system.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group flex items-center gap-3 rounded-2xl bg-white p-3.5 ring-1 ring-ink-100 transition hover:-translate-y-0.5 hover:shadow-soft hover:ring-primary-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
-                    >
-                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-ink-950 text-white">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block font-bold text-ink-950">{system.title}</span>
-                        <span className="block truncate text-xs text-ink-500">{system.hint}</span>
-                      </span>
-                      <ExternalLink className="h-4 w-4 flex-shrink-0 text-ink-300 transition group-hover:text-primary-700" />
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
         </div>
       </main>
     </div>
