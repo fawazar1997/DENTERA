@@ -288,6 +288,7 @@ export const dictionaries = {
       hintPrices: "Internal price list for staff, uploaded from Excel.",
       hintForms: "Branch forms, the staff link, Google Drive and the letter numbers.",
       hintLetters: "The outgoing and incoming letters register, with each file in Google Drive.",
+      hintDocuments: "Staff documents by section: policies, guides, medical guides…",
       hintDoctors: "Add a doctor, or edit their photo, title, CV, branches and hours.",
       hintDepartments: "The clinic's departments, their icons and descriptions.",
       hintHome: "Order the home page sections and show or hide each one.",
@@ -466,6 +467,7 @@ export const dictionaries = {
       prices: "Price List",
       formsArchive: "Forms & Letters",
       lettersLog: "Letters register",
+      documents: "Documents",
       pricesSubtitle:
         "The clinic's internal price list for staff. It's kept private (not on the website) and opened only through its private link.",
       pricesLinkHint:
@@ -912,6 +914,7 @@ export const dictionaries = {
       hintPrices: "قائمة أسعار داخلية للموظفين تُرفع من ملف Excel.",
       hintForms: "نماذج الفروع ورابط الموظفين وربط Google Drive وأرقام الخطابات.",
       hintLetters: "سجل الخطابات الصادرة والواردة، مع ملف كل خطاب في Google Drive.",
+      hintDocuments: "مستندات الموظفين حسب القسم: السياسات واللوائح، الأدلة، الأدلة الطبية…",
       hintDoctors: "إضافة طبيب، أو تعديل صورته ولقبه وسيرته وفروعه وأوقاته.",
       hintDepartments: "أقسام العيادة وأيقوناتها ونصوصها.",
       hintHome: "ترتيب أقسام الصفحة الرئيسية وإظهار أو إخفاء كل قسم.",
@@ -1084,6 +1087,7 @@ export const dictionaries = {
       prices: "قائمة الأسعار",
       formsArchive: "النماذج والخطابات",
       lettersLog: "سجل الخطابات",
+      documents: "المستندات",
       pricesSubtitle:
         "قائمة الأسعار الداخلية للموظفين. محفوظة بشكل خاص (لا تظهر في الموقع) وتُفتح فقط عبر رابطها الخاص.",
       pricesLinkHint:

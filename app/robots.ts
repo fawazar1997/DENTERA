@@ -21,6 +21,8 @@ export default function robots(): MetadataRoute.Robots {
         "/en/forms/",
         "/supervisor/",
         "/en/supervisor/",
+        "/systems/",
+        "/en/systems/",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

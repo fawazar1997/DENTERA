@@ -274,7 +274,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 13;
+export const DATA_VERSION = 14;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -292,6 +292,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 11) migrateV11(db);
   if (version < 12) applyProfileUpdates(db, DOCTOR_PROFILES_V12);
   if (version < 13) migrateV13(db);
+  if (version < 14) migrateV14(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -530,4 +531,17 @@ function migrateV13(db: Database): void {
   db.settings ??= {};
   db.settings.archiveDepartmentsOut ??= [...ARCHIVE_DEPARTMENTS_OUT];
   db.settings.archiveDepartmentsIn ??= [...ARCHIVE_DEPARTMENTS_IN];
+}
+
+function migrateV14(db: Database): void {
+  // v14 — staff documents: the first three sections (only when none exist).
+  db.docCategories ??= [];
+  db.staffDocuments ??= [];
+  if (db.docCategories.length === 0) {
+    db.docCategories = [
+      { id: "policies", nameAr: "السياسات واللوائح", nameEn: "Policies & Regulations", icon: "policies" },
+      { id: "guides", nameAr: "الأدلة", nameEn: "Guides", icon: "guides" },
+      { id: "medical-guides", nameAr: "الأدلة الطبية", nameEn: "Medical Guides", icon: "medical" },
+    ];
+  }
 }

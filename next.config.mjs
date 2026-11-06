@@ -15,7 +15,7 @@ const nextConfig = {
     const privatePaths = ["/admin", "/admin/:path*", "/en/admin", "/en/admin/:path*",
       "/bookings/:path*", "/en/bookings/:path*", "/directory/:path*", "/en/directory/:path*",
       "/prices/:path*", "/en/prices/:path*", "/forms/:path*", "/en/forms/:path*",
-      "/supervisor/:path*", "/en/supervisor/:path*"];
+      "/supervisor/:path*", "/en/supervisor/:path*", "/systems/:path*", "/en/systems/:path*"];
     return [
       {
         source: "/:path*",

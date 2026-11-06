@@ -18,6 +18,8 @@ import type {
   LogoGroup,
   SiteSettings,
   StaffForm,
+  DocCategory,
+  StaffDocument,
 } from "./types";
 import { DEFAULT_BRANCHES } from "./defaults";
 import { migrate } from "./migrations";
@@ -60,6 +62,8 @@ function withDefaults(db: Database): Database {
   if (!db.content) db.content = {};
   if (!db.offers) db.offers = [];
   if (!db.staffForms) db.staffForms = [];
+  if (!db.docCategories) db.docCategories = [];
+  if (!db.staffDocuments) db.staffDocuments = [];
   // The contact form (and its saved requests) was removed; booking is by
   // phone now. Drop any leftover requests so they aren't kept around.
   delete (db as Database & { inquiries?: unknown }).inquiries;
@@ -513,6 +517,100 @@ export async function deleteStaffForm(id: string): Promise<boolean> {
   const before = db.staffForms.length;
   db.staffForms = db.staffForms.filter((f) => f.id !== id);
   const removed = db.staffForms.length !== before;
+  if (removed) await writeDb(db);
+  return removed;
+}
+
+// Staff documents (sections and their files)
+
+export async function getDocCategories(): Promise<DocCategory[]> {
+  return (await readDb()).docCategories;
+}
+
+export async function createDocCategory(input: Omit<DocCategory, "id">): Promise<DocCategory> {
+  const db = await readDbForWrite();
+  const id = uniqueId(input.nameEn || "section", db.docCategories.map((c) => c.id));
+  const category: DocCategory = { id, ...input };
+  db.docCategories.push(category);
+  await writeDb(db);
+  return category;
+}
+
+export async function updateDocCategory(
+  id: string,
+  input: Partial<Omit<DocCategory, "id">>
+): Promise<DocCategory | undefined> {
+  const db = await readDbForWrite();
+  const index = db.docCategories.findIndex((c) => c.id === id);
+  if (index === -1) return undefined;
+  db.docCategories[index] = { ...db.docCategories[index], ...input };
+  await writeDb(db);
+  return db.docCategories[index];
+}
+
+export async function moveDocCategory(id: string, by: -1 | 1): Promise<void> {
+  const db = await readDbForWrite();
+  const i = db.docCategories.findIndex((c) => c.id === id);
+  const j = i + by;
+  if (i === -1 || j < 0 || j >= db.docCategories.length) return;
+  [db.docCategories[i], db.docCategories[j]] = [db.docCategories[j], db.docCategories[i]];
+  await writeDb(db);
+}
+
+/** Deletes a section, only when it has no documents. */
+export async function deleteDocCategory(id: string): Promise<"ok" | "not-empty"> {
+  const db = await readDbForWrite();
+  if (db.staffDocuments.some((d) => d.category === id)) return "not-empty";
+  const before = db.docCategories.length;
+  db.docCategories = db.docCategories.filter((c) => c.id !== id);
+  if (db.docCategories.length !== before) await writeDb(db);
+  return "ok";
+}
+
+export async function getStaffDocuments(): Promise<StaffDocument[]> {
+  return (await readDb()).staffDocuments;
+}
+
+export async function createStaffDocument(input: Omit<StaffDocument, "id">): Promise<StaffDocument> {
+  const db = await readDbForWrite();
+  const id = uniqueId(`doc-${Date.now().toString(36)}`, db.staffDocuments.map((d) => d.id));
+  const doc: StaffDocument = { id, ...input };
+  db.staffDocuments.push(doc);
+  await writeDb(db);
+  return doc;
+}
+
+export async function updateStaffDocument(
+  id: string,
+  input: Partial<Omit<StaffDocument, "id">>
+): Promise<StaffDocument | undefined> {
+  const db = await readDbForWrite();
+  const index = db.staffDocuments.findIndex((d) => d.id === id);
+  if (index === -1) return undefined;
+  db.staffDocuments[index] = { ...db.staffDocuments[index], ...input };
+  await writeDb(db);
+  return db.staffDocuments[index];
+}
+
+/** Moves a document one place up or down among its section's documents. */
+export async function moveStaffDocument(id: string, by: -1 | 1): Promise<void> {
+  const db = await readDbForWrite();
+  const doc = db.staffDocuments.find((d) => d.id === id);
+  if (!doc) return;
+  const same = db.staffDocuments.map((d, i) => ({ d, i })).filter(({ d }) => d.category === doc.category);
+  const k = same.findIndex(({ d }) => d.id === id);
+  const other = same[k + by];
+  if (!other) return;
+  const i = same[k].i;
+  [db.staffDocuments[i], db.staffDocuments[other.i]] = [db.staffDocuments[other.i], db.staffDocuments[i]];
+  await writeDb(db);
+}
+
+export async function deleteStaffDocument(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
+  const before = db.staffDocuments.length;
+  db.staffDocuments = db.staffDocuments.filter((d) => d.id !== id);
+  const removed = db.staffDocuments.length !== before;
   if (removed) await writeDb(db);
   return removed;
 }

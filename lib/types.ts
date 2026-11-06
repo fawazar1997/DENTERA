@@ -226,6 +226,10 @@ export type Database = {
   offers: Offer[];
   /** Templates on the staff forms page, in display order. */
   staffForms: StaffForm[];
+  /** Sections of the staff documents (policies, guides…), in display order. */
+  docCategories: DocCategory[];
+  /** Staff documents (links), each in a section. */
+  staffDocuments: StaffDocument[];
   /** Last one-time data update applied (see lib/migrations.ts). */
   dataVersion?: number;
 };
@@ -240,6 +244,31 @@ export type StaffForm = {
   /** The Google Docs document id (from its link). */
   docId: string;
   active: boolean;
+};
+
+/** The icon a documents section shows. */
+export type DocCategoryIcon = "policies" | "guides" | "medical" | "file";
+
+/** A section of the staff documents (e.g. السياسات واللوائح). */
+export type DocCategory = {
+  id: string;
+  nameAr: string;
+  nameEn: string;
+  icon: DocCategoryIcon;
+};
+
+/** A staff document: a link to it (Google Drive, Docs, or any https page). */
+export type StaffDocument = {
+  id: string;
+  /** Section id. */
+  category: string;
+  titleAr: string;
+  titleEn?: string;
+  /** A short line under the title. */
+  note?: string;
+  /** Where it opens. */
+  link: string;
+  createdAt: string;
 };
 
 /** Where a booking request stands, as updated by the call center. */

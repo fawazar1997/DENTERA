@@ -14,6 +14,7 @@ import {
 import { getDriveConnection } from "@/lib/googleDrive";
 import { formsText } from "@/lib/formsText";
 import { supervisorText } from "@/lib/supervisorText";
+import { documentsText } from "@/lib/documentsText";
 import { FormsPortal, type PortalEntry } from "@/components/FormsPortal";
 import { Logo } from "@/components/Logo";
 import { RiyalIcon } from "@/components/RiyalIcon";
@@ -120,15 +121,13 @@ export default async function StaffFormsPage({
               {supervisor ? t.supervisorOnly : t.internalOnly}
             </span>
             <div className="flex flex-wrap items-center gap-2">
-              {supervisor && (
-                <Link
-                  href={localePath(locale, `/supervisor/${params.key}`)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-950 hover:bg-sand-100"
-                >
-                  <LayoutGrid className="h-4 w-4 flex-shrink-0" />
-                  {supervisorText(locale).home}
-                </Link>
-              )}
+              <Link
+                href={localePath(locale, supervisor ? `/supervisor/${params.key}` : `/systems/${params.key}`)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-950 hover:bg-sand-100"
+              >
+                <LayoutGrid className="h-4 w-4 flex-shrink-0" />
+                {supervisor ? supervisorText(locale).home : documentsText(locale).back}
+              </Link>
               {shortcuts.map(({ href, label, icon: Icon }) => (
                 <a
                   key={href}

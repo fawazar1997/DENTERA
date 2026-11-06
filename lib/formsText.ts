@@ -136,11 +136,11 @@ export function formsText(locale: Locale): FormsText {
 
 const adminAr = {
   subtitle: "نماذج الفرعين وأرشيف الخطابات الصادرة والواردة. الموظفون يفتحونها من رابط خاص، والملفات تُحفظ في Google Drive.",
-  linkTitle: "الرابط الخاص للموظفين",
+  linkTitle: "رابط الموظفين — الأنظمة الإدارية",
   supervisorTitle: "رابط المشرف",
   supervisorHint: "المشرف يفتح «النماذج والخطابات» من أيقونتها في صفحة المشرف، ويرى كل ما يراه الموظفون مع سجل الخطابات للفرعين للاطلاع فقط (بحث وفتح الملفات وتنزيل Excel) دون تعديل أو حذف.",
   supervisorManage: "إدارة رابط المشرف",
-  linkHint: "رابط واحد للفرعين؛ يختار الموظف الفرع ثم النموذج أو الخطاب. أنشئ رابطًا جديدًا لإلغاء القديم.",
+  linkHint: "رابط واحد لكل الموظفين يفتح صفحة «الأنظمة الإدارية»: النماذج والخطابات، والسياسات والأدلة، ودليل التنسيق وقائمة الأسعار. أنشئ رابطًا جديدًا لإلغاء القديم.",
   openPage: "فتح الصفحة",
   driveTitle: "Google Drive",
   driveAppMissing: "لم تُضَف بعد بيانات تطبيق Google (GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET) في إعدادات Vercel.",
@@ -257,11 +257,11 @@ const adminAr = {
 
 const adminEn: typeof adminAr = {
   subtitle: "Both branches' forms and the outgoing/incoming letters archive. Staff open them from a private link; files are saved in Google Drive.",
-  linkTitle: "Private staff link",
+  linkTitle: "Staff link — Administrative systems",
   supervisorTitle: "Supervisor link",
   supervisorHint: "The supervisor opens Forms & Letters from its icon on the supervisor home page, with everything staff see plus both branches' letters register, view only (search, open files, download Excel), with no editing or deleting.",
   supervisorManage: "Manage the supervisor link",
-  linkHint: "One link for both branches; staff pick the branch, then the form or letter. Regenerate it to cancel the old link.",
+  linkHint: "One link for all staff, opening the Administrative systems page: forms & letters, policies and guides, the directory and the price list. Regenerate it to cancel the old link.",
   openPage: "Open page",
   driveTitle: "Google Drive",
   driveAppMissing: "The Google app's details (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET) aren't in the Vercel settings yet.",

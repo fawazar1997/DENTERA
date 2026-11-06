@@ -128,7 +128,9 @@ export default async function AdminFormsPage({
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const key = settings.formsKey;
-  const path = key ? localePath(locale, `/forms/${key}`) : "";
+  // The staff link opens the administrative systems page (forms & letters,
+  // documents, directory, price list).
+  const path = key ? localePath(locale, `/systems/${key}`) : "";
   const link = key ? `${proto}://${host}${path}` : "";
   const redirectUri = `${proto}://${host}/api/admin/google/callback`;
 

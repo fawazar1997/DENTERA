@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import { foldArabic } from "@/lib/arabicSearch";
+import { putToDrive } from "@/lib/putToDrive";
 import type { FormsText } from "@/lib/formsText";
 import {
   cancelArchiveUploadAction,
@@ -98,27 +99,6 @@ function CopyButton({ value, t }: { value: string; t: FormsText }) {
       {done ? t.copied : t.copy}
     </button>
   );
-}
-
-/** Sends a file to a Google upload session, reporting progress; resolves with the file id. */
-function putToDrive(url: string, file: File, type: string, onProgress: (p: number) => void): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url);
-    xhr.setRequestHeader("Content-Type", type);
-    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
-    xhr.onload = () => {
-      try {
-        const id = JSON.parse(xhr.responseText)?.id;
-        if (xhr.status >= 200 && xhr.status < 300 && id) resolve(id);
-        else reject(new Error(`drive ${xhr.status}`));
-      } catch {
-        reject(new Error("drive response"));
-      }
-    };
-    xhr.onerror = () => reject(new Error("network"));
-    xhr.send(file);
-  });
 }
 
 function LetterForm({

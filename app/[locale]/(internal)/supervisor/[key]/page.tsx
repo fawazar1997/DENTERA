@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookUser, CalendarCheck, ExternalLink, FolderOpen, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookUser, CalendarCheck, ExternalLink, FolderOpen, LayoutGrid, Lock } from "lucide-react";
 import type { ComponentType } from "react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
 import { getSettings } from "@/lib/db";
 import { getDictionary } from "@/lib/dictionaries";
 import { supervisorText } from "@/lib/supervisorText";
+import { documentsText } from "@/lib/documentsText";
 import { RiyalIcon } from "@/components/RiyalIcon";
 import { Logo } from "@/components/Logo";
 
@@ -44,6 +45,12 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
   // Staff pages (not the supervisor's own), as small quick links, once
   // their private links exist.
   const quick: Card[] = ([
+    {
+      href: `/systems/${params.key}`,
+      title: documentsText(locale).hubTitle,
+      hint: documentsText(locale).hubChoose,
+      icon: LayoutGrid,
+    },
     settings.directoryKey && {
       href: `/directory/${settings.directoryKey}`,
       title: dict.admin.directory,
@@ -129,7 +136,7 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
           {quick.length > 0 && (
             <div className="mt-8">
               <h2 className="text-center text-sm font-bold text-ink-500">{t.quickAccess}</h2>
-              <ul className="mx-auto mt-3 grid max-w-2xl gap-3 sm:grid-cols-2">
+              <ul className="mx-auto mt-3 grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {quick.map(({ href, title, hint, icon: Icon }) => (
                   <li key={href}>
                     <Link
