@@ -527,14 +527,6 @@ export function FormsPortal({
                         <Copy className="h-4 w-4" />
                         {t.fillCopy}
                       </a>
-                      <a href={doc(f.docId, "edit")} target="_blank" rel="noreferrer" className="btn-outline px-3 py-2 text-sm">
-                        <ExternalLink className="h-4 w-4" />
-                        {t.open}
-                      </a>
-                      <a href={doc(f.docId, "export?format=pdf")} className="btn-outline px-3 py-2 text-sm">
-                        <Download className="h-4 w-4" />
-                        {t.pdf}
-                      </a>
                       <a href={doc(f.docId, "export?format=docx")} className="btn-outline px-3 py-2 text-sm">
                         <Download className="h-4 w-4" />
                         {t.word}
