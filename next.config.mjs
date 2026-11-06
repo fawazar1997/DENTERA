@@ -14,7 +14,7 @@ const nextConfig = {
     // Pages that must never show up in search results.
     const privatePaths = ["/admin", "/admin/:path*", "/en/admin", "/en/admin/:path*",
       "/bookings/:path*", "/en/bookings/:path*", "/directory/:path*", "/en/directory/:path*",
-      "/prices/:path*", "/en/prices/:path*"];
+      "/prices/:path*", "/en/prices/:path*", "/forms/:path*", "/en/forms/:path*"];
     return [
       {
         source: "/:path*",

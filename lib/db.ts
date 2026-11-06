@@ -17,6 +17,7 @@ import type {
   Partner,
   LogoGroup,
   SiteSettings,
+  StaffForm,
 } from "./types";
 import { DEFAULT_BRANCHES } from "./defaults";
 import { migrate } from "./migrations";
@@ -58,6 +59,7 @@ function withDefaults(db: Database): Database {
   if (!db.branches) db.branches = structuredClone(DEFAULT_BRANCHES);
   if (!db.content) db.content = {};
   if (!db.offers) db.offers = [];
+  if (!db.staffForms) db.staffForms = [];
   // The contact form (and its saved requests) was removed; booking is by
   // phone now. Drop any leftover requests so they aren't kept around.
   delete (db as Database & { inquiries?: unknown }).inquiries;
@@ -465,6 +467,52 @@ export async function deletePartner(id: string): Promise<boolean> {
   const before = db.partners.length;
   db.partners = db.partners.filter((p) => p.id !== id);
   const removed = db.partners.length !== before;
+  if (removed) await writeDb(db);
+  return removed;
+}
+
+// Staff forms (templates on the private forms page)
+
+export async function getStaffForms(): Promise<StaffForm[]> {
+  return (await readDb()).staffForms;
+}
+
+export async function createStaffForm(input: Omit<StaffForm, "id">): Promise<StaffForm> {
+  const db = await readDbForWrite();
+  const id = uniqueId(input.nameEn || "form", db.staffForms.map((f) => f.id));
+  const form: StaffForm = { id, ...input };
+  db.staffForms.push(form);
+  await writeDb(db);
+  return form;
+}
+
+export async function updateStaffForm(
+  id: string,
+  input: Partial<Omit<StaffForm, "id">>
+): Promise<StaffForm | undefined> {
+  const db = await readDbForWrite();
+  const index = db.staffForms.findIndex((f) => f.id === id);
+  if (index === -1) return undefined;
+  db.staffForms[index] = { ...db.staffForms[index], ...input };
+  await writeDb(db);
+  return db.staffForms[index];
+}
+
+/** Moves a form one place up (-1) or down (+1) in the list. */
+export async function moveStaffForm(id: string, by: -1 | 1): Promise<void> {
+  const db = await readDbForWrite();
+  const i = db.staffForms.findIndex((f) => f.id === id);
+  const j = i + by;
+  if (i === -1 || j < 0 || j >= db.staffForms.length) return;
+  [db.staffForms[i], db.staffForms[j]] = [db.staffForms[j], db.staffForms[i]];
+  await writeDb(db);
+}
+
+export async function deleteStaffForm(id: string): Promise<boolean> {
+  const db = await readDbForWrite();
+  const before = db.staffForms.length;
+  db.staffForms = db.staffForms.filter((f) => f.id !== id);
+  const removed = db.staffForms.length !== before;
   if (removed) await writeDb(db);
   return removed;
 }

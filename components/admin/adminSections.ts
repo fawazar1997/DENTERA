@@ -2,6 +2,7 @@ import {
   BookUser,
   Building2,
   CalendarCheck,
+  FolderOpen,
   Handshake,
   Image as ImageIcon,
   LayoutDashboard,
@@ -47,6 +48,7 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
       { path: "/bookings", label: "bookings", hint: "hintBookings", icon: CalendarCheck },
       { path: "/directory", label: "directory", hint: "hintDirectory", icon: BookUser },
       { path: "/prices", label: "prices", hint: "hintPrices", icon: RiyalIcon },
+      { path: "/forms", label: "formsArchive", hint: "hintForms", icon: FolderOpen },
     ],
   },
   {

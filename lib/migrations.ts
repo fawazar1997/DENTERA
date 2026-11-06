@@ -1,6 +1,7 @@
 import type { Database, Doctor, Partner } from "./types";
 import { ABHA_SCHEDULE, KHAMIS_SCHEDULE } from "./defaults";
 import { DOCTOR_PROFILES_V11, DOCTOR_PROFILES_V12, type DoctorProfileUpdate } from "./doctorProfilesV11";
+import { ARCHIVE_DEPARTMENTS_IN, ARCHIVE_DEPARTMENTS_OUT, STAFF_FORMS_V13 } from "./staffFormsSeed";
 
 // One-time data updates applied to the saved database. Each runs once:
 // it's applied whenever the data is read (so the site shows it right
@@ -273,7 +274,7 @@ function rosterTitle(id: string, [cls, spec, female]: [Classification, Specializ
   return { titleEn: `${en} – ${sp.en}`, titleAr: `${ar} ${sp.ar}` };
 }
 
-export const DATA_VERSION = 12;
+export const DATA_VERSION = 13;
 
 export function migrate(db: Database & { dataVersion?: number }): Database {
   const version = db.dataVersion ?? 0;
@@ -290,6 +291,7 @@ export function migrate(db: Database & { dataVersion?: number }): Database {
   if (version < 10) migrateV10(db);
   if (version < 11) migrateV11(db);
   if (version < 12) applyProfileUpdates(db, DOCTOR_PROFILES_V12);
+  if (version < 13) migrateV13(db);
   db.dataVersion = DATA_VERSION;
   return db;
 }
@@ -518,4 +520,14 @@ function applyProfileUpdates(db: Database, updates: DoctorProfileUpdate[]): void
       if (update[key]) doctor[key] = update[key];
     }
   }
+}
+
+function migrateV13(db: Database): void {
+  // v13 — the staff forms page: the branches' form templates (only when
+  // none were added yet) and the letter forms' department choices.
+  db.staffForms ??= [];
+  if (db.staffForms.length === 0) db.staffForms = STAFF_FORMS_V13.map((f) => ({ ...f }));
+  db.settings ??= {};
+  db.settings.archiveDepartmentsOut ??= [...ARCHIVE_DEPARTMENTS_OUT];
+  db.settings.archiveDepartmentsIn ??= [...ARCHIVE_DEPARTMENTS_IN];
 }

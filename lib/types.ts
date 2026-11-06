@@ -89,6 +89,14 @@ export type SiteSettings = {
   bookingsKey?: string;
   /** Secret part of the staff price list link (/{locale}/prices/{key}). */
   pricesKey?: string;
+  /** Secret part of the staff forms and letters archive link (/{locale}/forms/{key}). */
+  formsKey?: string;
+  /** Google Drive folder ids for the letters archive, per branch id. */
+  archiveFolders?: Record<string, { outgoing?: string; incoming?: string }>;
+  /** Choices for "الإدارة" on the outgoing letter form. */
+  archiveDepartmentsOut?: string[];
+  /** Choices for "الإدارة المختصة" on the incoming letter form. */
+  archiveDepartmentsIn?: string[];
   /** Secret part of the supervisor's bookings link (can assign extensions). */
   bookingsSupervisorKey?: string;
   /** Home page sections switched off in the control panel. */
@@ -216,8 +224,22 @@ export type Database = {
   branches: Branch[];
   content: ContentOverrides;
   offers: Offer[];
+  /** Templates on the staff forms page, in display order. */
+  staffForms: StaffForm[];
   /** Last one-time data update applied (see lib/migrations.ts). */
   dataVersion?: number;
+};
+
+/** A staff form template (a Google Doc) on the private forms page. */
+export type StaffForm = {
+  id: string;
+  /** Branch id it belongs to, or "both". */
+  branch: string;
+  nameAr: string;
+  nameEn: string;
+  /** The Google Docs document id (from its link). */
+  docId: string;
+  active: boolean;
 };
 
 /** Where a booking request stands, as updated by the call center. */

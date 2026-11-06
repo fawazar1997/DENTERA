@@ -26,3 +26,5 @@ next-env.d.ts
 /data/db.local.json
 /data/bookings.local.json
 /data/prices.local.json
+/data/archive.local.json
+/data/google-drive.local.json
