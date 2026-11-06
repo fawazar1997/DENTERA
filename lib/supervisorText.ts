@@ -12,6 +12,7 @@ const ar = {
   directoryHint: "أرقام التنسيق للأطباء في الفرعين.",
   pricesHint: "قائمة أسعار الخدمات الداخلية.",
   open: "فتح",
+  quickAccess: "وصول سريع",
   home: "صفحة المشرف",
   internal: "داخلي — للمشرف فقط",
   // Control panel
@@ -36,6 +37,7 @@ const en: typeof ar = {
   directoryHint: "Doctors' coordination numbers at both branches.",
   pricesHint: "The internal price list.",
   open: "Open",
+  quickAccess: "Quick access",
   home: "Supervisor home",
   internal: "Internal — supervisor only",
   adminHint:

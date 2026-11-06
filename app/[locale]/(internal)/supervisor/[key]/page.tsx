@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookUser, CalendarCheck, FolderOpen, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookUser, CalendarCheck, ExternalLink, FolderOpen, Lock } from "lucide-react";
 import type { ComponentType } from "react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { bookingsRole } from "@/lib/bookings";
@@ -36,9 +36,14 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
 
   type Card = { href: string; title: string; hint: string; icon: ComponentType<{ className?: string }> };
-  const cards: Card[] = ([
+  // The supervisor's own pages, as large cards.
+  const cards: Card[] = [
     { href: `/bookings/${params.key}`, title: dict.admin.bookings, hint: t.bookingsHint, icon: CalendarCheck },
     { href: `/forms/${params.key}`, title: dict.admin.formsArchive, hint: t.formsHint, icon: FolderOpen },
+  ];
+  // Staff pages (not the supervisor's own), as small quick links, once
+  // their private links exist.
+  const quick: Card[] = ([
     settings.directoryKey && {
       href: `/directory/${settings.directoryKey}`,
       title: dict.admin.directory,
@@ -120,6 +125,33 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
               </li>
             ))}
           </ul>
+
+          {quick.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-center text-sm font-bold text-ink-500">{t.quickAccess}</h2>
+              <ul className="mx-auto mt-3 grid max-w-2xl gap-3 sm:grid-cols-2">
+                {quick.map(({ href, title, hint, icon: Icon }) => (
+                  <li key={href}>
+                    <Link
+                      href={localePath(locale, href)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex items-center gap-3 rounded-2xl bg-white p-3.5 ring-1 ring-ink-100 transition hover:-translate-y-0.5 hover:shadow-soft hover:ring-primary-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
+                    >
+                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-ink-950 text-white">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-bold text-ink-950">{title}</span>
+                        <span className="block truncate text-xs text-ink-500">{hint}</span>
+                      </span>
+                      <ExternalLink className="h-4 w-4 flex-shrink-0 text-ink-300 transition group-hover:text-primary-700" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </main>
     </div>
