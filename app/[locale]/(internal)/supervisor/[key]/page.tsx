@@ -10,9 +10,6 @@ import {
   FolderOpen,
   LayoutGrid,
   Lock,
-  Monitor,
-  PhoneCall,
-  Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
@@ -21,6 +18,8 @@ import { getSettings } from "@/lib/db";
 import { getDictionary } from "@/lib/dictionaries";
 import { supervisorText } from "@/lib/supervisorText";
 import { documentsText } from "@/lib/documentsText";
+import { clinicSystems } from "@/lib/clinicSystems";
+import { SYSTEM_ICONS } from "@/components/SystemIcons";
 import { RiyalIcon } from "@/components/RiyalIcon";
 import { Logo } from "@/components/Logo";
 
@@ -83,9 +82,13 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
       icon: RiyalIcon,
     },
     // The clinic's other systems (they have their own sign-in).
-    { href: "https://dentera.microchips-cloud.com/pms", title: t.pms, hint: t.pmsHint, icon: Monitor, external: true },
-    { href: "https://dentera.microchips-cloud.com/hr/Default/Login", title: t.hr, hint: t.hrHint, icon: Users, external: true },
-    { href: "https://dentera.ras.yeastar.com/", title: t.yeastar, hint: t.yeastarHint, icon: PhoneCall, external: true },
+    ...clinicSystems(locale, ["pms", "hr", "yeastar"]).map((system) => ({
+      href: system.url,
+      title: system.title,
+      hint: system.hint,
+      icon: SYSTEM_ICONS[system.id],
+      external: true,
+    })),
   ] as (Card | "" | undefined)[]).filter((c): c is Card => !!c);
 
   return (
