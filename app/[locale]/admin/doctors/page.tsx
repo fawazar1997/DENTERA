@@ -23,7 +23,7 @@ export default async function AdminDoctorsPage({
 }: {
   params: { locale: string };
 }) {
-  await requireAdminPage(params.locale);
+  await requireAdminPage(params.locale, "/doctors");
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

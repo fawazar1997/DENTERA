@@ -18,10 +18,13 @@ import { ADMIN_SECTION_GROUPS } from "./adminSections";
 export function AdminShell({
   locale,
   dict,
+  sections,
   children,
 }: {
   locale: Locale;
   dict: Dictionary;
+  /** The section paths this account may open (null: all of them). */
+  sections: string[] | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -68,7 +71,12 @@ export function AdminShell({
       </Link>
 
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 pb-4 pt-1">
-        {ADMIN_SECTION_GROUPS.map((group) => (
+        {ADMIN_SECTION_GROUPS.map((group) => ({
+          ...group,
+          sections: group.sections.filter((section) => !sections || sections.includes(section.path)),
+        }))
+          .filter((group) => group.sections.length > 0)
+          .map((group) => (
           <div key={group.label}>
             <p className="px-3 text-xs font-bold text-sand-300">{dict.admin[group.label]}</p>
             <ul className="mt-1 space-y-0.5">

@@ -9,22 +9,33 @@ export const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 hours
  */
 const DEPLOYED = Boolean(process.env.VERCEL);
 
-function adminCredentials(): { username: string; password: string } | null {
-  const username = (process.env.ADMIN_USERNAME || "dentera").trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD || (DEPLOYED ? "" : "dentera-admin");
+/** Control panel accounts: the full admin, and marketing (a few sections). */
+export type AdminUser = "admin" | "marketing";
+
+function credentialsFor(user: AdminUser): { username: string; password: string } | null {
+  if (user === "admin") {
+    const username = (process.env.ADMIN_USERNAME || "dentera").trim().toLowerCase();
+    const password = process.env.ADMIN_PASSWORD || (DEPLOYED ? "" : "dentera-admin");
+    return password ? { username, password } : null;
+  }
+  // Marketing exists only once its password is set (no built-in fallback).
+  const username = (process.env.MARKETING_USERNAME || "pr").trim().toLowerCase();
+  const password = process.env.MARKETING_PASSWORD || "";
   return password ? { username, password } : null;
 }
 
 /**
- * The key session cookies are signed with. It includes the password, so
- * changing the password signs everyone out.
+ * The key a user's session cookies are signed with. It includes that user's
+ * password, so changing a password signs that user out.
  */
-function signingKey(): string | null {
+function signingKey(user: AdminUser = "admin"): string | null {
   const secret =
     process.env.SESSION_SECRET || (DEPLOYED ? "" : "dev-only-insecure-secret-change-me");
-  const credentials = adminCredentials();
+  const credentials = credentialsFor(user);
   if (!secret || !credentials) return null;
-  return `${secret}\n${credentials.password}`;
+  // (The admin's key is unchanged from before there were two accounts, so
+  // admin sessions already open stay signed in.)
+  return user === "admin" ? `${secret}\n${credentials.password}` : `${secret}\n${user}\n${credentials.password}`;
 }
 
 function toBase64Url(bytes: ArrayBuffer): string {
@@ -68,37 +79,57 @@ export function isAuthConfigured(): boolean {
   return signingKey() !== null;
 }
 
-export async function createSessionToken(): Promise<string> {
-  const key = signingKey();
+/**
+ * A session token: "<expires>.<signature>" for the admin (as before), or
+ * "marketing~<expires>.<signature>" for marketing, each signed with that
+ * user's own key.
+ */
+export async function createSessionToken(user: AdminUser = "admin"): Promise<string> {
+  const key = signingKey(user);
   if (!key) throw new Error("Sign-in is not configured");
-  const payload = String(Date.now() + SESSION_TTL_SECONDS * 1000);
+  const expires = String(Date.now() + SESSION_TTL_SECONDS * 1000);
+  const payload = user === "admin" ? expires : `${user}~${expires}`;
   return `${payload}.${await hmac(key, payload)}`;
 }
 
-export async function verifySessionToken(
-  token: string | undefined
-): Promise<boolean> {
-  const key = signingKey();
-  if (!token || !key) return false;
+/** Who a session token belongs to (null: missing, forged or expired). */
+export async function sessionUser(token: string | undefined): Promise<AdminUser | null> {
+  if (!token) return null;
   const [payload, signature] = token.split(".");
-  if (!payload || !signature) return false;
-  if (!(await safeEqual(signature, await hmac(key, payload)))) return false;
-  const expiresAt = Number(payload);
-  return Number.isFinite(expiresAt) && Date.now() <= expiresAt;
+  if (!payload || !signature) return null;
+  const [user, expires]: [AdminUser, string] = payload.includes("~")
+    ? payload.split("~")[0] === "marketing"
+      ? ["marketing", payload.split("~")[1]]
+      : ["admin", ""]
+    : ["admin", payload];
+  const key = signingKey(user);
+  if (!key || !expires) return null;
+  if (!(await safeEqual(signature, await hmac(key, payload)))) return null;
+  const expiresAt = Number(expires);
+  return Number.isFinite(expiresAt) && Date.now() <= expiresAt ? user : null;
 }
 
-/** Checks a username and password against the control panel account. */
-export async function checkCredentials(
-  username: string,
-  password: string
-): Promise<boolean> {
-  const credentials = adminCredentials();
-  if (!credentials) return false;
-  // Both are always compared, so a wrong username takes as long as a
-  // wrong password.
-  const [userOk, passwordOk] = await Promise.all([
-    safeEqual(username.trim().toLowerCase(), credentials.username),
-    safeEqual(password, credentials.password),
-  ]);
-  return userOk && passwordOk;
+/**
+ * True for the full admin only. Everything that doesn't say otherwise is
+ * admin only; the sections marketing may use check `canUseSection`.
+ */
+export async function verifySessionToken(token: string | undefined): Promise<boolean> {
+  return (await sessionUser(token)) === "admin";
+}
+
+/** Checks a username and password; returns whose account it is. */
+export async function checkCredentials(username: string, password: string): Promise<AdminUser | null> {
+  const name = username.trim().toLowerCase();
+  let found: AdminUser | null = null;
+  // Every account is always compared, so timing doesn't reveal which
+  // username exists or how close a guess is.
+  for (const user of ["admin", "marketing"] as const) {
+    const credentials = credentialsFor(user);
+    const [userOk, passwordOk] = await Promise.all([
+      safeEqual(name, credentials?.username ?? "\u0000"),
+      safeEqual(password, credentials?.password ?? "\u0000"),
+    ]);
+    if (credentials && userOk && passwordOk && !found) found = user;
+  }
+  return found;
 }

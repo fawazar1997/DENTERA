@@ -6,6 +6,7 @@ import { getBranches, getDepartments, getDoctors, getOffers, getPartners } from 
 import { getBookings } from "@/lib/bookings";
 import { ADMIN_SECTION_GROUPS } from "@/components/admin/adminSections";
 import { requireAdminPage } from "@/lib/adminSession";
+import { canUseSection } from "@/lib/adminRoles";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -16,7 +17,7 @@ export default async function AdminDashboardPage({
 }: {
   params: { locale: string };
 }) {
-  await requireAdminPage(params.locale);
+  const user = await requireAdminPage(params.locale, "");
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
@@ -27,7 +28,7 @@ export default async function AdminDashboardPage({
     getPartners(),
     getBranches(),
     getOffers(),
-    getBookings().catch(() => []),
+    user === "admin" ? getBookings().catch(() => []) : Promise.resolve([]),
   ]);
   const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
   const newBookings = bookings.filter((b) => b.status === "new").length;
@@ -63,7 +64,12 @@ export default async function AdminDashboardPage({
         </Link>
       )}
 
-      {ADMIN_SECTION_GROUPS.filter((group) => group.sections.some((s) => s.hint)).map((group) => (
+      {ADMIN_SECTION_GROUPS.map((group) => ({
+        ...group,
+        sections: group.sections.filter((s) => s.hint && canUseSection(user, s.path)),
+      }))
+        .filter((group) => group.sections.length > 0)
+        .map((group) => (
         <section key={group.label} className="mt-10">
           <h2 className="text-sm font-extrabold text-ink-500">{dict.admin[group.label]}</h2>
           <div className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

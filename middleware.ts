@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultLocale, isLocale, localePath } from "./lib/i18n";
-import { SESSION_COOKIE, verifySessionToken } from "./lib/auth";
+import { SESSION_COOKIE, sessionUser } from "./lib/auth";
 
 export const config = {
   matcher: ["/((?!_next|api|favicon.ico|.*\\..*).*)"],
@@ -75,7 +75,8 @@ export async function middleware(request: NextRequest) {
   const isLoginRoute = isAdminRoute && route[1] === "login";
   if (isAdminRoute && !isLoginRoute) {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
-    if (!(await verifySessionToken(token))) {
+    // Any control panel account; each page then checks its own section.
+    if (!(await sessionUser(token))) {
       const url = request.nextUrl.clone();
       url.pathname = localePath(locale, "/admin/login");
       return NextResponse.redirect(url);

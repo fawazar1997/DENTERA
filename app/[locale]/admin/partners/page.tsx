@@ -35,7 +35,7 @@ export default async function AdminPartnersPage({
 }: {
   params: { locale: string };
 }) {
-  await requireAdminPage(params.locale);
+  await requireAdminPage(params.locale, "/partners");
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

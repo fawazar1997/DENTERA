@@ -21,7 +21,7 @@ export default async function AdminDepartmentsPage({
 }: {
   params: { locale: string };
 }) {
-  await requireAdminPage(params.locale);
+  await requireAdminPage(params.locale, "/departments");
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;

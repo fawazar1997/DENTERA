@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, verifySessionToken } from "./auth";
+import { SESSION_COOKIE, sessionUser, verifySessionToken } from "./auth";
+import { canUseSection } from "./adminRoles";
 import {
   createBranch,
   createOffer,
@@ -54,6 +55,18 @@ import { defaultLocale, isLocale, localePath } from "./i18n";
 async function requireAdmin(): Promise<void> {
   const token = cookies().get(SESSION_COOKIE)?.value;
   if (!(await verifySessionToken(token))) {
+    throw new Error("Unauthorized");
+  }
+}
+
+/**
+ * For the actions of a section other accounts may also use (marketing:
+ * medical team, website content, clinic information): the admin, or an
+ * account allowed that section.
+ */
+async function requireSection(...sections: string[]): Promise<void> {
+  const user = await sessionUser(cookies().get(SESSION_COOKIE)?.value);
+  if (!user || !sections.some((section) => canUseSection(user, section))) {
     throw new Error("Unauthorized");
   }
 }
@@ -160,14 +173,14 @@ function doctorFields(formData: FormData) {
 }
 
 export async function createDoctorAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/doctors");
   const photoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
   await createDoctor({ ...doctorFields(formData), photoUrl });
   revalidateAll();
 }
 
 export async function updateDoctorAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/doctors");
   const id = str(formData, "id");
   const oldPhotoUrl = (await getDoctor(id))?.photoUrl;
   const newPhotoUrl = await uploadImage(fileOrNull(formData, "photo"), "doctors");
@@ -180,7 +193,7 @@ export async function updateDoctorAction(formData: FormData) {
 }
 
 export async function deleteDoctorAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/doctors");
   const id = str(formData, "id");
   const photoUrl = (await getDoctor(id))?.photoUrl;
   if (await deleteDoctor(id)) await deleteImage(photoUrl);
@@ -188,7 +201,7 @@ export async function deleteDoctorAction(formData: FormData) {
 }
 
 export async function createDepartmentAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/departments");
   await createDepartment({
     nameEn: str(formData, "nameEn"),
     nameAr: str(formData, "nameAr"),
@@ -201,7 +214,7 @@ export async function createDepartmentAction(formData: FormData) {
 }
 
 export async function updateDepartmentAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/departments");
   const id = str(formData, "id");
   await updateDepartment(id, {
     nameEn: str(formData, "nameEn"),
@@ -215,7 +228,7 @@ export async function updateDepartmentAction(formData: FormData) {
 }
 
 export async function deleteDepartmentAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/departments");
   await deleteDepartment(str(formData, "id"));
   revalidateAll();
 }
@@ -233,7 +246,7 @@ function bannerVariant(formData: FormData): "desktop" | "mobile" {
 }
 
 export async function updateBannerAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/banners");
   const page = pageKey(formData);
   if (!page) return;
   const url = await uploadImage(fileOrNull(formData, "banner"), "banners");
@@ -242,7 +255,7 @@ export async function updateBannerAction(formData: FormData) {
 }
 
 export async function removeBannerAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/banners");
   const page = pageKey(formData);
   if (!page) return;
   await setPageBanner(page, undefined, bannerVariant(formData));
@@ -250,20 +263,20 @@ export async function removeBannerAction(formData: FormData) {
 }
 
 export async function setHomeBannerVisibilityAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/banners");
   await updateSettings({ showHomeBanner: formData.get("visible") === "on" });
   revalidateAll();
 }
 
 export async function updateHeroImageAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/banners");
   const url = await uploadImage(fileOrNull(formData, "image"), "hero");
   if (url) await updateSettings({ heroImageUrl: url });
   revalidateAll();
 }
 
 export async function removeHeroImageAction() {
-  await requireAdmin();
+  await requireSection("/banners");
   await updateSettings({ heroImageUrl: undefined });
   revalidateAll();
 }
@@ -271,7 +284,7 @@ export async function removeHeroImageAction() {
 // Social media
 
 export async function saveSocialAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/social");
   const social: SocialLinks = {};
   for (const platform of SOCIAL_PLATFORMS) {
     const url = optUrl(formData, platform.key);
@@ -297,14 +310,14 @@ function partnerFields(formData: FormData) {
 }
 
 export async function createPartnerAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/partners");
   const logoUrl = await uploadImage(fileOrNull(formData, "logo"), "partners");
   await createPartner({ ...partnerFields(formData), logoUrl });
   revalidateAll();
 }
 
 export async function updatePartnerAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/partners");
   const id = str(formData, "id");
   const newLogoUrl = await uploadImage(fileOrNull(formData, "logo"), "partners");
   const logoUrl =
@@ -314,7 +327,7 @@ export async function updatePartnerAction(formData: FormData) {
 }
 
 export async function reorderPartnersAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/partners");
   const group = str(formData, "group");
   if (!(LOGO_GROUPS as readonly string[]).includes(group)) return;
   await reorderPartners(group as LogoGroup, formData.getAll("order").map(String));
@@ -322,7 +335,7 @@ export async function reorderPartnersAction(formData: FormData) {
 }
 
 export async function deletePartnerAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/partners");
   await deletePartner(str(formData, "id"));
   revalidateAll();
 }
@@ -352,19 +365,19 @@ function branchFields(formData: FormData) {
 }
 
 export async function createBranchAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/branches");
   await createBranch(branchFields(formData));
   revalidateAll();
 }
 
 export async function updateBranchAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/branches");
   await updateBranch(str(formData, "id"), branchFields(formData));
   revalidateAll();
 }
 
 export async function deleteBranchAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/branches");
   await deleteBranch(str(formData, "id"));
   revalidateAll();
 }
@@ -376,7 +389,7 @@ export async function deleteBranchAction(formData: FormData) {
  * "en:section.key" / "ar:section.key"; only known fields are accepted.
  */
 export async function saveContentAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/texts");
   const sectionId = str(formData, "section");
   const section = CONTENT_SECTIONS.find((s) => s.id === sectionId);
   if (!section) return;
@@ -425,7 +438,7 @@ function offerFields(formData: FormData) {
 }
 
 export async function createOfferAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/offers");
   const imageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
   const mobileImageUrl = await uploadImage(fileOrNull(formData, "mobileImage"), "offers");
   await createOffer({ ...offerFields(formData), imageUrl, mobileImageUrl });
@@ -433,7 +446,7 @@ export async function createOfferAction(formData: FormData) {
 }
 
 export async function updateOfferAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/offers");
   const id = str(formData, "id");
   const current = await getOffer(id);
   const newImageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
@@ -448,7 +461,7 @@ export async function updateOfferAction(formData: FormData) {
 }
 
 export async function deleteOfferAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/offers");
   await deleteOffer(str(formData, "id"));
   revalidateAll();
 }
@@ -523,7 +536,7 @@ export async function deleteOldBookingsAction(formData: FormData) {
 
 /** Saves the home page section order and which sections are shown. */
 export async function updateHomeSectionsAction(formData: FormData) {
-  await requireAdmin();
+  await requireSection("/home");
   const shown = new Set(formData.getAll("shown").map(String));
   await updateSettings({
     hiddenHomeSections: HOME_SECTIONS.filter((section) => !shown.has(section)),

@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
   const username = typeof body?.username === "string" ? body.username.slice(0, 100) : "";
   const password = typeof body?.password === "string" ? body.password.slice(0, 200) : "";
 
-  if (!(await checkCredentials(username, password))) {
+  const user = await checkCredentials(username, password);
+  if (!user) {
     recordFailure(ip);
     // A short pause on every failure makes guessing slow.
     await new Promise((resolve) => setTimeout(resolve, 600));
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
   }
 
   failures.delete(ip);
-  const token = await createSessionToken();
+  const token = await createSessionToken(user);
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,

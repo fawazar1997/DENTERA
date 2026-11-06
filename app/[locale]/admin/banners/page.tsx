@@ -25,7 +25,7 @@ export default async function AdminBannersPage({
 }: {
   params: { locale: string };
 }) {
-  await requireAdminPage(params.locale);
+  await requireAdminPage(params.locale, "/banners");
   const locale: Locale = isLocale(params.locale)
     ? params.locale
     : defaultLocale;
