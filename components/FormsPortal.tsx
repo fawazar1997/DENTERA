@@ -55,7 +55,6 @@ type Tab = "forms" | "outgoing" | "incoming" | "log";
 
 const LOG_PAGE = 50;
 
-const BRANCH_KEY = "dentera-forms-branch";
 const EMPLOYEE_KEY = "dentera-employee-no";
 const SERVER_FALLBACK_LIMIT = 4 * 1024 * 1024;
 
@@ -373,24 +372,9 @@ export function FormsPortal({
   const [logQuery, setLogQuery] = useState("");
   const [logLimit, setLogLimit] = useState(LOG_PAGE);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(BRANCH_KEY);
-      if (saved && branches.some((b) => b.id === saved)) setBranchId(saved);
-    } catch {
-      // Chosen each visit.
-    }
-  }, [branches]);
-
-  const choose = (id: string | null) => {
-    setBranchId(id);
-    try {
-      if (id) localStorage.setItem(BRANCH_KEY, id);
-      else localStorage.removeItem(BRANCH_KEY);
-    } catch {
-      // Not remembered.
-    }
-  };
+  // The branch is chosen on every visit (never remembered), so nobody
+  // files a letter under the branch someone else used last on this device.
+  const choose = (id: string | null) => setBranchId(id);
 
   const branch = branches.find((b) => b.id === branchId);
 
