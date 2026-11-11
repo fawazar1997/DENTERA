@@ -102,6 +102,11 @@ export default async function AdminOffersPage({
                         ? dict.admin.offerEnded
                         : dict.admin.statusHidden}
                   </span>
+                  {live && offer.showOnHome !== false && (
+                    <span className="rounded-full bg-ink-950 px-2.5 py-1 text-xs font-semibold text-white">
+                      {dict.admin.offerOnHome}
+                    </span>
+                  )}
                   {offer.active && (
                     <a
                       href={localePath(locale, `/offers/${offer.id}`)}

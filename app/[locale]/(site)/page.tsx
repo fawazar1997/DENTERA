@@ -70,7 +70,8 @@ export default async function HomePage({
   const partners = await getActivePartners("partners");
   const payments = await getActivePartners("payments");
   const branches = await getActiveBranches();
-  const offers = await getLiveOffers();
+  // The home banner shows the live offers chosen for it.
+  const offers = (await getLiveOffers()).filter((offer) => offer.showOnHome !== false);
   const hidden = new Set(settings.hiddenHomeSections ?? []);
   const show = (section: HomeSectionKey) => !hidden.has(section);
   const rtl = locale === "ar";
@@ -240,16 +241,11 @@ export default async function HomePage({
             slides={offers.map((offer) => ({
               id: offer.id,
               title: rtl ? offer.titleAr : offer.titleEn,
-              summary: rtl ? offer.summaryAr : offer.summaryEn,
               imageUrl: offer.imageUrl,
               mobileImageUrl: offer.mobileImageUrl,
-              priceNow: offer.priceNow,
-              priceWas: offer.priceWas,
             }))}
             labels={{
               viewOffer: dict.offers.viewOffer,
-              currency: dict.offers.currency,
-              save: dict.offers.save,
               previous: rtl ? "السابق" : "Previous",
               next: rtl ? "التالي" : "Next",
             }}

@@ -21,6 +21,7 @@ import {
   isOfferExpired,
 } from "@/lib/db";
 import { discountPercent, formatOfferDate, formatPrice } from "@/lib/offerFormat";
+import { offerBannerSizeClass } from "@/components/offerBanner";
 import { CallButton } from "@/components/CallButton";
 import { DepartmentIcon } from "@/components/IconMap";
 import { Reveal } from "@/components/Reveal";
@@ -87,52 +88,40 @@ export default async function OfferPage({ params }: { params: Params }) {
 
   return (
     <>
-      <section
-        className={`relative isolate overflow-hidden bg-ink-950 ${
-          // A 4:5 phone image shows whole on phones.
-          offer.mobileImageUrl ? "max-sm:min-h-[125vw]" : ""
-        }`}
-      >
-        {offer.imageUrl || offer.mobileImageUrl ? (
+      {(offer.imageUrl || offer.mobileImageUrl) && (
+        // The offer's banner, as it is and the same size as on the home page.
+        <section className={`relative w-full overflow-hidden bg-ink-950 ${offerBannerSizeClass(Boolean(offer.mobileImageUrl))}`}>
           <BannerImage
             src={(offer.imageUrl ?? offer.mobileImageUrl)!}
             mobileSrc={offer.mobileImageUrl}
             priority
-            className="-z-20"
           />
-        ) : (
-          <div className="absolute inset-0 -z-20 bg-gradient-to-br from-ink-900 to-primary-800" />
-        )}
-        <div
-          className="absolute inset-0 -z-10 bg-gradient-to-t from-ink-950/90 via-ink-950/55 to-ink-950/20"
-          aria-hidden="true"
-        />
-        <div className="container-x py-10 sm:py-14">
+        </section>
+      )}
+
+      <section className="bg-paper pt-8 sm:pt-10">
+        <div className="container-x">
           <Link
             href={localePath(locale, `/offers`)}
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-200 hover:text-white"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-ink-950"
           >
             <BackArrow className="h-4 w-4" />
             {dict.offers.allOffers}
           </Link>
-          <div className="mt-16 max-w-3xl animate-fade-up text-white opacity-0 sm:mt-24">
+          <div className="mt-5 max-w-3xl">
             {discount && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-3 py-1 text-sm font-bold text-ink-900">
                 <Tag className="h-4 w-4" />
                 {dict.offers.save} {discount}%
               </span>
             )}
-            <h1 className="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">
-              {title}
-            </h1>
-            {summary && (
-              <p className="mt-4 max-w-2xl text-lg text-sand-100">{summary}</p>
-            )}
+            <h1 className="mt-3 text-3xl font-extrabold leading-tight text-ink-950 sm:text-4xl">{title}</h1>
+            {summary && <p className="mt-3 max-w-2xl text-lg text-ink-600">{summary}</p>}
           </div>
         </div>
       </section>
 
-      <section className="bg-gradient-to-b from-primary-50/60 to-paper py-10 sm:py-14">
+      <section className="bg-paper py-8 sm:py-10">
         <div className="container-x grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
           <div className="space-y-6">
             {expired && (

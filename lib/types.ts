@@ -161,7 +161,10 @@ export type Offer = {
   endsAt?: string;
   departmentId?: string;
   branchIds?: string[];
+  /** Shown on the offers page (and reachable by its link). */
   active: boolean;
+  /** Also in the home page banner; no value = shown (as before). */
+  showOnHome?: boolean;
   /** Display order (lower first). */
   order?: number;
 };

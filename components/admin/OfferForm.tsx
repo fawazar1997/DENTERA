@@ -217,7 +217,16 @@ export function OfferForm({
           defaultChecked={offer?.active ?? true}
           className="h-4 w-4 rounded border-ink-300"
         />
-        {dict.admin.active}
+        {dict.admin.offerShowOnOffers}
+      </label>
+      <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+        <input
+          type="checkbox"
+          name="showOnHome"
+          defaultChecked={offer?.showOnHome !== false}
+          className="h-4 w-4 rounded border-ink-300"
+        />
+        {dict.admin.offerShowOnHome}
       </label>
 
       <SubmitButton label={dict.admin.save} savedLabel={dict.admin.saved} />

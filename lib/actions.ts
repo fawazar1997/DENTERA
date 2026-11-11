@@ -464,6 +464,7 @@ function offerFields(formData: FormData) {
     branchIds: formData.getAll("branchIds").map(String),
     order: optNum(formData, "order"),
     active: formData.get("active") === "on",
+    showOnHome: formData.get("showOnHome") === "on",
   };
 }
 

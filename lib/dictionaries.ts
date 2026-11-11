@@ -449,6 +449,9 @@ export const dictionaries = {
       noOffers:
         "No offers yet. Add one and it appears in the home page banner (when the banner is switched on in Banners).",
       offerLive: "Live",
+      offerShowOnOffers: "Shown on the offers page",
+      offerShowOnHome: "Shown in the home page banner",
+      offerOnHome: "On the home page",
       offerEnded: "Ended",
       viewOffer: "View offer",
       directory: "Coordination Directory",
@@ -1075,6 +1078,9 @@ export const dictionaries = {
       noOffers:
         "لا توجد عروض بعد. أضف عرضاً ليظهر في بنر الصفحة الرئيسية (عندما يكون البنر ظاهراً من «البنرات»).",
       offerLive: "ساري",
+      offerShowOnOffers: "يظهر في صفحة العروض",
+      offerShowOnHome: "يظهر في بنر الصفحة الرئيسية",
+      offerOnHome: "في الرئيسية",
       offerEnded: "منتهي",
       viewOffer: "عرض الصفحة",
       directory: "دليل التنسيق",
