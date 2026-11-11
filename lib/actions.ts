@@ -464,7 +464,9 @@ function offerFields(formData: FormData) {
     branchIds: formData.getAll("branchIds").map(String),
     order: optNum(formData, "order"),
     active: formData.get("active") === "on",
-    showOnHome: formData.get("showOnHome") === "on",
+    // Only a form that has the option can turn it off (a form opened before
+    // the option existed leaves the offer on the home page).
+    showOnHome: formData.has("showOnHomeField") ? formData.get("showOnHome") === "on" : undefined,
   };
 }
 

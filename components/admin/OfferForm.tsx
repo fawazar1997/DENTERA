@@ -220,6 +220,7 @@ export function OfferForm({
         {dict.admin.offerShowOnOffers}
       </label>
       <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+        <input type="hidden" name="showOnHomeField" value="1" />
         <input
           type="checkbox"
           name="showOnHome"
