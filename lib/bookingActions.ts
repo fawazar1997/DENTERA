@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, verifySessionToken } from "./auth";
-import { getActiveBranches, getActiveDepartments, getDoctor } from "./db";
+import { getActiveBranches, getActiveDepartments, getDoctor, getOffer } from "./db";
 import {
   BOOKING_EXTENSIONS,
   createBooking,
@@ -61,6 +61,9 @@ export async function submitBookingAction(
     branchId = doctorBranches[0];
   }
   const source = text("source", 20).replace(/[^a-z-]/g, "") || undefined;
+  // From an offer's page: the offer (only one that is shown on the site).
+  const offer = text("offerId", 80) ? await getOffer(text("offerId", 80)) : undefined;
+  const offerId = offer?.active ? offer.id : undefined;
 
   try {
     await createBooking({
@@ -76,6 +79,7 @@ export async function submitBookingAction(
       doctorId: doctor?.id,
       branchId,
       source,
+      offerId,
       // Straight to the extension that handles this doctor at that branch.
       extension: doctorExtension(doctor, branchId),
     });

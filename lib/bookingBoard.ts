@@ -1,6 +1,6 @@
 import type { Locale } from "./i18n";
 import { getDictionary } from "./dictionaries";
-import { getBranches, getDepartments, getDoctors } from "./db";
+import { getBranches, getDepartments, getDoctors, getOffers } from "./db";
 import { BOOKING_EXTENSIONS, getBookings } from "./bookings";
 import type { BookingStatus } from "./types";
 import type { BoardBooking, BoardLabels } from "@/components/BookingsBoard";
@@ -11,12 +11,14 @@ export async function getBookingsBoardData(locale: Locale) {
   const dict = getDictionary(locale);
   const a = dict.admin;
   const ar = locale === "ar";
-  const [bookings, departments, doctors, branches] = await Promise.all([
+  const [bookings, departments, doctors, branches, offers] = await Promise.all([
     getBookings(),
     getDepartments(),
     getDoctors(),
     getBranches(),
+    getOffers(),
   ]);
+  const offerName = new Map(offers.map((o) => [o.id, ar ? o.titleAr : o.titleEn || o.titleAr]));
   const branchName = new Map(branches.map((b) => [b.id, ar ? b.nameAr : b.nameEn]));
   const departmentName = new Map(departments.map((d) => [d.id, ar ? d.nameAr : d.nameEn]));
   const doctorName = new Map(doctors.map((d) => [d.id, ar ? d.nameAr : d.nameEn]));
@@ -50,7 +52,12 @@ export async function getBookingsBoardData(locale: Locale) {
     doctor: b.doctorId ? doctorName.get(b.doctorId) : undefined,
     branchId: b.branchId,
     branch: b.branchId ? branchName.get(b.branchId) : undefined,
-    source: b.source ? sourceLabels[b.source] ?? b.source : undefined,
+    // From an offer's page: "Offer: <its name>".
+    source: b.offerId
+      ? `${a.sourceOffer}: ${offerName.get(b.offerId) ?? b.offerId}`
+      : b.source
+        ? sourceLabels[b.source] ?? b.source
+        : undefined,
     status: b.status,
     note: b.note,
     agent: b.agent,

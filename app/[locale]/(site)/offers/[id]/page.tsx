@@ -16,13 +16,15 @@ import { getSiteDictionary } from "@/lib/content";
 import { pageMetadata } from "@/lib/seo";
 import {
   getActiveBranches,
+  getActiveDepartments,
   getDepartment,
   getOffer,
   isOfferExpired,
 } from "@/lib/db";
 import { discountPercent, formatOfferDate, formatPrice } from "@/lib/offerFormat";
 import { offerBannerSizeClass } from "@/components/offerBanner";
-import { CallButton } from "@/components/CallButton";
+import { BookingForm } from "@/components/BookingForm";
+import { bookingFormLabels } from "@/lib/bookingLabels";
 import { DepartmentIcon } from "@/components/IconMap";
 import { Reveal } from "@/components/Reveal";
 
@@ -76,9 +78,8 @@ export default async function OfferPage({ params }: { params: Params }) {
   const department = offer.departmentId
     ? await getDepartment(offer.departmentId)
     : undefined;
-  const branches = (await getActiveBranches()).filter((b) =>
-    offer.branchIds?.includes(b.id)
-  );
+  const [allBranches, allDepartments] = await Promise.all([getActiveBranches(), getActiveDepartments()]);
+  const branches = allBranches.filter((b) => offer.branchIds?.includes(b.id));
   const expired = isOfferExpired(offer);
   const title = ar ? offer.titleAr : offer.titleEn;
   const summary = ar ? offer.summaryAr : offer.summaryEn;
@@ -231,12 +232,27 @@ export default async function OfferPage({ params }: { params: Params }) {
                   </p>
                 )}
               </div>
-              <div className="p-6">
-                <h2 className="font-bold text-ink-900">{dict.offers.bookTitle}</h2>
-                <p className="mt-1 text-sm text-ink-600">{dict.offers.bookBody}</p>
-                {!expired && <CallButton dict={dict} className="mt-5 w-full" />}
-              </div>
             </div>
+            {!expired && (
+              // Appointment request for this offer (saved with the offer, for
+              // the call center), with its department and branches preset.
+              <div id="book" className="mt-4 scroll-mt-24">
+                <h2 className="text-lg font-bold text-ink-900">{dict.offers.bookTitle}</h2>
+                <p className="mt-1 text-sm text-ink-600">{dict.offers.bookBody}</p>
+                <BookingForm
+                  source="offers"
+                  offerId={offer.id}
+                  labels={bookingFormLabels(dict)}
+                  departments={allDepartments.map((d) => ({ id: d.id, name: ar ? d.nameAr : d.nameEn }))}
+                  defaultDepartmentId={department?.id}
+                  branches={(branches.length > 0 ? branches : allBranches).map((b) => ({
+                    id: b.id,
+                    name: ar ? b.nameAr : b.nameEn,
+                  }))}
+                  className="mt-3"
+                />
+              </div>
+            )}
           </aside>
         </div>
       </section>

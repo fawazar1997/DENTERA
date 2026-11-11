@@ -58,6 +58,8 @@ type FormProps = {
    */
   doctors?: { id: string; name: string; branchIds?: string[]; departmentIds?: string[] }[];
   defaultDoctorId?: string;
+  /** On an offer's page: the offer the request is for. */
+  offerId?: string;
   className?: string;
 };
 
@@ -77,6 +79,7 @@ function BookingFormInner({
   lockDepartment = false,
   doctors,
   defaultDoctorId = "",
+  offerId,
   className = "",
   onAnother,
 }: FormProps & { onAnother: () => void }) {
@@ -142,6 +145,7 @@ function BookingFormInner({
     >
       <input type="hidden" name="t" value={shownAt > 0 ? shownAt : ""} />
       <input type="hidden" name="source" value={source} />
+      {offerId && <input type="hidden" name="offerId" value={offerId} />}
       {/* Left empty by people; bots tend to fill every field. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>

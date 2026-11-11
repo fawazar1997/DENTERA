@@ -298,6 +298,8 @@ export type Booking = {
   branchId?: string;
   /** Page the request was sent from, e.g. "home", "contact", "doctor". */
   source?: string;
+  /** Set when sent from an offer's page: that offer. */
+  offerId?: string;
   status: BookingStatus;
   note?: string;
   /** Name of the call-center agent who last updated it. */

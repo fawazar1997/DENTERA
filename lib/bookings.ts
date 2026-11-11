@@ -212,7 +212,7 @@ export async function getBookings(): Promise<Booking[]> {
 export async function createBooking(
   input: Pick<
     Booking,
-    "name" | "phone" | "departmentId" | "doctorId" | "branchId" | "source" | "extension"
+    "name" | "phone" | "departmentId" | "doctorId" | "branchId" | "source" | "offerId" | "extension"
   >
 ): Promise<Booking> {
   const now = new Date().toISOString();
