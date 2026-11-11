@@ -129,30 +129,31 @@ export default async function OfferPage({ params }: { params: Params }) {
             terms) and then its booking form, with no empty side. */}
         <div className="container-x">
           <div className="mx-auto max-w-3xl space-y-6">
-            <div className="card overflow-hidden">
-              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white sm:p-7">
-                {offer.priceNow ? (
-                  <div>
-                    <p className="text-4xl font-extrabold text-primary-300">
-                      {formatPrice(offer.priceNow, dict.offers.currency)}
-                    </p>
-                    {offer.priceWas && offer.priceWas > offer.priceNow && (
-                      <p className="mt-1 text-sand-300 line-through">
-                        {formatPrice(offer.priceWas, dict.offers.currency)}
+            {/* The price and how long it lasts (the name is already the title). */}
+            {(offer.priceNow || offer.endsAt) && (
+              <div className="card overflow-hidden">
+                <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white sm:p-7">
+                  {offer.priceNow ? (
+                    <div>
+                      <p className="text-4xl font-extrabold text-primary-300">
+                        {formatPrice(offer.priceNow, dict.offers.currency)}
                       </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-2xl font-extrabold">{title}</p>
-                )}
-                {offer.endsAt && (
-                  <p className="flex items-center gap-1.5 text-sm text-sand-200">
-                    <CalendarClock className="h-4 w-4" />
-                    {dict.offers.validUntil} {formatOfferDate(offer.endsAt, locale)}
-                  </p>
-                )}
+                      {offer.priceWas && offer.priceWas > offer.priceNow && (
+                        <p className="mt-1 text-sand-300 line-through">
+                          {formatPrice(offer.priceWas, dict.offers.currency)}
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+                  {offer.endsAt && (
+                    <p className="flex items-center gap-1.5 text-sm text-sand-200">
+                      <CalendarClock className="h-4 w-4" />
+                      {dict.offers.validUntil} {formatOfferDate(offer.endsAt, locale)}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             {expired && (
               <div className="rounded-xl2 border border-accent-300 bg-accent-50 p-4 font-bold text-ink-800">
                 {dict.offers.ended}
