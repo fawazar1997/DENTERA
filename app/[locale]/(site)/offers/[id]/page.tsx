@@ -102,6 +102,7 @@ export default async function OfferPage({ params }: { params: Params }) {
 
       <section className="bg-paper pt-8 sm:pt-10">
         <div className="container-x">
+          <div className="mx-auto max-w-3xl">
           <Link
             href={localePath(locale, `/offers`)}
             className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-ink-950"
@@ -119,12 +120,39 @@ export default async function OfferPage({ params }: { params: Params }) {
             <h1 className="mt-3 text-3xl font-extrabold leading-tight text-ink-950 sm:text-4xl">{title}</h1>
             {summary && <p className="mt-3 max-w-2xl text-lg text-ink-600">{summary}</p>}
           </div>
+          </div>
         </div>
       </section>
 
       <section className="bg-paper py-8 sm:py-10">
-        <div className="container-x grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
-          <div className="space-y-6">
+        {/* One centered column on every screen: the offer (price, details,
+            terms) and then its booking form, with no empty side. */}
+        <div className="container-x">
+          <div className="mx-auto max-w-3xl space-y-6">
+            <div className="card overflow-hidden">
+              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white sm:p-7">
+                {offer.priceNow ? (
+                  <div>
+                    <p className="text-4xl font-extrabold text-primary-300">
+                      {formatPrice(offer.priceNow, dict.offers.currency)}
+                    </p>
+                    {offer.priceWas && offer.priceWas > offer.priceNow && (
+                      <p className="mt-1 text-sand-300 line-through">
+                        {formatPrice(offer.priceWas, dict.offers.currency)}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-2xl font-extrabold">{title}</p>
+                )}
+                {offer.endsAt && (
+                  <p className="flex items-center gap-1.5 text-sm text-sand-200">
+                    <CalendarClock className="h-4 w-4" />
+                    {dict.offers.validUntil} {formatOfferDate(offer.endsAt, locale)}
+                  </p>
+                )}
+              </div>
+            </div>
             {expired && (
               <div className="rounded-xl2 border border-accent-300 bg-accent-50 p-4 font-bold text-ink-800">
                 {dict.offers.ended}
@@ -206,37 +234,11 @@ export default async function OfferPage({ params }: { params: Params }) {
                 </section>
               </Reveal>
             )}
-          </div>
 
-          <aside className="lg:sticky lg:top-24">
-            <div className="card overflow-hidden">
-              <div className="bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white">
-                {offer.priceNow ? (
-                  <>
-                    <p className="text-4xl font-extrabold text-primary-300">
-                      {formatPrice(offer.priceNow, dict.offers.currency)}
-                    </p>
-                    {offer.priceWas && offer.priceWas > offer.priceNow && (
-                      <p className="mt-1 text-sand-300 line-through">
-                        {formatPrice(offer.priceWas, dict.offers.currency)}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-2xl font-extrabold">{title}</p>
-                )}
-                {offer.endsAt && (
-                  <p className="mt-4 flex items-center gap-1.5 text-sm text-sand-200">
-                    <CalendarClock className="h-4 w-4" />
-                    {dict.offers.validUntil} {formatOfferDate(offer.endsAt, locale)}
-                  </p>
-                )}
-              </div>
-            </div>
             {!expired && (
               // Appointment request for this offer (saved with the offer, for
               // the call center), with its department and branches preset.
-              <div id="book" className="mt-4 scroll-mt-24">
+              <div id="book" className="scroll-mt-24">
                 <h2 className="text-lg font-bold text-ink-900">{dict.offers.bookTitle}</h2>
                 <p className="mt-1 text-sm text-ink-600">{dict.offers.bookBody}</p>
                 <BookingForm
@@ -253,7 +255,7 @@ export default async function OfferPage({ params }: { params: Params }) {
                 />
               </div>
             )}
-          </aside>
+          </div>
         </div>
       </section>
     </>
