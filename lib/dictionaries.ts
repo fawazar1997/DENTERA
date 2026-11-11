@@ -630,7 +630,7 @@ export const dictionaries = {
       social: "Social Media",
       socialSubtitle:
         "Links to Dentera's accounts. Each filled-in link shows as an icon in the footer of every page and on the Contact page. Leave a field empty to hide that platform.",
-      showHomeBanner: "Show this banner on the home page",
+      showHomeBanner: "Show this banner on the home page (when no offer is chosen for it — offers have their own option)",
       bannerVisible: "Visible",
       bannerHidden: "Hidden",
       heroImage: "Home page headline photo (Dentera branch)",
@@ -1258,7 +1258,7 @@ export const dictionaries = {
       social: "مواقع التواصل",
       socialSubtitle:
         "روابط حسابات دنتيرا. كل رابط تضيفه يظهر كأيقونة أسفل كل صفحة وفي صفحة تواصل معنا. اترك الحقل فارغاً لإخفاء المنصة.",
-      showHomeBanner: "إظهار هذا البنر في الصفحة الرئيسية",
+      showHomeBanner: "إظهار هذا البنر في الصفحة الرئيسية (عند عدم وجود عروض مختارة للرئيسية — العروض لها خيارها الخاص)",
       bannerVisible: "ظاهر",
       bannerHidden: "مخفي",
       heroImage: "صورة القسم العلوي في الرئيسية (مقرات دنتيرا)",

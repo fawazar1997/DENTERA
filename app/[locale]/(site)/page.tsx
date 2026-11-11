@@ -232,31 +232,33 @@ export default async function HomePage({
   return (
     <>
       <ClinicJsonLd locale={locale} />
-      {settings.showHomeBanner !== false &&
-        (offers.length > 0 ? (
-          // The home banner is the promotions carousel; each slide opens
-          // its offer page. Without live offers, the plain banner shows.
-          <OfferCarousel
-            locale={locale}
-            slides={offers.map((offer) => ({
-              id: offer.id,
-              title: rtl ? offer.titleAr : offer.titleEn,
-              imageUrl: offer.imageUrl,
-              mobileImageUrl: offer.mobileImageUrl,
-            }))}
-            labels={{
-              viewOffer: dict.offers.viewOffer,
-              previous: rtl ? "السابق" : "Previous",
-              next: rtl ? "التالي" : "Next",
-            }}
-          />
-        ) : (
+      {offers.length > 0 ? (
+        // Offers chosen for the home page show in its banner (each offer's
+        // own option decides); each slide opens its offer page.
+        <OfferCarousel
+          locale={locale}
+          slides={offers.map((offer) => ({
+            id: offer.id,
+            title: rtl ? offer.titleAr : offer.titleEn,
+            imageUrl: offer.imageUrl,
+            mobileImageUrl: offer.mobileImageUrl,
+          }))}
+          labels={{
+            viewOffer: dict.offers.viewOffer,
+            previous: rtl ? "السابق" : "Previous",
+            next: rtl ? "التالي" : "Next",
+          }}
+        />
+      ) : (
+        // Without such offers, the plain home banner (if it's switched on).
+        settings.showHomeBanner !== false && (
           <HomeBanner
             bannerUrl={settings.banners?.home}
             mobileBannerUrl={settings.mobileBanners?.home}
             tagline={dict.footer.description}
           />
-        ))}
+        )
+      )}
       {homeSectionOrder(settings.homeSectionOrder)
         .filter(show)
         .map((key) => (
