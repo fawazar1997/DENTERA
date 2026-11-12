@@ -11,12 +11,13 @@ export type HeroSlide =
   | { kind: "photo"; key: string; imageUrl?: string; title: string }
   | { kind: "offer"; key: string; id: string; imageUrl: string; title: string; discount?: number | null };
 
-const INTERVAL_MS = 5500;
+/** Each picture stays this long before the next one comes in. */
+const INTERVAL_MS = 5000;
 
 /**
  * The home headline's photo frame (4:5): the branch photo and the offers
- * chosen for the home page, fading one into the next on their own (paused
- * on hover/focus, still for reduced motion). An offer's slide shows its
+ * chosen for the home page, fading one into the next every 5 seconds
+ * (held while focused from the keyboard, still for reduced motion). An offer's slide shows its
  * image as it is, with a button to its page.
  */
 export function HeroSlides({
@@ -36,18 +37,19 @@ export function HeroSlides({
   const Forward = locale === "ar" ? ArrowLeft : ArrowRight;
 
   const next = useCallback(() => setIndex((i) => (i + 1) % count), [count]);
+  // A full 5 seconds on every picture, also after a dot is clicked.
   useEffect(() => {
     if (count < 2 || paused) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = setInterval(next, INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [count, paused, next]);
+    const timer = setTimeout(next, INTERVAL_MS);
+    return () => clearTimeout(timer);
+  }, [count, paused, next, index]);
 
   return (
     <div
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
+      // Keeps moving under the mouse and after a tap; only holds still
+      // while a keyboard user is on one of its links or dots.
+      onFocus={(e) => setPaused(e.target.matches(":focus-visible"))}
       onBlur={() => setPaused(false)}
     >
       <div
