@@ -136,10 +136,16 @@ const config: Config = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        // A light sweeping across a button, then a pause.
+        shine: {
+          "0%": { transform: "translateX(-160%) skewX(-20deg)" },
+          "45%, 100%": { transform: "translateX(360%) skewX(-20deg)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "fade-in": "fade-in 0.6s ease-out forwards",
+        shine: "shine 3.6s ease-in-out 1s infinite",
       },
     },
   },

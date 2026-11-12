@@ -116,10 +116,21 @@ export function HeroSlides({
                   {labels.save} {slide.discount}%
                 </span>
               ) : null}
-              <span className="absolute bottom-5 start-5 inline-flex items-center gap-2 rounded-full bg-primary-400 px-5 py-2.5 text-sm font-extrabold text-ink-950 shadow-lg shadow-ink-950/30 ring-4 ring-white/40 transition group-hover:bg-primary-300">
-                <Tag className="h-4 w-4" />
-                {labels.viewOffer}
-                <Forward className="h-4 w-4 transition group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
+              {/* "Offer details": a frosted white pill with a light sweeping
+                  across it, and the arrow in a navy disc that turns teal
+                  and nudges forward on hover. */}
+              <span className="absolute bottom-5 start-5 isolate inline-flex items-center gap-3 overflow-hidden rounded-full bg-white py-1.5 pe-1.5 ps-5 text-[0.95rem] font-extrabold text-ink-950 shadow-xl shadow-ink-950/35 ring-1 ring-white/70 backdrop-blur-md transition duration-300 group-hover:-translate-y-0.5 group-hover:shadow-2xl">
+                <span
+                  className="pointer-events-none absolute inset-y-0 left-0 -z-10 w-1/3 bg-gradient-to-r from-transparent via-primary-200/80 to-transparent motion-safe:animate-shine"
+                  aria-hidden="true"
+                />
+                <span className="flex flex-col leading-tight">
+                  {labels.viewOffer}
+                  <span className="mt-0.5 h-0.5 w-6 rounded-full bg-gradient-to-r from-primary-400 to-accent-400 transition-all duration-300 group-hover:w-full" />
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink-950 text-primary-300 shadow-md ring-4 ring-primary-200/60 transition duration-300 group-hover:bg-primary-500 group-hover:text-white">
+                  <Forward className="h-[1.1rem] w-[1.1rem] transition duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
+                </span>
               </span>
             </Link>
           );
