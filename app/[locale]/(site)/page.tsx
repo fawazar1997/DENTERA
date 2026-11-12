@@ -15,8 +15,8 @@ import {
   getSettings,
 } from "@/lib/db";
 import { Hero } from "@/components/Hero";
+import { discountPercent, offerImage } from "@/lib/offerFormat";
 import { HomeBanner } from "@/components/HomeBanner";
-import { OfferCarousel } from "@/components/OfferCarousel";
 import { WhyDentera } from "@/components/WhyDentera";
 import { DepartmentCard } from "@/components/DepartmentCard";
 import { DoctorCard } from "@/components/DoctorCard";
@@ -70,11 +70,19 @@ export default async function HomePage({
   const partners = await getActivePartners("partners");
   const payments = await getActivePartners("payments");
   const branches = await getActiveBranches();
-  // The home banner shows the live offers chosen for it.
-  const offers = (await getLiveOffers()).filter((offer) => offer.showOnHome !== false);
+  const rtl = locale === "ar";
+  // Live offers chosen for the home page, with an image: they take turns
+  // in the headline's photo frame.
+  const heroOffers = (await getLiveOffers())
+    .filter((offer) => offer.showOnHome !== false && offerImage(offer))
+    .map((offer) => ({
+      id: offer.id,
+      title: rtl ? offer.titleAr : offer.titleEn,
+      imageUrl: offerImage(offer)!,
+      discount: discountPercent(offer.priceNow, offer.priceWas),
+    }));
   const hidden = new Set(settings.hiddenHomeSections ?? []);
   const show = (section: HomeSectionKey) => !hidden.has(section);
-  const rtl = locale === "ar";
   const Arrow = rtl ? ArrowLeft : ArrowRight;
 
   // Each home section; rendered in the order saved in the control panel.
@@ -85,6 +93,8 @@ export default async function HomePage({
           locale={locale}
           dict={dict}
           imageUrl={settings.heroImageUrl}
+          showImage={settings.heroShowImage !== false}
+          offers={heroOffers}
           branchNames={branches.map((b) => (rtl ? b.nameAr : b.nameEn))}
         />
       </>
@@ -232,32 +242,12 @@ export default async function HomePage({
   return (
     <>
       <ClinicJsonLd locale={locale} />
-      {offers.length > 0 ? (
-        // Offers chosen for the home page show in its banner (each offer's
-        // own option decides); each slide opens its offer page.
-        <OfferCarousel
-          locale={locale}
-          slides={offers.map((offer) => ({
-            id: offer.id,
-            title: rtl ? offer.titleAr : offer.titleEn,
-            imageUrl: offer.imageUrl,
-            mobileImageUrl: offer.mobileImageUrl,
-          }))}
-          labels={{
-            viewOffer: dict.offers.viewOffer,
-            previous: rtl ? "السابق" : "Previous",
-            next: rtl ? "التالي" : "Next",
-          }}
+      {settings.showHomeBanner !== false && (
+        <HomeBanner
+          bannerUrl={settings.banners?.home}
+          mobileBannerUrl={settings.mobileBanners?.home}
+          tagline={dict.footer.description}
         />
-      ) : (
-        // Without such offers, the plain home banner (if it's switched on).
-        settings.showHomeBanner !== false && (
-          <HomeBanner
-            bannerUrl={settings.banners?.home}
-            mobileBannerUrl={settings.mobileBanners?.home}
-            tagline={dict.footer.description}
-          />
-        )
       )}
       {homeSectionOrder(settings.homeSectionOrder)
         .filter(show)

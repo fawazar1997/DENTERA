@@ -6,6 +6,7 @@ import { getSettings } from "@/lib/db";
 import {
   removeBannerAction,
   removeHeroImageAction,
+  setHeroShowImageAction,
   setHomeBannerVisibilityAction,
   updateBannerAction,
   updateHeroImageAction,
@@ -99,6 +100,22 @@ export default async function AdminBannersPage({
                 <div className="mt-2">
                   <PhotoQualityBadge src={settings.heroImageUrl} label={dict.admin.lowResPhoto} />
                 </div>
+              )}
+              {settings.heroImageUrl && (
+                <form action={setHeroShowImageAction} className="mt-3 flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+                    <input
+                      type="checkbox"
+                      name="visible"
+                      defaultChecked={settings.heroShowImage !== false}
+                      className="h-4 w-4 rounded border-ink-300"
+                    />
+                    {dict.admin.heroShowImage}
+                  </label>
+                  <button type="submit" className="btn-outline px-4 py-1.5 text-xs">
+                    {dict.admin.save}
+                  </button>
+                </form>
               )}
               {settings.heroImageUrl && (
                 <form action={removeHeroImageAction} className="mt-3">

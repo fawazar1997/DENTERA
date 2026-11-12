@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BannerImage } from "@/components/BannerImage";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarCheck,
   CalendarClock,
   CheckCircle2,
   FileText,
@@ -21,8 +22,7 @@ import {
   getOffer,
   isOfferExpired,
 } from "@/lib/db";
-import { discountPercent, formatOfferDate, formatPrice } from "@/lib/offerFormat";
-import { offerBannerSizeClass } from "@/components/offerBanner";
+import { discountPercent, formatOfferDate, formatPrice, offerImage } from "@/lib/offerFormat";
 import { BookingForm } from "@/components/BookingForm";
 import { bookingFormLabels } from "@/lib/bookingLabels";
 import { DepartmentIcon } from "@/components/IconMap";
@@ -62,7 +62,7 @@ export async function generateMetadata({
     path: `/offers/${offer.id}`,
     title,
     description: (locale === "ar" ? offer.summaryAr : offer.summaryEn) || title,
-    image: offer.imageUrl,
+    image: offerImage(offer),
   });
 }
 
@@ -86,79 +86,97 @@ export default async function OfferPage({ params }: { params: Params }) {
   const details = lines(ar ? offer.detailsAr : offer.detailsEn);
   const terms = lines(ar ? offer.termsAr : offer.termsEn);
   const discount = discountPercent(offer.priceNow, offer.priceWas);
+  const image = offerImage(offer);
 
   return (
     <>
-      {(offer.imageUrl || offer.mobileImageUrl) && (
-        // The offer's banner, as it is and the same size as on the home page.
-        <section className={`relative w-full overflow-hidden bg-ink-950 ${offerBannerSizeClass(Boolean(offer.mobileImageUrl))}`}>
-          <BannerImage
-            src={(offer.imageUrl ?? offer.mobileImageUrl)!}
-            mobileSrc={offer.mobileImageUrl}
-            priority
-          />
-        </section>
-      )}
-
-      <section className="bg-paper pt-8 sm:pt-10">
-        <div className="container-x">
-          <div className="mx-auto max-w-3xl">
-          <Link
-            href={localePath(locale, `/offers`)}
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-ink-950"
-          >
-            <BackArrow className="h-4 w-4" />
-            {dict.offers.allOffers}
-          </Link>
-          <div className="mt-5 max-w-3xl">
+      {/* The offer's top, shaped like the home page headline: its details
+          beside its portrait (4:5) image, in the same layered frame. */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
+        <div className="absolute -top-24 start-[5%] h-72 w-72 rounded-full bg-primary-200/50 blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-24 start-[40%] h-72 w-72 rounded-full bg-accent-200/50 blur-3xl" aria-hidden="true" />
+        <div
+          className={`container-x relative grid items-center gap-10 py-10 sm:py-14 lg:gap-16 lg:py-16 ${
+            image ? "lg:grid-cols-2" : ""
+          }`}
+        >
+          <div className={`text-center lg:text-start ${image ? "" : "mx-auto max-w-3xl lg:text-center"}`}>
+            <Link
+              href={localePath(locale, `/offers`)}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-700 hover:text-ink-950"
+            >
+              <BackArrow className="h-4 w-4" />
+              {dict.offers.allOffers}
+            </Link>
             {discount && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-3 py-1 text-sm font-bold text-ink-900">
-                <Tag className="h-4 w-4" />
-                {dict.offers.save} {discount}%
-              </span>
+              <div className="mt-6">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-3 py-1 text-sm font-bold text-ink-900">
+                  <Tag className="h-4 w-4" />
+                  {dict.offers.save} {discount}%
+                </span>
+              </div>
             )}
-            <h1 className="mt-3 text-3xl font-extrabold leading-tight text-ink-950 sm:text-4xl">{title}</h1>
-            {summary && <p className="mt-3 max-w-2xl text-lg text-ink-600">{summary}</p>}
+            <h1 className="mt-4 text-4xl font-extrabold leading-tight tracking-tight text-ink-950 sm:text-5xl">
+              {title}
+            </h1>
+            {summary && <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-ink-600 lg:mx-0">{summary}</p>}
+            {offer.priceNow ? (
+              <p className={`mt-6 flex flex-wrap items-baseline justify-center gap-3 ${image ? "lg:justify-start" : ""}`}>
+                <span className="text-4xl font-extrabold text-primary-600">
+                  {formatPrice(offer.priceNow, dict.offers.currency)}
+                </span>
+                {offer.priceWas && offer.priceWas > offer.priceNow && (
+                  <span className="text-lg text-ink-400 line-through">
+                    {formatPrice(offer.priceWas, dict.offers.currency)}
+                  </span>
+                )}
+              </p>
+            ) : null}
+            {offer.endsAt && (
+              <p className={`mt-3 flex items-center justify-center gap-1.5 text-sm font-semibold text-ink-500 ${image ? "lg:justify-start" : ""}`}>
+                <CalendarClock className="h-4 w-4" />
+                {dict.offers.validUntil} {formatOfferDate(offer.endsAt, locale)}
+              </p>
+            )}
+            {expired ? (
+              <p className="mt-6 inline-block rounded-xl2 border border-accent-300 bg-accent-50 px-4 py-3 font-bold text-ink-800">
+                {dict.offers.ended}
+              </p>
+            ) : (
+              <div className={`mt-8 flex flex-wrap items-center justify-center gap-3 ${image ? "lg:justify-start" : ""}`}>
+                <a href="#book" className="btn-primary px-7 py-3.5 text-base">
+                  <CalendarCheck className="h-5 w-5" />
+                  {dict.offers.bookTitle}
+                </a>
+              </div>
+            )}
           </div>
-          </div>
+
+          {image && (
+            <div className="relative mx-auto w-full max-w-md lg:max-w-none lg:ps-10">
+              <div className="relative">
+                <div
+                  className="absolute inset-0 -rotate-6 scale-[0.96] rounded-[2.25rem] bg-sand-300/70 rtl:rotate-6"
+                  aria-hidden="true"
+                />
+                <div
+                  className="absolute inset-0 rotate-3 scale-[0.98] rounded-[2.25rem] bg-primary-200/80 rtl:-rotate-3"
+                  aria-hidden="true"
+                />
+                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2.25rem] bg-ink-950 shadow-soft">
+                  <Image src={image} alt={title} fill priority unoptimized sizes="(min-width: 1024px) 40vw, 90vw" className="object-cover" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
       <section className="bg-paper py-8 sm:py-10">
-        {/* One centered column on every screen: the offer (price, details,
-            terms) and then its booking form, with no empty side. */}
+        {/* One centered column: what's included, the terms, where, and the
+            booking form. */}
         <div className="container-x">
           <div className="mx-auto max-w-3xl space-y-6">
-            {/* The price and how long it lasts (the name is already the title). */}
-            {(offer.priceNow || offer.endsAt) && (
-              <div className="card overflow-hidden">
-                <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 bg-gradient-to-br from-ink-900 to-ink-950 p-6 text-white sm:p-7">
-                  {offer.priceNow ? (
-                    <div>
-                      <p className="text-4xl font-extrabold text-primary-300">
-                        {formatPrice(offer.priceNow, dict.offers.currency)}
-                      </p>
-                      {offer.priceWas && offer.priceWas > offer.priceNow && (
-                        <p className="mt-1 text-sand-300 line-through">
-                          {formatPrice(offer.priceWas, dict.offers.currency)}
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
-                  {offer.endsAt && (
-                    <p className="flex items-center gap-1.5 text-sm text-sand-200">
-                      <CalendarClock className="h-4 w-4" />
-                      {dict.offers.validUntil} {formatOfferDate(offer.endsAt, locale)}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            {expired && (
-              <div className="rounded-xl2 border border-accent-300 bg-accent-50 p-4 font-bold text-ink-800">
-                {dict.offers.ended}
-              </div>
-            )}
             {details.length > 0 && (
               <Reveal>
                 <section className="card p-6 sm:p-8">

@@ -1,24 +1,41 @@
 import { localePath } from "@/lib/i18n";
 import Link from "next/link";
-import { MapPin, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import { CallButton } from "./CallButton";
-import { DoctorPhoto } from "./DoctorPhoto";
+import { HeroSlides, type HeroSlide } from "./HeroSlides";
 
 export function Hero({
   locale,
   dict,
   imageUrl,
+  showImage = true,
+  offers = [],
   branchNames = [],
 }: {
   locale: Locale;
   dict: Dictionary;
   /** Branch photo from Control Panel → Banners; brand panel if absent. */
   imageUrl?: string;
+  /** Keep the branch photo in the slideshow when there are offers. */
+  showImage?: boolean;
+  /** Offers chosen for the home page (with a 4:5 image), shown in the photo frame. */
+  offers?: { id: string; title: string; imageUrl: string; discount?: number | null }[];
   /** Branch names shown on the photo. */
   branchNames?: string[];
 }) {
+  // The photo frame's slides: the branch photo (unless switched off while
+  // there are offers, or there's no photo to show beside offers) and the
+  // offers. With nothing else, the photo (or brand panel) stays.
+  const offerSlides: HeroSlide[] = offers.map((offer) => ({ kind: "offer", key: offer.id, ...offer }));
+  const photo: HeroSlide = { kind: "photo", key: "photo", imageUrl, title: dict.meta.siteName };
+  const slides: HeroSlide[] =
+    offerSlides.length === 0
+      ? [photo]
+      : showImage && imageUrl
+        ? [photo, ...offerSlides]
+        : offerSlides;
   return (
     <>
       <section className="relative overflow-hidden bg-gradient-to-b from-primary-50 via-paper to-paper">
@@ -58,10 +75,11 @@ export function Hero({
             </div>
           </div>
 
-          {/* Branch photo: the second column, so it sits on the left in
+          {/* Photo frame: the second column, so it sits on the left in
               Arabic (RTL) and on the right in English. Layered brand cards
-              (beige, cyan) give it depth; branch names sit on the photo and
-              a small card carries the tooth mark and a key number. */}
+              (beige, cyan) give it depth. It shows the branch photo and the
+              offers chosen for the home page, in turn; a small card carries
+              the tooth mark and a key number. */}
           <div
             className="relative mx-auto w-full max-w-md animate-fade-up opacity-0 lg:max-w-none lg:ps-10"
             style={{ animationDelay: "150ms" }}
@@ -75,34 +93,12 @@ export function Hero({
                 className="absolute inset-0 rotate-3 scale-[0.98] rounded-[2.25rem] bg-primary-200/80 rtl:-rotate-3"
                 aria-hidden="true"
               />
-              <div className="relative overflow-hidden rounded-[2.25rem] shadow-soft">
-                <DoctorPhoto
-                  photoUrl={imageUrl}
-                  name={dict.meta.siteName}
-                  priority
-                  sizes="(min-width: 1024px) 40vw, 90vw"
-                  className="aspect-[4/5] w-full lg:aspect-[5/6]"
-                />
-                {branchNames.length > 0 && (
-                  <>
-                    <div
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-950/70 to-transparent"
-                      aria-hidden="true"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-2 p-5">
-                      {branchNames.map((branch) => (
-                        <span
-                          key={branch}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/25 backdrop-blur-md"
-                        >
-                          <MapPin className="h-3.5 w-3.5" />
-                          {branch}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              <HeroSlides
+                slides={slides}
+                branchNames={branchNames}
+                locale={locale}
+                labels={{ viewOffer: dict.offers.viewOffer, save: dict.offers.save, slide: locale === "ar" ? "الشريحة" : "Slide" }}
+              />
 
               <div className="absolute -start-4 top-10 flex items-center gap-3 rounded-2xl bg-white/95 p-3 pe-5 shadow-soft backdrop-blur sm:-start-8 lg:-start-12">
                 <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-ink-900">

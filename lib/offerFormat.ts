@@ -22,3 +22,8 @@ export function formatOfferDate(date: string, locale: "en" | "ar"): string {
     timeZone: "UTC",
   });
 }
+
+/** The offer's portrait (4:5) image: its phone image on older offers, else its image. */
+export function offerImage(offer: { imageUrl?: string; mobileImageUrl?: string }): string | undefined {
+  return offer.mobileImageUrl || offer.imageUrl || undefined;
+}

@@ -284,6 +284,14 @@ export async function setHomeBannerVisibilityAction(formData: FormData) {
   revalidateAll();
 }
 
+/** Whether the branch photo stays in the home headline's slideshow. */
+export async function setHeroShowImageAction(formData: FormData) {
+  const user = await requireSection("/banners");
+  await updateSettings({ heroShowImage: formData.get("visible") === "on" });
+  await logActivity(user, "/banners", "settings", "hero");
+  revalidateAll();
+}
+
 export async function updateHeroImageAction(formData: FormData) {
   const user = await requireSection("/banners");
   const url = await uploadImage(fileOrNull(formData, "image"), "hero");
@@ -473,8 +481,7 @@ function offerFields(formData: FormData) {
 export async function createOfferAction(formData: FormData) {
   const user = await requireSection("/offers");
   const imageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
-  const mobileImageUrl = await uploadImage(fileOrNull(formData, "mobileImage"), "offers");
-  await createOffer({ ...offerFields(formData), imageUrl, mobileImageUrl });
+  await createOffer({ ...offerFields(formData), imageUrl });
   await logActivity(user, "/offers", "create", str(formData, "titleAr"));
   revalidateAll();
 }
@@ -484,12 +491,9 @@ export async function updateOfferAction(formData: FormData) {
   const id = str(formData, "id");
   const current = await getOffer(id);
   const newImageUrl = await uploadImage(fileOrNull(formData, "image"), "offers");
+  // A new image (portrait 4:5) replaces both of an older offer's images.
   const imageUrl = newImageUrl ?? current?.imageUrl;
-  const newMobileUrl = await uploadImage(fileOrNull(formData, "mobileImage"), "offers");
-  // A new phone image replaces the old one; "remove" clears it.
-  const mobileImageUrl =
-    newMobileUrl ??
-    (formData.get("removeMobileImage") === "on" ? undefined : current?.mobileImageUrl);
+  const mobileImageUrl = newImageUrl ? undefined : current?.mobileImageUrl;
   await updateOffer(id, { ...offerFields(formData), imageUrl, mobileImageUrl });
   await logActivity(user, "/offers", "update", str(formData, "titleAr"));
   revalidateAll();

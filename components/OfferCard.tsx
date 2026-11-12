@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, CalendarClock, Tag } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import type { Dictionary } from "@/lib/dictionaries";
 import type { Offer } from "@/lib/types";
-import { discountPercent, formatOfferDate, formatPrice } from "@/lib/offerFormat";
+import { offerImage, discountPercent, formatOfferDate, formatPrice } from "@/lib/offerFormat";
 
 export function OfferCard({
   offer,
@@ -21,17 +21,19 @@ export function OfferCard({
   const title = ar ? offer.titleAr : offer.titleEn;
   const summary = ar ? offer.summaryAr : offer.summaryEn;
   const discount = discountPercent(offer.priceNow, offer.priceWas);
+  // The offer's portrait (4:5) image, as on the home page and its own page.
+  const image = offerImage(offer);
 
   return (
     <Link
       href={localePath(locale, `/offers/${offer.id}`)}
       className="card group flex h-full flex-col overflow-hidden hover:-translate-y-1 hover:shadow-soft"
     >
-      <div className="relative aspect-[16/7] overflow-hidden bg-gradient-to-br from-ink-900 to-primary-800">
-        {offer.imageUrl ? (
+      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-ink-900 to-primary-800">
+        {image ? (
           <Image
           unoptimized
-            src={offer.imageUrl}
+            src={image}
             alt=""
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"

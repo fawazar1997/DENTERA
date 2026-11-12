@@ -78,6 +78,11 @@ export type SiteSettings = {
   showHomeBanner?: boolean;
   /** Photo of a Dentera branch, shown beside the home page headline. */
   heroImageUrl?: string;
+  /**
+   * Keep the branch photo in the home headline's slideshow next to the
+   * offers chosen for the home page (default on).
+   */
+  heroShowImage?: boolean;
   social?: SocialLinks;
   /**
    * Secret part of the staff directory link (/{locale}/directory/{key}).
@@ -150,9 +155,12 @@ export type Offer = {
   /** Terms & conditions — one item per line. */
   termsEn?: string;
   termsAr?: string;
-  /** Wide banner image (also the offer page header). */
+  /**
+   * The offer's image: portrait 4:5 (1080 × 1350), the shape of the home
+   * headline photo. (Older offers may have a wide image here.)
+   */
   imageUrl?: string;
-  /** Optional phone version of the image (shown below 640px). */
+  /** Older offers: a 4:5 phone image, used before the wide one. */
   mobileImageUrl?: string;
   /** Prices in SAR; priceWas shows struck through with the discount. */
   priceNow?: number;
