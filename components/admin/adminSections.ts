@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LayoutTemplate,
   MapPin,
+  PenLine,
   Share2,
   ShieldCheck,
   Stethoscope,
@@ -65,6 +66,7 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
       { path: "/forms", label: "formsArchive", hint: "hintForms", icon: FolderOpen },
       { path: "/letters", label: "lettersLog", hint: "hintLetters", icon: Archive },
       { path: "/documents", label: "documents", hint: "hintDocuments", icon: Files },
+      { path: "/esign", label: "esign", hint: "hintEsign", icon: PenLine },
     ],
   },
   {

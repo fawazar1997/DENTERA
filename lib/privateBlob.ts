@@ -1,4 +1,4 @@
-import { BlobNotFoundError, get, head, put } from "@vercel/blob";
+import { BlobNotFoundError, del, get, head, list, put } from "@vercel/blob";
 
 // The private Blob store holds what must never be reachable by a link:
 // patients' booking requests and the site database (which includes the
@@ -86,4 +86,69 @@ export async function writeBlobJson(
       ? { ifMatch: options.ifMatch }
       : { allowOverwrite: !options.create }),
   });
+}
+
+// --- Private binary files (e.g. the e-signature images) ---
+
+const LOCAL_FILES_DIR = "data/private-files";
+
+async function localPath(pathname: string): Promise<string> {
+  const path = await import("node:path");
+  const safe = pathname.replace(/\.\.+/g, ".").replace(/^\/+/, "");
+  return path.join(process.cwd(), LOCAL_FILES_DIR, safe);
+}
+
+/** True when files go to Blob (otherwise to data/private-files locally). */
+function filesOnBlob(): boolean {
+  return Boolean(privateStore() || process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
+}
+
+/** Saves a private file at a fixed name (replacing it). */
+export async function putPrivateFile(pathname: string, bytes: Uint8Array, contentType: string): Promise<void> {
+  if (!filesOnBlob()) {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const file = await localPath(pathname);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, bytes);
+    return;
+  }
+  await put(pathname, Buffer.from(bytes), {
+    ...dataStore(),
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType,
+    cacheControlMaxAge: 60,
+  });
+}
+
+/** Reads a private file (null when it doesn't exist). */
+export async function readPrivateFile(pathname: string): Promise<Uint8Array | null> {
+  if (!filesOnBlob()) {
+    const fs = await import("node:fs/promises");
+    try {
+      return new Uint8Array(await fs.readFile(await localPath(pathname)));
+    } catch {
+      return null;
+    }
+  }
+  const result = await get(pathname, { useCache: false, ...dataStore() });
+  if (!result || result.statusCode !== 200 || !result.stream) return null;
+  return new Uint8Array(await new Response(result.stream).arrayBuffer());
+}
+
+/** Deletes every private file under a folder (e.g. "esign/<id>/"). */
+export async function deletePrivateFolder(prefix: string): Promise<void> {
+  if (!filesOnBlob()) {
+    const fs = await import("node:fs/promises");
+    await fs.rm(await localPath(prefix), { recursive: true, force: true });
+    return;
+  }
+  const options = privateStore() ?? {};
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix, cursor, limit: 1000, ...options });
+    if (page.blobs.length) await del(page.blobs.map((b) => b.url), options);
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
 }

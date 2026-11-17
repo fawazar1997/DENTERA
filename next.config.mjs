@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // pdf.js (the e-signature pages) mentions Node's optional "canvas" package,
+  // which the browser build never uses.
+  webpack(config) {
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    return config;
+  },
   reactStrictMode: true,
   experimental: {
     serverActions: {
@@ -15,7 +21,8 @@ const nextConfig = {
     const privatePaths = ["/admin", "/admin/:path*", "/en/admin", "/en/admin/:path*",
       "/bookings/:path*", "/en/bookings/:path*", "/directory/:path*", "/en/directory/:path*",
       "/prices/:path*", "/en/prices/:path*", "/forms/:path*", "/en/forms/:path*",
-      "/supervisor/:path*", "/en/supervisor/:path*", "/systems/:path*", "/en/systems/:path*"];
+      "/supervisor/:path*", "/en/supervisor/:path*", "/systems/:path*", "/en/systems/:path*",
+      "/sign/:path*", "/en/sign/:path*"];
     return [
       {
         source: "/:path*",

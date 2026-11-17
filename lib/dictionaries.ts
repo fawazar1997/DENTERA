@@ -290,6 +290,7 @@ export const dictionaries = {
       hintForms: "Branch forms, the staff link, Google Drive and the letter numbers.",
       hintLetters: "The outgoing and incoming letters register, with each file in Google Drive.",
       hintDocuments: "Staff documents by section: policies, guides, medical guides…",
+      hintEsign: "Contracts and documents signed online, step by step, saved to Google Drive.",
       hintDoctors: "Add a doctor, or edit their photo, title, CV, branches and hours.",
       hintDepartments: "The clinic's departments, their icons and descriptions.",
       hintHome: "Order the home page sections and show or hide each one.",
@@ -476,6 +477,7 @@ export const dictionaries = {
       driveAlertFailing: "The Google Drive connection stopped working — staff can't send letters until it's connected again.",
       driveAlertAction: "Connect again",
       documents: "Documents",
+      esign: "E-signature",
       pricesSubtitle:
         "The clinic's internal price list for staff. It's kept private (not on the website) and opened only through its private link.",
       pricesLinkHint:
@@ -926,6 +928,7 @@ export const dictionaries = {
       hintForms: "نماذج الفروع ورابط الموظفين وربط Google Drive وأرقام الخطابات.",
       hintLetters: "سجل الخطابات الصادرة والواردة، مع ملف كل خطاب في Google Drive.",
       hintDocuments: "مستندات الموظفين حسب القسم: السياسات واللوائح، الأدلة، الأدلة الطبية…",
+      hintEsign: "توقيع العقود والمستندات إلكترونيًا حسب الإجراء، وحفظها في Google Drive.",
       hintDoctors: "إضافة طبيب، أو تعديل صورته ولقبه وسيرته وفروعه وأوقاته.",
       hintDepartments: "أقسام العيادة وأيقوناتها ونصوصها.",
       hintHome: "ترتيب أقسام الصفحة الرئيسية وإظهار أو إخفاء كل قسم.",
@@ -1106,6 +1109,7 @@ export const dictionaries = {
       driveAlertFailing: "توقف ربط Google Drive عن العمل — الموظفون لا يستطيعون إرسال الخطابات حتى تتم إعادة الربط.",
       driveAlertAction: "إعادة الربط",
       documents: "المستندات",
+      esign: "التوقيع الإلكتروني",
       pricesSubtitle:
         "قائمة الأسعار الداخلية للموظفين. محفوظة بشكل خاص (لا تظهر في الموقع) وتُفتح فقط عبر رابطها الخاص.",
       pricesLinkHint:

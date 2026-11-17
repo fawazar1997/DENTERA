@@ -258,3 +258,46 @@ export function driveIdFromLink(input: string): string {
     text.match(/^([\w-]{10,})$/);
   return match?.[1] ?? "";
 }
+
+/** A file's content (e.g. an e-signature template PDF). */
+export async function downloadDriveFile(id: string): Promise<Uint8Array> {
+  if (!/^[\w-]{10,200}$/.test(id)) throw new DriveError("bad-id");
+  const token = await accessToken();
+  const response = await fetch(`${API}/drive/v3/files/${id}?alt=media&supportsAllDrives=true`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) throw new DriveError("download", response.status);
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+/** Creates a folder inside `parentId` and returns its id. */
+export async function createDriveFolder(name: string, parentId: string): Promise<string> {
+  const token = await accessToken();
+  const response = await fetch(`${API}/drive/v3/files?supportsAllDrives=true&fields=id`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json; charset=UTF-8" },
+    body: JSON.stringify({ name, parents: [parentId], mimeType: "application/vnd.google-apps.folder" }),
+    cache: "no-store",
+  });
+  const data = (await response.json().catch(() => ({}))) as { id?: string };
+  if (!response.ok || !data.id) throw new DriveError("create-folder", response.status);
+  return data.id;
+}
+
+/** Uploads bytes made on the server (e.g. a signed PDF) into a folder. */
+export async function uploadDriveBytes(input: {
+  folderId: string;
+  name: string;
+  mimeType: string;
+  bytes: Uint8Array;
+}): Promise<DriveFile> {
+  const session = await startUpload({
+    folderId: input.folderId,
+    name: input.name,
+    mimeType: input.mimeType,
+    size: input.bytes.byteLength,
+  });
+  const copy = input.bytes.slice().buffer as ArrayBuffer;
+  return sendToUpload(session, copy, input.mimeType);
+}
