@@ -14,6 +14,8 @@ import {
   newSignToken,
   readEsign,
   takeRef,
+  STAMP_PATH,
+  contactSignaturePath,
   textFieldsOf,
   variableLabels,
   MAX_ESIGN_IMAGE_BYTES,
@@ -25,7 +27,7 @@ import {
   type EsignStep,
   type EsignTemplate,
 } from "./esign";
-import { deletePrivateFolder, putPrivateFile } from "./privateBlob";
+import { deletePrivateFile, deletePrivateFolder, putPrivateFile } from "./privateBlob";
 import {
   DriveError,
   checkDriveFolder,
@@ -135,6 +137,57 @@ export async function setPackageMessageAction(form: FormData) {
   back(form, `package=${id}&saved=message`);
 }
 
+/** Settings: the clinic stamp (PNG/JPEG/WebP, best with a transparent background). */
+export async function uploadStampAction(form: FormData) {
+  const user = await requireAdmin();
+  const file = form.get("stamp");
+  if (!(file instanceof File) || !file.size || file.size > 4 * 1024 * 1024 || !/^image\/(png|jpeg|webp)$/.test(file.type)) {
+    back(form, "tab=settings&error=stamp");
+  }
+  let png: Buffer;
+  try {
+    const sharp = (await import("sharp")).default;
+    png = await sharp(Buffer.from(await (file as File).arrayBuffer()))
+      .rotate()
+      .resize({ width: 900, height: 900, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+  } catch {
+    back(form, "tab=settings&error=stamp");
+  }
+  await putPrivateFile(STAMP_PATH, new Uint8Array(png!), "image/png");
+  await changeEsign((f) => ({ next: { ...f, stampSavedAt: new Date().toISOString() }, result: null }));
+  await logActivity(user, "/esign", "upload", "ختم العيادة");
+  refresh();
+  back(form, "tab=settings&saved=stamp");
+}
+
+export async function deleteStampAction(form: FormData) {
+  const user = await requireAdmin();
+  await deletePrivateFile(STAMP_PATH);
+  await changeEsign((f) => ({ next: { ...f, stampSavedAt: undefined }, result: null }));
+  await logActivity(user, "/esign", "delete", "ختم العيادة");
+  refresh();
+  back(form, "tab=settings");
+}
+
+/** Settings: forgets a saved signer's saved signature (they draw it again next time). */
+export async function deleteContactSignatureAction(form: FormData) {
+  const user = await requireAdmin();
+  const id = str(form, "id");
+  const name = await changeEsign((file) => {
+    const index = file.contacts.findIndex((c) => c.id === id);
+    if (index === -1) return { next: null, result: null };
+    const contacts = [...file.contacts];
+    contacts[index] = { ...contacts[index], signatureSavedAt: undefined };
+    return { next: { ...file, contacts }, result: contacts[index].name };
+  });
+  await deletePrivateFile(contactSignaturePath(id)).catch(() => undefined);
+  if (name) await logActivity(user, "/esign", "delete", `التوقيع المحفوظ — ${name}`);
+  refresh();
+  back(form, "tab=settings");
+}
+
 export async function addEsignContactAction(form: FormData) {
   const user = await requireAdmin();
   const name = str(form, "name", 80);
@@ -155,7 +208,10 @@ export async function deleteEsignContactAction(form: FormData) {
       ? { next: { ...file, contacts: file.contacts.filter((c) => c.id !== id) }, result: found.name }
       : { next: null, result: "" };
   });
-  if (name) await logActivity(user, "/esign", "delete", name);
+  if (name) {
+    await deletePrivateFile(contactSignaturePath(id)).catch(() => undefined);
+    await logActivity(user, "/esign", "delete", name);
+  }
   refresh();
   back(form, "tab=settings");
 }
@@ -273,7 +329,7 @@ export async function saveTemplateAction(input: {
     if (index === -1) return { next: null, result: false };
     const template = file.templates[index];
     const fields: EsignField[] = (Array.isArray(input.fields) ? input.fields : []).slice(0, 300).flatMap((f) => {
-      const kind = f.kind === "signature" || f.kind === "variable" || f.kind === "signerName" ? f.kind : null;
+      const kind = f.kind === "signature" || f.kind === "variable" || f.kind === "signerName" || f.kind === "stamp" ? f.kind : null;
       const page = Math.floor(Number(f.page));
       if (!kind || !(page >= 0 && page < template.pages.length)) return [];
       const box = { x: unit(f.x), y: unit(f.y), w: unit(f.w), h: unit(f.h) };
@@ -287,7 +343,7 @@ export async function saveTemplateAction(input: {
         if (!f.stepId || !stepIds.has(f.stepId)) return [];
         field.stepId = f.stepId;
       }
-      if (kind !== "signature") {
+      if (kind === "variable" || kind === "signerName") {
         field.fontSize = Math.min(48, Math.max(5, Number(f.fontSize) || 11));
         field.align = f.align === "center" || f.align === "end" ? f.align : "start";
       }
@@ -325,7 +381,7 @@ export type NewPackageInput = {
   title: string;
   /** The message sent with the links ({الاسم}, {الرابط}…). */
   message?: string;
-  steps: { stepId: string; mode: "same" | "perCopy"; name?: string; phone?: string }[];
+  steps: { stepId: string; mode: "same" | "perCopy"; name?: string; phone?: string; contactId?: string }[];
   copies: {
     label?: string;
     /** Per-copy signers by step id. */
@@ -354,7 +410,15 @@ export async function createPackageAction(
   const steps = template.steps.map((step) => {
     const chosen = input.steps?.find((s) => s.stepId === step.id);
     const mode: "same" | "perCopy" = chosen?.mode === "perCopy" ? "perCopy" : "same";
-    return { stepId: step.id, mode, name: mode === "same" ? clean(chosen?.name, 80) : undefined, phone: mode === "same" ? phoneOf(chosen?.phone) : undefined };
+    // A saved signer, if picked (and not retyped): they may reuse a saved signature.
+    const contact = mode === "same" ? store.contacts.find((c) => c.id === chosen?.contactId && c.name === clean(chosen?.name, 80)) : undefined;
+    return {
+      stepId: step.id,
+      mode,
+      name: mode === "same" ? clean(chosen?.name, 80) : undefined,
+      phone: mode === "same" ? phoneOf(chosen?.phone) : undefined,
+      contactId: contact?.id,
+    };
   });
   if (steps.some((s) => s.mode === "same" && !s.name)) return { ok: false, error: "fields" };
   const labels = variableLabels(template);
@@ -369,7 +433,13 @@ export async function createPackageAction(
     const signers = steps.map((s) => {
       const own = copy.signers?.[s.stepId];
       const name = s.mode === "same" ? s.name! : clean(own?.name, 80);
-      return { stepId: s.stepId, name, phone: s.mode === "same" ? s.phone : phoneOf(own?.phone), token: newSignToken() };
+      return {
+        stepId: s.stepId,
+        name,
+        phone: s.mode === "same" ? s.phone : phoneOf(own?.phone),
+        contactId: s.mode === "same" ? s.contactId : undefined,
+        token: newSignToken(),
+      };
     });
     if (signers.some((s) => !s.name)) return { ok: false, error: "fields" };
     const firstPerCopy = signers.find((s, k) => steps[k].mode === "perCopy");

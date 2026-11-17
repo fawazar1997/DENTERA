@@ -135,7 +135,7 @@ export function NewPackage({
         templateId: template.id,
         title,
         message,
-        steps: choices.map((c) => ({ stepId: c.stepId, mode: c.mode, name: c.name, phone: c.phone })),
+        steps: choices.map((c) => ({ stepId: c.stepId, mode: c.mode, name: c.name, phone: c.phone, contactId: c.contactId || undefined })),
         copies: rows.map((r) => ({ label: r.label, signers: r.signers, values: r.values })),
       };
       const created = await createPackageAction(input);
@@ -422,6 +422,14 @@ export function NewPackage({
                   {template.fields
                     .filter((f) => f.page === page)
                     .map((f) => {
+                      if (f.kind === "stamp") {
+                        const color = colorOf(f.stepId);
+                        return (
+                          <div key={f.id} style={{ ...boxStyle(f), borderColor: color, color }} className="flex items-center justify-center rounded-full border-2 border-dashed text-[0.6rem] font-bold sm:text-xs">
+                            {t.stampOf}
+                          </div>
+                        );
+                      }
                       if (f.kind === "signature") {
                         const color = colorOf(f.stepId);
                         return (

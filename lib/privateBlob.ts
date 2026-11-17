@@ -152,3 +152,16 @@ export async function deletePrivateFolder(prefix: string): Promise<void> {
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
 }
+
+/** Deletes one private file (no error if it isn't there). */
+export async function deletePrivateFile(pathname: string): Promise<void> {
+  if (!filesOnBlob()) {
+    const fs = await import("node:fs/promises");
+    await fs.rm(await localPath(pathname), { force: true });
+    return;
+  }
+  const options = privateStore() ?? {};
+  const page = await list({ prefix: pathname, limit: 5, ...options });
+  const urls = page.blobs.filter((b) => b.pathname === pathname).map((b) => b.url);
+  if (urls.length) await del(urls, options);
+}

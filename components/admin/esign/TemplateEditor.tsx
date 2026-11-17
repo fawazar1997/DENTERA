@@ -16,6 +16,7 @@ import {
   Plus,
   Trash2,
   Type,
+  Stamp,
   UserRound,
 } from "lucide-react";
 import { esignText } from "@/lib/esignText";
@@ -29,6 +30,7 @@ const DEFAULT_SIZE: Record<EsignField["kind"], { w: number; h: number }> = {
   signature: { w: 0.24, h: 0.07 },
   variable: { w: 0.24, h: 0.028 },
   signerName: { w: 0.24, h: 0.028 },
+  stamp: { w: 0.17, h: 0.12 },
 };
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -46,10 +48,13 @@ export function TemplateEditor({
   template,
   contacts,
   locale,
+  stampUrl,
 }: {
   template: EsignTemplate;
   contacts: EsignContact[];
   locale: Locale;
+  /** The clinic stamp (a data URL), for the preview. */
+  stampUrl?: string;
 }) {
   const t = esignText(locale);
   const ar = locale === "ar";
@@ -138,7 +143,7 @@ export function TemplateEditor({
     } else {
       field.stepId = placingStep;
     }
-    if (placing !== "signature") {
+    if (placing === "variable" || placing === "signerName") {
       field.fontSize = 11;
       field.align = "start";
     }
@@ -199,6 +204,7 @@ export function TemplateEditor({
 
   function boxText(f: EsignField) {
     if (f.kind === "signature") return `${t.signatureOf}: ${roleOf(f.stepId)}`;
+    if (f.kind === "stamp") return `${t.stampOf}: ${roleOf(f.stepId)}`;
     if (f.kind === "signerName") return preview ? roleOf(f.stepId) : `${t.nameOf}: ${roleOf(f.stepId)}`;
     return preview ? `${f.label}` : f.label;
   }
@@ -312,10 +318,11 @@ export function TemplateEditor({
               </select>
             </label>
           )}
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="mt-3 grid grid-cols-4 gap-2">
             {(
               [
                 ["signature", t.addSignature, PenLine],
+                ["stamp", t.addStamp, Stamp],
                 ["signerName", t.addName, UserRound],
                 ["variable", t.addVariable, Type],
               ] as const
@@ -335,6 +342,9 @@ export function TemplateEditor({
             ))}
           </div>
           {placing && <p className="mt-2 rounded-lg bg-primary-50 px-3 py-2 text-xs font-bold text-primary-800">{t.clickToPlace}</p>}
+          {!stampUrl && fields.some((f) => f.kind === "stamp") && (
+            <p className="mt-2 rounded-lg bg-accent-50 px-3 py-2 text-xs text-ink-700">{t.stampMissing}</p>
+          )}
         </section>
 
         {selectedField && (
@@ -385,7 +395,7 @@ export function TemplateEditor({
                 </select>
               </label>
             )}
-            {selectedField.kind !== "signature" && (
+            {(selectedField.kind === "variable" || selectedField.kind === "signerName") && (
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
                   <span className="label">{t.fontSize}</span>
@@ -444,6 +454,7 @@ export function TemplateEditor({
                 .map((f) => {
                   const color = f.kind === "variable" ? "#475569" : stepColor(f.stepId);
                   const isSelected = f.id === selected;
+                  const graphic = f.kind === "signature" || f.kind === "stamp";
                   const size = template.pages[page]?.w ?? 595;
                   return (
                     <div
@@ -459,15 +470,20 @@ export function TemplateEditor({
                         background: preview ? "transparent" : `${color}1a`,
                         color: preview ? "#111827" : color,
                         fontSize: `calc(${((f.fontSize ?? 11) / size) * 100}cqw)`,
-                        justifyContent: f.kind === "signature" || f.align === "center" ? "center" : f.align === "end" ? "flex-end" : "flex-start",
+                        justifyContent: graphic || f.align === "center" ? "center" : f.align === "end" ? "flex-end" : "flex-start",
                       }}
                       className={`flex touch-none select-none items-center overflow-hidden whitespace-nowrap px-1 leading-none ${
-                        preview && f.kind !== "signature" ? "" : "rounded border-2 border-dashed"
+                        preview && !graphic ? "" : "rounded border-2 border-dashed"
                       } ${isSelected ? "ring-2 ring-ink-900 ring-offset-1" : ""} cursor-move`}
                     >
-                      <span className={f.kind === "signature" ? "text-[0.65rem] font-bold sm:text-xs" : preview ? "" : "font-bold"}>
-                        {preview && f.kind === "variable" ? `${t.sample} ${f.label}` : boxText(f)}
-                      </span>
+                      {preview && f.kind === "stamp" && stampUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={stampUrl} alt={t.stampTitle} className="pointer-events-none h-full w-full object-contain" />
+                      ) : (
+                        <span className={graphic ? "text-[0.65rem] font-bold sm:text-xs" : preview ? "" : "font-bold"}>
+                          {preview && f.kind === "variable" ? `${t.sample} ${f.label}` : boxText(f)}
+                        </span>
+                      )}
                       {isSelected && (
                         <span
                           onPointerDown={(e) => startDrag(e, f, "resize")}

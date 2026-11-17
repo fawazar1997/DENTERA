@@ -21,6 +21,8 @@ export function SignDocument({
   canSign,
   boxes,
   defaultName,
+  savedSignature,
+  canSave = false,
 }: {
   token: string;
   locale: Locale;
@@ -28,6 +30,10 @@ export function SignDocument({
   /** This signer's signature boxes, outlined on the pages. */
   boxes: Box[];
   defaultName: string;
+  /** The signer's saved signature (a data URL), to sign with in one click. */
+  savedSignature?: string;
+  /** A saved signer without one yet: offer to keep this drawing. */
+  canSave?: boolean;
 }) {
   const t = esignText(locale);
   const router = useRouter();
@@ -38,15 +44,17 @@ export function SignDocument({
   const [error, setError] = useState("");
   const [declining, setDeclining] = useState(false);
   const [note, setNote] = useState("");
+  const [useSaved, setUseSaved] = useState(Boolean(savedSignature));
+  const [saveMine, setSaveMine] = useState(false);
 
   async function sign() {
     setError("");
-    const png = pad.current?.toPng();
-    if (!png) return setError(t.needDrawing);
+    const png = useSaved ? undefined : pad.current?.toPng();
+    if (!useSaved && !png) return setError(t.needDrawing);
     if (name.trim().length < 2) return setError(t.needName);
     if (!agree) return setError(t.needAgree);
     setBusy(true);
-    const result = await signDocumentAction({ token, png, typedName: name }).catch(() => ({ ok: false as const, error: "failed" as const }));
+    const result = await signDocumentAction({ token, png: png ?? undefined, useSaved, saveSignature: saveMine && !useSaved, typedName: name }).catch(() => ({ ok: false as const, error: "failed" as const }));
     if (result.ok) {
       router.refresh();
       return;
@@ -97,9 +105,46 @@ export function SignDocument({
               <PenLine className="h-5 w-5 text-primary-600" /> {t.yourTurn}
             </h2>
             <p className="mt-1 text-sm text-ink-500">{t.yourBoxes}</p>
-            <div className="mt-4">
-              <SignaturePad ref={pad} labels={{ hint: t.drawHere, clear: t.clear }} />
-            </div>
+            {savedSignature && (
+              <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-ink-50 p-1 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setUseSaved(true)}
+                  className={`rounded-lg px-2 py-2 transition ${useSaved ? "bg-white text-ink-950 shadow" : "text-ink-500"}`}
+                >
+                  {t.useSaved}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseSaved(false)}
+                  className={`rounded-lg px-2 py-2 transition ${!useSaved ? "bg-white text-ink-950 shadow" : "text-ink-500"}`}
+                >
+                  {t.drawNew}
+                </button>
+              </div>
+            )}
+            {useSaved && savedSignature ? (
+              <div className="mt-4 rounded-xl border-2 border-primary-300 bg-white p-4">
+                <p className="text-xs font-bold text-ink-500">{t.savedSigTitle}</p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={savedSignature} alt={t.savedSigTitle} className="mx-auto mt-2 h-28 w-auto max-w-full object-contain" />
+              </div>
+            ) : (
+              <div className="mt-4">
+                <SignaturePad ref={pad} labels={{ hint: t.drawHere, clear: t.clear }} />
+                {canSave && !savedSignature && (
+                  <label className="mt-3 flex items-start gap-2 text-sm text-ink-700">
+                    <input
+                      type="checkbox"
+                      checked={saveMine}
+                      onChange={(e) => setSaveMine(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 flex-shrink-0 accent-primary-600"
+                    />
+                    {t.saveMine}
+                  </label>
+                )}
+              </div>
+            )}
             <label className="mt-4 block">
               <span className="label">{t.fullName}</span>
               <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className="input" />

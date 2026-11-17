@@ -1,9 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
-import { changeEsign, findSigner, imagePath, signerIn, MAX_ESIGN_IMAGE_BYTES } from "./esign";
+import { changeEsign, contactSignaturePath, findSigner, imagePath, readEsign, signerIn, MAX_ESIGN_IMAGE_BYTES } from "./esign";
 import { finalizeEsignDocument, settlePackage } from "./esignFinalize";
-import { putPrivateFile } from "./privateBlob";
+import { putPrivateFile, readPrivateFile } from "./privateBlob";
 
 // The signing page's actions, by the signer's private link. Each checks
 // that it's this signer's turn on this copy, both before saving the
@@ -38,14 +38,33 @@ function isTurn(ctx: Turn | null): ctx is Turn {
   );
 }
 
-export async function signDocumentAction(input: { token: string; png: string; typedName: string }): Promise<SignResult> {
+/**
+ * Signs: with the drawing (`png`), or with the signer's saved signature
+ * (`useSaved`, for saved signers who kept one). `saveSignature` keeps a
+ * saved signer's drawing to reuse next time.
+ */
+export async function signDocumentAction(input: {
+  token: string;
+  png?: string;
+  useSaved?: boolean;
+  saveSignature?: boolean;
+  typedName: string;
+}): Promise<SignResult> {
   const token = String(input.token ?? "");
   const typedName = String(input.typedName ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
   if (typedName.length < 2) return { ok: false, error: "name" };
-  const bytes = pngBytes(input.png);
-  if (!bytes) return { ok: false, error: "image" };
   const ctx = await findSigner(token);
   if (!isTurn(ctx)) return { ok: false, error: "turn" };
+  const contactId = ctx.signer.contactId;
+  const contact = contactId ? (await readEsign()).contacts.find((c) => c.id === contactId) : undefined;
+
+  let bytes: Uint8Array | null = null;
+  if (input.useSaved) {
+    if (contact?.signatureSavedAt) bytes = await readPrivateFile(contactSignaturePath(contact.id));
+  } else {
+    bytes = pngBytes(input.png);
+  }
+  if (!bytes) return { ok: false, error: "image" };
 
   try {
     await putPrivateFile(imagePath(ctx.doc.id, `s-${ctx.signer.stepId}`), bytes, "image/png");
@@ -76,6 +95,17 @@ export async function signDocumentAction(input: { token: string; png: string; ty
       return { next: { ...file, packages }, result: { pkgId: now.pkg.id, docId: now.doc.id, last } };
     });
     if (!done) return { ok: false, error: "turn" };
+    // Keep a saved signer's drawing for next time, if they asked.
+    if (input.saveSignature && !input.useSaved && contact) {
+      await putPrivateFile(contactSignaturePath(contact.id), bytes, "image/png");
+      await changeEsign((file) => ({
+        next: {
+          ...file,
+          contacts: file.contacts.map((c) => (c.id === contact.id ? { ...c, signatureSavedAt: new Date().toISOString() } : c)),
+        },
+        result: null,
+      }));
+    }
     // The last signature: make the signed PDF and save it to Drive now.
     if (done.last) await finalizeEsignDocument(done.pkgId, done.docId);
     return { ok: true, completed: done.last };

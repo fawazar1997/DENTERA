@@ -36,6 +36,8 @@ type EsignFile = {
   folders: EsignDriveFolders;
   /** The default message for new signing requests (Settings). */
   messageTemplate?: string;
+  /** When the clinic stamp was uploaded (esign/assets/stamp.png). */
+  stampSavedAt?: string;
 };
 
 const ESIGN_PATH = "data/esign.json";
@@ -129,6 +131,8 @@ export type SignerContext = {
   signer: EsignSigner;
   /** The signer's position in the procedure. */
   stepIndex: number;
+  /** The saved signer they were picked from, if any. */
+  contact?: EsignContact;
 };
 
 /** Finds a signer link (null when no copy has it). */
@@ -149,11 +153,20 @@ export function signerIn(file: EsignFile, token: string): SignerContext | null {
           template: file.templates.find((t) => t.id === pkg.templateId),
           signer: doc.signers[stepIndex],
           stepIndex,
+          contact: file.contacts.find((c) => c.id === doc.signers[stepIndex].contactId),
         };
       }
     }
   }
   return null;
+}
+
+/** The clinic stamp image. */
+export const STAMP_PATH = "esign/assets/stamp.png";
+
+/** A saved signer's saved signature. */
+export function contactSignaturePath(contactId: string): string {
+  return `esign/contacts/${contactId}.png`;
 }
 
 /** Where a copy's images live. */

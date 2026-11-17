@@ -11,6 +11,7 @@ import {
   Eye,
   FileText,
   FolderOpen,
+  Stamp,
   MessageSquareText,
   Pencil,
   Plus,
@@ -22,8 +23,9 @@ import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { requireAdminPage } from "@/lib/adminSession";
 import { esignText, type EsignText } from "@/lib/esignText";
-import { readEsign, type EsignContact, type EsignDocument, type EsignPackage, type EsignTemplate } from "@/lib/esign";
+import { STAMP_PATH, contactSignaturePath, readEsign, type EsignContact, type EsignDocument, type EsignPackage, type EsignTemplate } from "@/lib/esign";
 import { driveHealth } from "@/lib/googleDrive";
+import { readPrivateFile } from "@/lib/privateBlob";
 import { whatsappHref } from "@/lib/phone";
 import {
   addEsignContactAction,
@@ -34,6 +36,9 @@ import {
   deleteTemplateAction,
   retrySaveAction,
   setEsignFolderAction,
+  uploadStampAction,
+  deleteStampAction,
+  deleteContactSignatureAction,
   setMessageTemplateAction,
   setPackageMessageAction,
 } from "@/lib/esignActions";
@@ -86,12 +91,19 @@ export default async function AdminEsignPage({
   const dict = getDictionary(locale);
   const t = esignText(locale);
   const [store, health] = await Promise.all([readEsign(), driveHealth()]);
+  /** A private image as a data URL, for a small preview (undefined when missing). */
+  const preview = async (path: string) => {
+    const bytes = await readPrivateFile(path).catch(() => null);
+    return bytes ? `data:image/png;base64,${Buffer.from(bytes).toString("base64")}` : undefined;
+  };
   const tab: Tab = searchParams.tab === "templates" || searchParams.tab === "settings" ? searchParams.tab : "packages";
 
   const notice = (() => {
     if (searchParams.saved === "folder") return { ok: true, text: `${t.folderLinked}: ${store.folders.parentName ?? ""}` };
     if (searchParams.saved === "contact") return { ok: true, text: t.saved };
     if (searchParams.saved === "message") return { ok: true, text: t.messageSaved };
+    if (searchParams.saved === "stamp") return { ok: true, text: t.stampSaved };
+    if (searchParams.error === "stamp") return { ok: false, text: t.stampError };
     if (searchParams.error === "folder") return { ok: false, text: ar ? "تعذّر الوصول إلى هذا المجلد. تأكد من الرابط ومن أن حساب Google المربوط يملك صلاحية عليه." : "Couldn't reach that folder. Check the link and that the connected Google account can edit it." };
     if (searchParams.error === "drive") return { ok: false, text: t.driveDown };
     if (searchParams.error === "in-use") return { ok: false, text: t.templateInUse };
@@ -100,6 +112,14 @@ export default async function AdminEsignPage({
   })();
 
   const template = searchParams.template ? store.templates.find((x) => x.id === searchParams.template) : undefined;
+  const stampUrl = store.stampSavedAt && (template || tab === "settings") ? await preview(STAMP_PATH) : undefined;
+  const signatureUrls: Record<string, string> = {};
+  if (tab === "settings" && !template) {
+    for (const c of store.contacts.filter((c) => c.signatureSavedAt)) {
+      const url = await preview(contactSignaturePath(c.id));
+      if (url) signatureUrls[c.id] = url;
+    }
+  }
   const pkg = searchParams.package ? store.packages.find((p) => p.id === searchParams.package) : undefined;
 
   return (
@@ -131,7 +151,7 @@ export default async function AdminEsignPage({
       )}
 
       {template ? (
-        <TemplateEditor template={template} contacts={store.contacts} locale={locale} />
+        <TemplateEditor template={template} contacts={store.contacts} locale={locale} stampUrl={stampUrl} />
       ) : searchParams.new ? (
         <NewPackage
           templates={store.templates.filter(isReady)}
@@ -171,7 +191,15 @@ export default async function AdminEsignPage({
           {tab === "templates" && (
             <TemplatesTab templates={store.templates} packages={store.packages} locale={locale} t={t} canUpload={Boolean(store.folders.templates) && health === "ok"} />
           )}
-          {tab === "settings" && <SettingsTab folders={store.folders} contacts={store.contacts} message={store.messageTemplate} locale={locale} t={t} />}
+          {tab === "settings" && <SettingsTab
+              folders={store.folders}
+              contacts={store.contacts}
+              message={store.messageTemplate}
+              stampUrl={stampUrl}
+              signatureUrls={signatureUrls}
+              locale={locale}
+              t={t}
+            />}
         </>
       )}
     </div>
@@ -508,12 +536,16 @@ function SettingsTab({
   folders,
   contacts,
   message,
+  stampUrl,
+  signatureUrls,
   locale,
   t,
 }: {
   folders: { parent?: string; parentName?: string };
   contacts: EsignContact[];
   message?: string;
+  stampUrl?: string;
+  signatureUrls: Record<string, string>;
   locale: Locale;
   t: EsignText;
 }) {
@@ -557,9 +589,39 @@ function SettingsTab({
 
       <section className="card p-6">
         <h2 className="flex items-center gap-2 font-bold text-ink-900">
+          <Stamp className="h-5 w-5 text-primary-600" /> {t.stampTitle}
+        </h2>
+        <p className="mt-1 text-sm text-ink-500">{t.stampHint}</p>
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          {stampUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={stampUrl} alt={t.stampTitle} className="h-28 w-28 rounded-xl border border-ink-100 bg-[repeating-conic-gradient(#f1f5f9_0_25%,#fff_0_50%)] bg-[length:16px_16px] object-contain p-2" />
+          ) : (
+            <p className="text-sm text-ink-400">{t.noStamp}</p>
+          )}
+          <form action={uploadStampAction} encType="multipart/form-data" className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="locale" value={locale} />
+            <input
+              type="file"
+              name="stamp"
+              required
+              accept="image/png,image/jpeg,image/webp"
+              aria-label={t.uploadStamp}
+              className="max-w-[16rem] text-sm file:me-3 file:rounded-full file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-primary-700"
+            />
+            <SubmitButton label={stampUrl ? t.replaceStamp : t.uploadStamp} savedLabel={t.saved} />
+          </form>
+          {stampUrl && <DeleteButton action={deleteStampAction} id="stamp" locale={locale} label={t.deleteStamp} confirmText={`${t.deleteStamp}?`} />}
+        </div>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="flex items-center gap-2 font-bold text-ink-900">
           <UserPlus className="h-5 w-5 text-primary-600" /> {t.contactsTitle}
         </h2>
-        <p className="mt-1 text-sm text-ink-500">{t.contactsHint}</p>
+        <p className="mt-1 text-sm text-ink-500">
+          {t.contactsHint} {t.savedSignatureHint}
+        </p>
         {contacts.length === 0 ? (
           <p className="mt-3 text-sm text-ink-400">{t.noContacts}</p>
         ) : (
@@ -576,7 +638,19 @@ function SettingsTab({
                     </span>
                   )}
                 </span>
-                <DeleteButton action={deleteEsignContactAction} id={c.id} locale={locale} label="" confirmText={`${c.name}?`} />
+                <span className="flex flex-shrink-0 items-center gap-2">
+                  {c.signatureSavedAt && (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 py-1 pe-1 ps-3 text-xs font-bold text-primary-800">
+                      {signatureUrls[c.id] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={signatureUrls[c.id]} alt={t.savedSignature} className="h-6 w-auto max-w-[5rem] object-contain" />
+                      )}
+                      {t.savedSignature}
+                      <DeleteButton action={deleteContactSignatureAction} id={c.id} locale={locale} label="" confirmText={`${t.deleteSavedSignature}: ${c.name}?`} />
+                    </span>
+                  )}
+                  <DeleteButton action={deleteEsignContactAction} id={c.id} locale={locale} label="" confirmText={`${c.name}?`} />
+                </span>
               </li>
             ))}
           </ul>

@@ -4,14 +4,14 @@
 /** A box on a template page, in 0–1 of the page's width/height (from the top-left). */
 export type EsignField = {
   id: string;
-  kind: "signature" | "variable" | "signerName";
+  kind: "signature" | "variable" | "signerName" | "stamp";
   /** Page index, from 0. */
   page: number;
   x: number;
   y: number;
   w: number;
   h: number;
-  /** signature / signerName: the procedure step it belongs to. */
+  /** signature / signerName / stamp: the procedure step it belongs to (a stamp is printed once that step signs). */
   stepId?: string;
   /** variable: its name (e.g. الراتب), shown as a column when filling. */
   label?: string;
@@ -49,6 +49,8 @@ export type EsignTemplate = {
 export type EsignSigner = {
   stepId: string;
   name: string;
+  /** Set when picked from the saved signers: lets them save and reuse their signature. */
+  contactId?: string;
   phone?: string;
   /** The secret part of this signer's link (/sign/<token>). */
   token: string;
@@ -91,7 +93,7 @@ export type EsignPackage = {
   templateId: string;
   /** "preparing" until its images are uploaded, then "active". */
   status: "preparing" | "active" | "completed" | "cancelled";
-  steps: { stepId: string; mode: "same" | "perCopy"; name?: string; phone?: string }[];
+  steps: { stepId: string; mode: "same" | "perCopy"; name?: string; phone?: string; contactId?: string }[];
   documents: EsignDocument[];
   /** The package's folder inside «المستندات الموقّعة». */
   driveFolderId?: string;
@@ -102,7 +104,14 @@ export type EsignPackage = {
 };
 
 /** A saved signer (e.g. the general manager), to pick instead of typing. */
-export type EsignContact = { id: string; name: string; title?: string; phone?: string };
+export type EsignContact = {
+  id: string;
+  name: string;
+  title?: string;
+  phone?: string;
+  /** When they saved their signature to reuse (esign/contacts/<id>.png). */
+  signatureSavedAt?: string;
+};
 
 export type EsignDriveFolders = {
   /** The linked parent folder. */

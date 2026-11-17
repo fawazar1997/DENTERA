@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowDown, CheckCircle2, Circle, CircleDot, Clock, Download, FileSignature, XCircle } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
-import { findSigner } from "@/lib/esign";
+import { contactSignaturePath, findSigner } from "@/lib/esign";
+import { readPrivateFile } from "@/lib/privateBlob";
 import { esignText } from "@/lib/esignText";
 import { SystemsHeader } from "@/components/SystemsHeader";
 import { SignDocument } from "@/components/esign/SignDocument";
@@ -28,6 +29,12 @@ export default async function SignPage({ params }: { params: { locale: string; t
   const yourTurn = !cancelled && doc.status === "active" && doc.currentStep === stepIndex && !signer.signedAt;
   const roleOf = (stepId: string) => template.steps.find((s) => s.id === stepId)?.role ?? "";
   const current = doc.signers[doc.currentStep];
+  // A saved signer: their saved signature (to reuse), or the option to save one.
+  const savedBytes =
+    yourTurn && found.contact?.signatureSavedAt
+      ? await readPrivateFile(contactSignaturePath(found.contact.id)).catch(() => null)
+      : null;
+  const savedSignature = savedBytes ? `data:image/png;base64,${Buffer.from(savedBytes).toString("base64")}` : undefined;
 
   const banner = cancelled
     ? { icon: XCircle, text: t.cancelledTitle, tone: "bg-ink-100 text-ink-700" }
@@ -110,6 +117,8 @@ export default async function SignPage({ params }: { params: { locale: string; t
                 .filter((f) => f.kind === "signature" && f.stepId === signer.stepId)
                 .map((f) => ({ page: f.page, x: f.x, y: f.y, w: f.w, h: f.h }))}
               defaultName={signer.name}
+              savedSignature={savedSignature}
+              canSave={Boolean(found.contact)}
             />
           </div>
         )}
