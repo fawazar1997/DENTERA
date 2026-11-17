@@ -165,12 +165,12 @@ export default async function AdminEsignPage({
   );
 }
 
-function StatusChip({ status, t }: { status: EsignPackage["status"] | EsignDocument["status"]; t: EsignText }) {
+function StatusChip({ status, t, request = false }: { status: EsignPackage["status"] | EsignDocument["status"]; t: EsignText; request?: boolean }) {
   const map: Record<string, [string, string]> = {
     preparing: [t.statusPreparing, "bg-ink-100 text-ink-600"],
     active: [t.statusActive, "bg-primary-100 text-primary-800"],
-    completed: [t.statusCompleted, "bg-primary-500 text-white"],
-    cancelled: [t.statusCancelled, "bg-ink-100 text-ink-500"],
+    completed: [request ? t.requestCompleted : t.statusCompleted, "bg-primary-500 text-white"],
+    cancelled: [request ? t.requestCancelled : t.statusCancelled, "bg-ink-100 text-ink-500"],
     declined: [t.statusDeclined, "bg-accent-100 text-accent-800"],
   };
   const [label, style] = map[status] ?? map.active;
@@ -202,7 +202,7 @@ function PackagesList({
               href={localePath(locale, `/admin/esign${f ? `?status=${f}` : ""}`)}
               className={`rounded-full px-3 py-1.5 text-xs font-bold ${(status ?? "") === f ? "bg-ink-900 text-white" : "bg-ink-50 text-ink-600 hover:bg-ink-100"}`}
             >
-              {f === "" ? t.filterAll : f === "active" ? t.statusActive : f === "completed" ? t.statusCompleted : t.statusCancelled}
+              {f === "" ? t.filterAll : f === "active" ? t.statusActive : f === "completed" ? t.requestCompleted : t.requestCancelled}
             </Link>
           ))}
         </div>
@@ -228,7 +228,7 @@ function PackagesList({
                         {templates.find((x) => x.id === p.templateId)?.name} · {formatTime(p.createdAt, locale)}
                       </p>
                     </div>
-                    <StatusChip status={p.status} t={t} />
+                    <StatusChip status={p.status} t={t} request />
                   </div>
                   <div className="mt-3 flex items-center gap-3">
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100">
@@ -283,7 +283,7 @@ function PackageView({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusChip status={pkg.status} t={t} />
+            <StatusChip status={pkg.status} t={t} request />
             {pkg.status === "active" && (
               <DeleteButton action={cancelPackageAction} id={pkg.id} locale={locale} label={t.cancelPackage} confirmText={t.confirmCancel} />
             )}
