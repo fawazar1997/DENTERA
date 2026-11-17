@@ -9,8 +9,14 @@ export const SESSION_TTL_SECONDS = 60 * 60 * 12; // 12 hours
  */
 const DEPLOYED = Boolean(process.env.VERCEL);
 
-/** Control panel accounts: the full admin, and marketing (a few sections). */
-export type AdminUser = "admin" | "marketing";
+/**
+ * Control panel accounts: the full admin, marketing (a few sections) and
+ * human resources (the e-signature section).
+ */
+export type AdminUser = "admin" | "marketing" | "hr";
+
+/** The accounts other than the admin, as written in their session tokens. */
+const OTHER_USERS: AdminUser[] = ["marketing", "hr"];
 
 function credentialsFor(user: AdminUser): { username: string; password: string } | null {
   if (user === "admin") {
@@ -18,7 +24,12 @@ function credentialsFor(user: AdminUser): { username: string; password: string }
     const password = process.env.ADMIN_PASSWORD || (DEPLOYED ? "" : "dentera-admin");
     return password ? { username, password } : null;
   }
-  // Marketing exists only once its password is set (no built-in fallback).
+  // The other accounts exist only once their password is set (no built-in fallback).
+  if (user === "hr") {
+    const username = (process.env.HR_USERNAME || "hr").trim().toLowerCase();
+    const password = process.env.HR_PASSWORD || "";
+    return password ? { username, password } : null;
+  }
   const username = (process.env.MARKETING_USERNAME || "pr").trim().toLowerCase();
   const password = process.env.MARKETING_PASSWORD || "";
   return password ? { username, password } : null;
@@ -81,7 +92,7 @@ export function isAuthConfigured(): boolean {
 
 /**
  * A session token: "<expires>.<signature>" for the admin (as before), or
- * "marketing~<expires>.<signature>" for marketing, each signed with that
+ * "<user>~<expires>.<signature>" for the other accounts, each signed with that
  * user's own key.
  */
 export async function createSessionToken(user: AdminUser = "admin"): Promise<string> {
@@ -97,9 +108,10 @@ export async function sessionUser(token: string | undefined): Promise<AdminUser 
   if (!token) return null;
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return null;
+  const prefix = payload.split("~")[0] as AdminUser;
   const [user, expires]: [AdminUser, string] = payload.includes("~")
-    ? payload.split("~")[0] === "marketing"
-      ? ["marketing", payload.split("~")[1]]
+    ? OTHER_USERS.includes(prefix)
+      ? [prefix, payload.split("~")[1]]
       : ["admin", ""]
     : ["admin", payload];
   const key = signingKey(user);
@@ -123,7 +135,7 @@ export async function checkCredentials(username: string, password: string): Prom
   let found: AdminUser | null = null;
   // Every account is always compared, so timing doesn't reveal which
   // username exists or how close a guess is.
-  for (const user of ["admin", "marketing"] as const) {
+  for (const user of ["admin", ...OTHER_USERS] as const) {
     const credentials = credentialsFor(user);
     const [userOk, passwordOk] = await Promise.all([
       safeEqual(name, credentials?.username ?? "\u0000"),

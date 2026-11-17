@@ -21,8 +21,12 @@ const MARKETING_SECTIONS = [
   "/social",
 ];
 
+/** Human resources: staff documents and e-signature (all of each). */
+const HR_SECTIONS = ["", "/documents", "/esign"];
+
 export function canUseSection(user: AdminUser | null, section: string): boolean {
   if (user === "admin") return true;
   if (user === "marketing") return MARKETING_SECTIONS.includes(section);
+  if (user === "hr") return HR_SECTIONS.includes(section);
   return false;
 }

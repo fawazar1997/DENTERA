@@ -118,7 +118,7 @@ export default async function AdminDocumentsPage({
   params: { locale: string };
   searchParams: Record<string, string | undefined>;
 }) {
-  await requireAdminPage(params.locale);
+  await requireAdminPage(params.locale, "/documents");
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const ar = locale === "ar";
   const dict = getDictionary(locale);

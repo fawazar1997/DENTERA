@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, verifySessionToken } from "./auth";
+import { SESSION_COOKIE, sessionUser, type AdminUser } from "./auth";
+import { canUseSection } from "./adminRoles";
 import { defaultLocale, isLocale, localePath } from "./i18n";
 import { logActivity } from "./activity";
 import {
@@ -37,11 +38,15 @@ import {
 import { finalizeEsignDocument } from "./esignFinalize";
 import { SITE_URL } from "./seo";
 
-// Control Panel → التوقيع الإلكتروني (admin only): the Drive folder, saved
-// signers, templates (PDF + boxes + procedure) and signing packages.
+// Control Panel → التوقيع الإلكتروني (the admin and the HR account): the
+// Drive folder, saved signers, templates (PDF + boxes + procedure) and
+// signing requests.
 
-async function requireAdmin(): Promise<void> {
-  if (!(await verifySessionToken(cookies().get(SESSION_COOKIE)?.value))) throw new Error("Unauthorized");
+/** The signed-in account, if it may use e-signature (else throws). */
+async function requireAdmin(): Promise<AdminUser> {
+  const user = await sessionUser(cookies().get(SESSION_COOKIE)?.value);
+  if (!user || !canUseSection(user, "/esign")) throw new Error("Unauthorized");
+  return user;
 }
 
 const str = (form: FormData, key: string, max = 200) =>
@@ -74,7 +79,7 @@ function browserOrigin(): string {
 // --- Settings ---
 
 export async function setEsignFolderAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = driveIdFromLink(str(form, "folder", 400));
   if (!id) back(form, "tab=settings&error=folder");
   if ((await driveHealth()) !== "ok") back(form, "tab=settings&error=drive");
@@ -91,24 +96,24 @@ export async function setEsignFolderAction(form: FormData) {
     back(form, "tab=settings&error=drive");
   }
   await changeEsign((file) => ({ next: { ...file, folders: { parent: id, parentName: name, templates, signed } }, result: null }));
-  await logActivity("admin", "/esign", "settings", name || id);
+  await logActivity(user, "/esign", "settings", name || id);
   refresh();
   back(form, "tab=settings&saved=folder");
 }
 
 export async function addEsignContactAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const name = str(form, "name", 80);
   if (!name) back(form, "tab=settings&error=contact");
   const contact = { id: newEsignId(), name, title: str(form, "title", 80) || undefined, phone: phoneOf(form.get("phone")) };
   await changeEsign((file) => ({ next: { ...file, contacts: [...file.contacts, contact] }, result: null }));
-  await logActivity("admin", "/esign", "create", name);
+  await logActivity(user, "/esign", "create", name);
   refresh();
   back(form, "tab=settings&saved=contact");
 }
 
 export async function deleteEsignContactAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = str(form, "id");
   const name = await changeEsign((file) => {
     const found = file.contacts.find((c) => c.id === id);
@@ -116,7 +121,7 @@ export async function deleteEsignContactAction(form: FormData) {
       ? { next: { ...file, contacts: file.contacts.filter((c) => c.id !== id) }, result: found.name }
       : { next: null, result: "" };
   });
-  if (name) await logActivity("admin", "/esign", "delete", name);
+  if (name) await logActivity(user, "/esign", "delete", name);
   refresh();
   back(form, "tab=settings");
 }
@@ -137,7 +142,7 @@ export type TemplateUploadResult =
 
 /** Starts sending a template PDF to the «القوالب» folder (the browser then sends the file). */
 export async function startTemplateUploadAction(input: { name: string; size: number }): Promise<TemplateUploadResult> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const { folders } = await readEsign();
   if (!folders.templates) return { ok: false, error: "folder" };
   const size = Number(input.size);
@@ -163,7 +168,7 @@ export async function finishTemplateUploadAction(input: {
   driveFileId: string;
   pages: PageSize[];
 }): Promise<{ ok: true; id: string } | { ok: false; error: "file" | "drive" }> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const pages = cleanPages(input.pages);
   const name = clean(input.name, 120);
   if (!pages || !name) return { ok: false, error: "file" };
@@ -181,14 +186,14 @@ export async function finishTemplateUploadAction(input: {
     createdAt: new Date().toISOString(),
   };
   await changeEsign((f) => ({ next: { ...f, templates: [...f.templates, template] }, result: null }));
-  await logActivity("admin", "/esign", "upload", name);
+  await logActivity(user, "/esign", "upload", name);
   refresh();
   return { ok: true, id: template.id };
 }
 
 /** Fallback when the browser can't reach Google: the file goes through the server (up to 4 MB). */
 export async function uploadTemplateFileAction(form: FormData): Promise<{ ok: true; id: string } | { ok: false; error: "file" | "drive" | "folder" }> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const file = form.get("file");
   if (!(file instanceof File) || file.size > 4 * 1024 * 1024 || file.type !== "application/pdf") return { ok: false, error: "file" };
   const { folders } = await readEsign();
@@ -219,7 +224,7 @@ export async function saveTemplateAction(input: {
   steps: EsignStep[];
   fields: EsignField[];
 }): Promise<{ ok: boolean }> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const name = clean(input.name, 120);
   const steps: EsignStep[] = (Array.isArray(input.steps) ? input.steps : []).slice(0, 20).map((s) => ({
     id: clean(s.id, 40) || newEsignId(),
@@ -259,14 +264,14 @@ export async function saveTemplateAction(input: {
     return { next: { ...file, templates }, result: true };
   });
   if (result) {
-    await logActivity("admin", "/esign", "update", name);
+    await logActivity(user, "/esign", "update", name);
     refresh();
   }
   return { ok: result };
 }
 
 export async function deleteTemplateAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = str(form, "id");
   const name = await changeEsign((file) => {
     const template = file.templates.find((t) => t.id === id);
@@ -274,7 +279,7 @@ export async function deleteTemplateAction(form: FormData) {
     return { next: { ...file, templates: file.templates.filter((t) => t.id !== id) }, result: template.name };
   });
   if (!name) back(form, "tab=templates&error=in-use");
-  await logActivity("admin", "/esign", "delete", name);
+  await logActivity(user, "/esign", "delete", name);
   refresh();
   back(form, "tab=templates");
 }
@@ -300,7 +305,7 @@ export type NewPackageInput = {
 export async function createPackageAction(
   input: NewPackageInput
 ): Promise<{ ok: true; id: string; documents: string[] } | { ok: false; error: "fields" | "drive" | "folder" }> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const store = await readEsign();
   if (!store.folders.signed) return { ok: false, error: "folder" };
   if ((await driveHealth()) !== "ok") return { ok: false, error: "drive" };
@@ -350,7 +355,7 @@ export async function createPackageAction(
     status: "preparing",
     steps,
     documents,
-    createdBy: "admin",
+    createdBy: user,
     createdAt: new Date().toISOString(),
   };
   await changeEsign((file) => {
@@ -367,7 +372,7 @@ export async function uploadCopyImagesAction(input: {
   documentId: string;
   images: Record<string, string>;
 }): Promise<{ ok: boolean }> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const store = await readEsign();
   const pkg = store.packages.find((p) => p.id === input.packageId && p.status === "preparing");
   const doc = pkg?.documents.find((d) => d.id === input.documentId);
@@ -392,7 +397,7 @@ function pngBytes(dataUrl: unknown): Uint8Array | null {
 
 /** Opens a prepared package: its links start working. */
 export async function activatePackageAction(input: { packageId: string }): Promise<{ ok: boolean }> {
-  await requireAdmin();
+  const user = await requireAdmin();
   const title = await changeEsign((file) => {
     const index = file.packages.findIndex((p) => p.id === input.packageId && p.status === "preparing");
     if (index === -1) return { next: null, result: null };
@@ -406,14 +411,14 @@ export async function activatePackageAction(input: { packageId: string }): Promi
     return { next: { ...file, packages }, result: `${pkg.ref} — ${pkg.title}` };
   });
   if (title) {
-    await logActivity("admin", "/esign", "create", title);
+    await logActivity(user, "/esign", "create", title);
     refresh();
   }
   return { ok: Boolean(title) };
 }
 
 export async function cancelPackageAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = str(form, "id");
   const title = await changeEsign((file) => {
     const index = file.packages.findIndex((p) => p.id === id);
@@ -429,13 +434,13 @@ export async function cancelPackageAction(form: FormData) {
     };
     return { next: { ...file, packages }, result: `${pkg.ref} — ${pkg.title}` };
   });
-  if (title) await logActivity("admin", "/esign", "update", title);
+  if (title) await logActivity(user, "/esign", "update", title);
   refresh();
   back(form, `package=${id}`);
 }
 
 export async function cancelCopyAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = str(form, "id");
   const docId = str(form, "doc");
   const label = await changeEsign((file) => {
@@ -447,13 +452,13 @@ export async function cancelCopyAction(form: FormData) {
     packages[index] = { ...pkg, documents: pkg.documents.map((d) => (d.id === docId ? { ...d, status: "cancelled" as const } : d)) };
     return { next: { ...file, packages }, result: `${pkg.ref} — ${doc.label}` };
   });
-  if (label) await logActivity("admin", "/esign", "update", label);
+  if (label) await logActivity(user, "/esign", "update", label);
   refresh();
   back(form, `package=${id}`);
 }
 
 export async function deletePackageAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = str(form, "id");
   const removed = await changeEsign((file) => {
     const pkg = file.packages.find((p) => p.id === id);
@@ -463,14 +468,14 @@ export async function deletePackageAction(form: FormData) {
   if (removed) {
     // Signed copies stay in Drive; only the temporary images go.
     for (const doc of removed.documents) await deletePrivateFolder(`esign/${doc.id}/`).catch(() => undefined);
-    await logActivity("admin", "/esign", "delete", `${removed.ref} — ${removed.title}`);
+    await logActivity(user, "/esign", "delete", `${removed.ref} — ${removed.title}`);
   }
   refresh();
   back(form);
 }
 
 export async function retrySaveAction(form: FormData) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const id = str(form, "id");
   const docId = str(form, "doc");
   const ok = await finalizeEsignDocument(id, docId);

@@ -28,13 +28,14 @@ export default async function AdminActivityPage({
 
   const all = await listActivity();
   const marketingName = (process.env.MARKETING_USERNAME || "pr").trim();
-  const userName = (user: string) => (user === "admin" ? t.admin : marketingName);
+  const hrName = (process.env.HR_USERNAME || "hr").trim();
+  const userName = (user: string) => (user === "admin" ? t.admin : user === "hr" ? hrName : marketingName);
   const sectionLabels = new Map(
     ADMIN_SECTION_GROUPS.flatMap((g) => g.sections).map((s) => [s.path, dict.admin[s.label]] as const)
   );
   const sectionName = (path: string) => sectionLabels.get(path) ?? path;
 
-  const userFilter = searchParams.user === "admin" || searchParams.user === "marketing" ? searchParams.user : "";
+  const userFilter = ["admin", "marketing", "hr"].includes(searchParams.user ?? "") ? searchParams.user! : "";
   const sectionFilter = searchParams.section && sectionLabels.has(searchParams.section) ? searchParams.section : "";
   const entries = all.filter((e) => (!userFilter || e.user === userFilter) && (!sectionFilter || e.section === sectionFilter));
   const sections = [...new Set(all.map((e) => e.section))].filter((s) => sectionLabels.has(s));
@@ -67,6 +68,7 @@ export default async function AdminActivityPage({
           <option value="">{t.allUsers}</option>
           <option value="admin">{t.admin}</option>
           <option value="marketing">{marketingName}</option>
+          <option value="hr">{hrName}</option>
         </select>
         <select name="section" defaultValue={sectionFilter} aria-label={t.allSections} className="input w-auto flex-1">
           <option value="">{t.allSections}</option>
