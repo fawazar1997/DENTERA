@@ -11,6 +11,7 @@ import {
   Eye,
   FileText,
   FolderOpen,
+  MessageSquareText,
   Pencil,
   Plus,
   RotateCcw,
@@ -33,13 +34,16 @@ import {
   deleteTemplateAction,
   retrySaveAction,
   setEsignFolderAction,
+  setMessageTemplateAction,
+  setPackageMessageAction,
 } from "@/lib/esignActions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { LinkActions } from "@/components/admin/esign/LinkActions";
 import { TemplateUpload } from "@/components/admin/esign/TemplateUpload";
 import { TemplateEditor } from "@/components/admin/esign/TemplateEditor";
-import { STEP_COLORS } from "@/lib/esignTypes";
+import { STEP_COLORS, fillSignMessage } from "@/lib/esignTypes";
+import { MessageEditor } from "@/components/admin/esign/MessageEditor";
 import { NewPackage } from "@/components/admin/esign/NewPackage";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +91,7 @@ export default async function AdminEsignPage({
   const notice = (() => {
     if (searchParams.saved === "folder") return { ok: true, text: `${t.folderLinked}: ${store.folders.parentName ?? ""}` };
     if (searchParams.saved === "contact") return { ok: true, text: t.saved };
+    if (searchParams.saved === "message") return { ok: true, text: t.messageSaved };
     if (searchParams.error === "folder") return { ok: false, text: ar ? "تعذّر الوصول إلى هذا المجلد. تأكد من الرابط ومن أن حساب Google المربوط يملك صلاحية عليه." : "Couldn't reach that folder. Check the link and that the connected Google account can edit it." };
     if (searchParams.error === "drive") return { ok: false, text: t.driveDown };
     if (searchParams.error === "in-use") return { ok: false, text: t.templateInUse };
@@ -133,9 +138,17 @@ export default async function AdminEsignPage({
           contacts={store.contacts}
           locale={locale}
           initialTemplateId={searchParams.template ?? searchParams.from}
+          defaultMessage={store.messageTemplate}
         />
       ) : pkg ? (
-        <PackageView pkg={pkg} template={store.templates.find((x) => x.id === pkg.templateId)} locale={locale} t={t} origin={siteOrigin()} />
+        <PackageView
+          pkg={pkg}
+          template={store.templates.find((x) => x.id === pkg.templateId)}
+          locale={locale}
+          t={t}
+          origin={siteOrigin()}
+          defaultMessage={store.messageTemplate}
+        />
       ) : (
         <>
           <nav className="mt-6 flex gap-1 border-b border-ink-100" aria-label={dict.admin.esign}>
@@ -158,7 +171,7 @@ export default async function AdminEsignPage({
           {tab === "templates" && (
             <TemplatesTab templates={store.templates} packages={store.packages} locale={locale} t={t} canUpload={Boolean(store.folders.templates) && health === "ok"} />
           )}
-          {tab === "settings" && <SettingsTab folders={store.folders} contacts={store.contacts} locale={locale} t={t} />}
+          {tab === "settings" && <SettingsTab folders={store.folders} contacts={store.contacts} message={store.messageTemplate} locale={locale} t={t} />}
         </>
       )}
     </div>
@@ -254,19 +267,24 @@ function PackageView({
   locale,
   t,
   origin,
+  defaultMessage,
 }: {
   pkg: EsignPackage;
   template?: EsignTemplate;
   locale: Locale;
   t: EsignText;
   origin: string;
+  defaultMessage?: string;
 }) {
   const ar = locale === "ar";
   const Back = ar ? ArrowRight : ArrowLeft;
   const roleOf = (stepId: string) => template?.steps.find((s) => s.id === stepId)?.role ?? "";
   const colorOf = (stepId: string) =>
     STEP_COLORS[Math.max(0, template?.steps.findIndex((s) => s.id === stepId) ?? 0) % STEP_COLORS.length];
-  const linkLabels = { copy: t.copyLink, copied: t.copied, whatsapp: t.whatsapp };
+  const linkLabels = { copy: t.copyLink, copied: t.copied, whatsapp: t.whatsapp, open: t.openLink };
+  const messageTemplate = pkg.message ?? defaultMessage;
+  const firstDoc = pkg.documents[0];
+  const firstSigner = firstDoc?.signers[0];
 
   return (
     <div className="mt-4">
@@ -292,6 +310,29 @@ function PackageView({
             )}
           </div>
         </div>
+        {pkg.status === "active" && (
+          <details className="mt-4 border-t border-ink-100 pt-3">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-bold text-primary-700">
+              <MessageSquareText className="h-4 w-4" /> {t.editMessage}
+            </summary>
+            <form action={setPackageMessageAction} className="mt-4 space-y-3">
+              <input type="hidden" name="locale" value={locale} />
+              <input type="hidden" name="id" value={pkg.id} />
+              <MessageEditor
+                locale={locale}
+                initial={messageTemplate}
+                sample={{
+                  name: firstSigner?.name,
+                  role: firstSigner ? roleOf(firstSigner.stepId) : undefined,
+                  title: pkg.title,
+                  copy: firstDoc?.label,
+                  ref: pkg.ref,
+                }}
+              />
+              <SubmitButton label={t.saveMessage} savedLabel={t.saved} />
+            </form>
+          </details>
+        )}
       </section>
 
       <ul className="mt-4 space-y-3">
@@ -333,7 +374,14 @@ function PackageView({
                 const url = `${origin}/sign/${signer.token}`;
                 const state = signer.signedAt ? "signed" : doc.status === "active" && i === doc.currentStep ? "current" : doc.declinedStep === signer.stepId ? "declined" : "later";
                 const Icon = state === "signed" ? CheckCircle2 : state === "current" ? CircleDot : state === "declined" ? XCircle : Circle;
-                const message = t.whatsappMessage(signer.name, pkg.title, url);
+                const message = fillSignMessage(messageTemplate, {
+                  name: signer.name,
+                  role: roleOf(signer.stepId),
+                  title: pkg.title,
+                  copy: doc.label,
+                  ref: pkg.ref,
+                  link: url,
+                });
                 return (
                   <li
                     key={signer.stepId}
@@ -459,16 +507,31 @@ function TemplatesTab({
 function SettingsTab({
   folders,
   contacts,
+  message,
   locale,
   t,
 }: {
   folders: { parent?: string; parentName?: string };
   contacts: EsignContact[];
+  message?: string;
   locale: Locale;
   t: EsignText;
 }) {
   return (
     <div className="mt-6 grid gap-4 xl:grid-cols-2">
+      <section className="card p-6 xl:col-span-2">
+        <h2 className="flex items-center gap-2 font-bold text-ink-900">
+          <MessageSquareText className="h-5 w-5 text-primary-600" /> {t.messageDefaultTitle}
+        </h2>
+        <p className="mt-1 text-sm text-ink-500">
+          {t.messageDefaultHint} {t.messageHint}
+        </p>
+        <form action={setMessageTemplateAction} className="mt-4 space-y-3">
+          <input type="hidden" name="locale" value={locale} />
+          <MessageEditor locale={locale} initial={message} />
+          <SubmitButton label={t.saveMessage} savedLabel={t.saved} />
+        </form>
+      </section>
       <section className="card p-6">
         <h2 className="flex items-center gap-2 font-bold text-ink-900">
           <FolderOpen className="h-5 w-5 text-primary-600" /> {t.folderTitle}

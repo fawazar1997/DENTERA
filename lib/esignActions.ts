@@ -17,6 +17,7 @@ import {
   textFieldsOf,
   variableLabels,
   MAX_ESIGN_IMAGE_BYTES,
+  MAX_MESSAGE_LENGTH,
   MAX_TEMPLATE_BYTES,
   type EsignDocument,
   type EsignField,
@@ -99,6 +100,39 @@ export async function setEsignFolderAction(form: FormData) {
   await logActivity(user, "/esign", "settings", name || id);
   refresh();
   back(form, "tab=settings&saved=folder");
+}
+
+/** The message as typed (line breaks kept), or undefined when empty. */
+function messageText(value: unknown): string | undefined {
+  const text = String(value ?? "").replace(/\r\n/g, "\n").replace(/[ \t]+\n/g, "\n").trim().slice(0, MAX_MESSAGE_LENGTH);
+  return text || undefined;
+}
+
+/** Settings: the message new signing requests start with. Empty: back to the built-in one. */
+export async function setMessageTemplateAction(form: FormData) {
+  const user = await requireAdmin();
+  const message = messageText(form.get("message"));
+  await changeEsign((file) => ({ next: { ...file, messageTemplate: message }, result: null }));
+  await logActivity(user, "/esign", "settings", "نص رسالة الإرسال");
+  refresh();
+  back(form, "tab=settings&saved=message");
+}
+
+/** A request's own message (used for its links from now on). */
+export async function setPackageMessageAction(form: FormData) {
+  const user = await requireAdmin();
+  const id = str(form, "id");
+  const message = messageText(form.get("message"));
+  const title = await changeEsign((file) => {
+    const index = file.packages.findIndex((p) => p.id === id);
+    if (index === -1) return { next: null, result: null };
+    const packages = [...file.packages];
+    packages[index] = { ...packages[index], message };
+    return { next: { ...file, packages }, result: `${packages[index].ref} — ${packages[index].title}` };
+  });
+  if (title) await logActivity(user, "/esign", "update", title);
+  refresh();
+  back(form, `package=${id}&saved=message`);
 }
 
 export async function addEsignContactAction(form: FormData) {
@@ -289,6 +323,8 @@ export async function deleteTemplateAction(form: FormData) {
 export type NewPackageInput = {
   templateId: string;
   title: string;
+  /** The message sent with the links ({الاسم}, {الرابط}…). */
+  message?: string;
   steps: { stepId: string; mode: "same" | "perCopy"; name?: string; phone?: string }[];
   copies: {
     label?: string;
@@ -355,6 +391,7 @@ export async function createPackageAction(
     status: "preparing",
     steps,
     documents,
+    message: messageText(input.message),
     createdBy: user,
     createdAt: new Date().toISOString(),
   };

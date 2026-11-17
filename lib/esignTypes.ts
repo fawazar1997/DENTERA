@@ -95,6 +95,8 @@ export type EsignPackage = {
   documents: EsignDocument[];
   /** The package's folder inside «المستندات الموقّعة». */
   driveFolderId?: string;
+  /** The message sent with its links (a template, see fillSignMessage). */
+  message?: string;
   createdBy: string;
   createdAt: string;
 };
@@ -130,4 +132,44 @@ export function variableLabels(template: Pick<EsignTemplate, "fields">): string[
     if (f.kind === "variable" && f.label && !seen.includes(f.label)) seen.push(f.label);
   }
   return seen;
+}
+
+// --- The message sent with a signing link ---
+
+/** What can go in the message; each is replaced for every signer. */
+export const MESSAGE_FIELDS = ["الاسم", "الصفة", "العنوان", "النسخة", "المرجع", "الرابط"] as const;
+
+/** The message used until one is saved in Settings. */
+export const DEFAULT_SIGN_MESSAGE = `السلام عليكم {الاسم}،
+
+نأمل التكرّم بتوقيع «{العنوان}» إلكترونيًا بصفتكم {الصفة}، من خلال الرابط التالي:
+{الرابط}
+
+يُفتح الرابط من الجوال أو الكمبيوتر، ويتم التوقيع خلال دقيقة.
+
+مع خالص الشكر،
+عيادات دنتيرا`;
+
+export const MAX_MESSAGE_LENGTH = 1500;
+
+/**
+ * A signer's message: the template with {الاسم}, {الصفة}, {العنوان},
+ * {النسخة}, {المرجع} and {الرابط} filled in. The link is added at the end
+ * if the template forgot it.
+ */
+export function fillSignMessage(
+  template: string | undefined,
+  values: { name: string; role: string; title: string; copy: string; ref: string; link: string }
+): string {
+  const text = (template ?? "").trim() || DEFAULT_SIGN_MESSAGE;
+  const map: Record<string, string> = {
+    الاسم: values.name,
+    الصفة: values.role,
+    العنوان: values.title,
+    النسخة: values.copy,
+    المرجع: values.ref,
+    الرابط: values.link,
+  };
+  const filled = text.replace(/\{([^{}]{1,12})\}/g, (whole, key: string) => map[key.trim()] ?? whole);
+  return filled.includes(values.link) ? filled : `${filled}\n\n${values.link}`;
 }

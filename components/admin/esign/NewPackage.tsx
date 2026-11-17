@@ -14,7 +14,8 @@ import {
   uploadCopyImagesAction,
   type NewPackageInput,
 } from "@/lib/esignActions";
-import { STEP_COLORS, textFieldsOf, variableLabels, type EsignContact, type EsignField, type EsignTemplate } from "@/lib/esignTypes";
+import { MessageEditor } from "./MessageEditor";
+import { DEFAULT_SIGN_MESSAGE, STEP_COLORS, textFieldsOf, variableLabels, type EsignContact, type EsignField, type EsignTemplate } from "@/lib/esignTypes";
 import { PdfPages, boxStyle } from "@/components/esign/PdfPages";
 import { displayValue, renderTextPng } from "@/components/esign/renderTextPng";
 
@@ -28,11 +29,14 @@ export function NewPackage({
   contacts,
   locale,
   initialTemplateId,
+  defaultMessage,
 }: {
   templates: EsignTemplate[];
   contacts: EsignContact[];
   locale: Locale;
   initialTemplateId?: string;
+  /** The saved default message (Settings). */
+  defaultMessage?: string;
 }) {
   const t = esignText(locale);
   const ar = locale === "ar";
@@ -47,6 +51,8 @@ export function NewPackage({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // The request keeps its own copy of the message it was sent with.
+  const [message, setMessage] = useState(defaultMessage?.trim() || DEFAULT_SIGN_MESSAGE);
 
   function choicesFor(tpl?: EsignTemplate): StepChoice[] {
     return (tpl?.steps ?? []).map((s) => {
@@ -128,6 +134,7 @@ export function NewPackage({
       const input: NewPackageInput = {
         templateId: template.id,
         title,
+        message,
         steps: choices.map((c) => ({ stepId: c.stepId, mode: c.mode, name: c.name, phone: c.phone })),
         copies: rows.map((r) => ({ label: r.label, signers: r.signers, values: r.values })),
       };
@@ -442,6 +449,26 @@ export function NewPackage({
                     })}
                 </div>
               )}
+            />
+          </div>
+        </section>
+      )}
+
+      {template && (
+        <section className="card p-6">
+          <h2 className="font-bold text-ink-900">{t.messageTitle}</h2>
+          <p className="mt-1 text-sm text-ink-500">{t.messageHint}</p>
+          <div className="mt-4">
+            <MessageEditor
+              locale={locale}
+              initial={defaultMessage}
+              onChange={setMessage}
+              sample={{
+                name: template.steps[0] ? signerOf(rows[0] ?? emptyRow(), template.steps[0].id).name : undefined,
+                role: template.steps[0]?.role,
+                title: title || undefined,
+                copy: rows[0]?.label || (perCopySteps[0] ? rows[0]?.signers[perCopySteps[0].stepId]?.name : undefined),
+              }}
             />
           </div>
         </section>

@@ -34,6 +34,8 @@ type EsignFile = {
   packages: EsignPackage[];
   contacts: EsignContact[];
   folders: EsignDriveFolders;
+  /** The default message for new signing requests (Settings). */
+  messageTemplate?: string;
 };
 
 const ESIGN_PATH = "data/esign.json";
