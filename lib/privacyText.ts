@@ -9,6 +9,9 @@ export type PrivacySection = { id: string; title: string; paragraphs?: string[];
 
 const UPDATED = "2026-11-18";
 
+/** Whether the page is on the site (hidden for now: 404, no footer or sitemap link). */
+export const PRIVACY_PUBLISHED = false;
+
 const ar = {
   metaTitle: "سياسة الخصوصية",
   metaDescription: "كيف تجمع عيادات دنتيرا لطب الأسنان بياناتك الشخصية وتستخدمها وتحميها، وحقوقك وفق نظام حماية البيانات الشخصية.",

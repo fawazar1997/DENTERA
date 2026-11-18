@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { pageMetadata } from "@/lib/seo";
-import { privacyText } from "@/lib/privacyText";
+import { PRIVACY_PUBLISHED, privacyText } from "@/lib/privacyText";
 import { telHref } from "@/lib/phone";
 
 export async function generateMetadata({ params }: { params: { locale: string } }): Promise<Metadata> {
@@ -15,6 +16,7 @@ export async function generateMetadata({ params }: { params: { locale: string } 
 
 /** The website's privacy policy. */
 export default async function PrivacyPage({ params }: { params: { locale: string } }) {
+  if (!PRIVACY_PUBLISHED) notFound();
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const dict = await getSiteDictionary(locale);
   const t = privacyText(locale);

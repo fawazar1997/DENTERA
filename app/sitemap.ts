@@ -3,6 +3,7 @@ import { localePath } from "@/lib/i18n";
 import { getActiveDoctors, getLiveOffers } from "@/lib/db";
 import { absoluteUrl } from "@/lib/seo";
 import { careersVisible } from "@/lib/careers";
+import { PRIVACY_PUBLISHED } from "@/lib/privacyText";
 
 // Built from the live data on request, so new doctors and offers appear
 // without a new deployment.
@@ -17,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/departments", priority: 0.8, changeFrequency: "monthly" },
     { path: "/contact", priority: 0.8, changeFrequency: "monthly" },
     ...(careers ? [{ path: "/careers", priority: 0.6, changeFrequency: "monthly" as const }] : []),
-    { path: "/privacy", priority: 0.3, changeFrequency: "monthly" },
+    ...(PRIVACY_PUBLISHED ? [{ path: "/privacy", priority: 0.3, changeFrequency: "monthly" as const }] : []),
     { path: "/about", priority: 0.6, changeFrequency: "monthly" },
     { path: "/about/identity", priority: 0.4, changeFrequency: "monthly" },
     ...(offers.length > 0

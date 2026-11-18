@@ -1,4 +1,5 @@
 import { localePath } from "@/lib/i18n";
+import { PRIVACY_PUBLISHED } from "@/lib/privacyText";
 import Link from "next/link";
 import { MapPin, Phone, Mail } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
@@ -181,9 +182,11 @@ export function Footer({
             <span>
               &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
             </span>
-            <Link href={localePath(locale, `/privacy`)} className="hover:text-white">
-              {dict.nav.privacy}
-            </Link>
+            {PRIVACY_PUBLISHED && (
+              <Link href={localePath(locale, `/privacy`)} className="hover:text-white">
+                {dict.nav.privacy}
+              </Link>
+            )}
           </p>
         </div>
       </div>
