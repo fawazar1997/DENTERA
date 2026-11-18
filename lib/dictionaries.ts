@@ -21,6 +21,7 @@ export const dictionaries = {
       doctors: "Our Doctors",
       offers: "Offers",
       contact: "Contact",
+      careers: "Careers",
     },
     booking: {
       phone: "800 301 2345",
@@ -282,6 +283,7 @@ export const dictionaries = {
       navGroupContent: "Website content",
       navGroupClinic: "Clinic information",
       navGroupAdminSystems: "Administrative systems",
+      navGroupHr: "Human resources",
       hintBookings: "Appointment requests from the website: follow up and update each one's status.",
       hintSupervisor: "One private link for the supervisor, with an icon for each page they follow.",
       hintActivity: "Who changed what in the control panel, and when.",
@@ -291,6 +293,7 @@ export const dictionaries = {
       hintLetters: "The outgoing and incoming letters register, with each file in Google Drive.",
       hintDocuments: "Staff documents by section: policies, guides, medical guides…",
       hintEsign: "Contracts and documents signed online, step by step, saved to Google Drive.",
+      hintCareers: "Job applications from the website: screening, stages, analytics and exclusion.",
       hintDoctors: "Add a doctor, or edit their photo, title, CV, branches and hours.",
       hintDepartments: "The clinic's departments, their icons and descriptions.",
       hintHome: "Order the home page sections and show or hide each one.",
@@ -478,6 +481,7 @@ export const dictionaries = {
       driveAlertAction: "Connect again",
       documents: "Documents",
       esign: "E-signature",
+      careers: "Hiring",
       pricesSubtitle:
         "The clinic's internal price list for staff. It's kept private (not on the website) and opened only through its private link.",
       pricesLinkHint:
@@ -664,6 +668,7 @@ export const dictionaries = {
       doctors: "أطباؤنا",
       offers: "العروض",
       contact: "تواصل معنا",
+      careers: "انضم إلى فريقنا",
     },
     booking: {
       phone: "800 301 2345",
@@ -920,6 +925,7 @@ export const dictionaries = {
       navGroupContent: "محتوى الموقع",
       navGroupClinic: "معلومات العيادة",
       navGroupAdminSystems: "الأنظمة الإدارية",
+      navGroupHr: "الموارد البشرية",
       hintBookings: "طلبات المواعيد من الموقع: متابعتها وتحديث حالة كل طلب.",
       hintSupervisor: "رابط واحد خاص بالمشرف، فيه أيقونة لكل صفحة يتابعها.",
       hintActivity: "من غيّر ماذا في لوحة التحكم، ومتى.",
@@ -929,6 +935,7 @@ export const dictionaries = {
       hintLetters: "سجل الخطابات الصادرة والواردة، مع ملف كل خطاب في Google Drive.",
       hintDocuments: "مستندات الموظفين حسب القسم: السياسات واللوائح، الأدلة، الأدلة الطبية…",
       hintEsign: "توقيع العقود والمستندات إلكترونيًا حسب الإجراء، وحفظها في Google Drive.",
+      hintCareers: "طلبات التوظيف من الموقع: فرز ومراحل وتحليل واستبعاد.",
       hintDoctors: "إضافة طبيب، أو تعديل صورته ولقبه وسيرته وفروعه وأوقاته.",
       hintDepartments: "أقسام العيادة وأيقوناتها ونصوصها.",
       hintHome: "ترتيب أقسام الصفحة الرئيسية وإظهار أو إخفاء كل قسم.",
@@ -1110,6 +1117,7 @@ export const dictionaries = {
       driveAlertAction: "إعادة الربط",
       documents: "المستندات",
       esign: "التوقيع الإلكتروني",
+      careers: "التوظيف",
       pricesSubtitle:
         "قائمة الأسعار الداخلية للموظفين. محفوظة بشكل خاص (لا تظهر في الموقع) وتُفتح فقط عبر رابطها الخاص.",
       pricesLinkHint:

@@ -7,6 +7,7 @@ import { getBookings } from "@/lib/bookings";
 import { ADMIN_SECTION_GROUPS } from "@/components/admin/adminSections";
 import { requireAdminPage } from "@/lib/adminSession";
 import { canUseSection } from "@/lib/adminRoles";
+import { liveApplications, readCareers } from "@/lib/careers";
 
 // Admin pages always need the current data, never a stale build-time or
 // revalidation-cached snapshot, so render them fresh on every request.
@@ -41,6 +42,11 @@ export default async function AdminDashboardPage({
     "/partners": partners.length,
     "/branches": branches.length,
   };
+  // New job applications (not yet looked at, not excluded).
+  if (canUseSection(user, "/careers")) {
+    const careers = await readCareers().catch(() => null);
+    if (careers) counts["/careers"] = liveApplications(careers).filter((x) => x.stage === "new" && !x.excluded).length;
+  }
 
   return (
     <div className="container-x py-10">

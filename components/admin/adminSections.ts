@@ -1,6 +1,7 @@
 import {
   Archive,
   BookUser,
+  Briefcase,
   Building2,
   CalendarCheck,
   Files,
@@ -68,6 +69,10 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
       { path: "/documents", label: "documents", hint: "hintDocuments", icon: Files },
       { path: "/esign", label: "esign", hint: "hintEsign", icon: PenLine },
     ],
+  },
+  {
+    label: "navGroupHr",
+    sections: [{ path: "/careers", label: "careers", hint: "hintCareers", icon: Briefcase }],
   },
   {
     label: "navGroupMedical",

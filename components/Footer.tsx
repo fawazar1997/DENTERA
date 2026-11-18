@@ -17,6 +17,7 @@ export function Footer({
   branches,
   social,
   showOffers = false,
+  showCareers = false,
 }: {
   locale: Locale;
   dict: Dictionary;
@@ -24,6 +25,7 @@ export function Footer({
   branches: Branch[];
   social?: Links;
   showOffers?: boolean;
+  showCareers?: boolean;
 }) {
   const year = new Date().getFullYear();
   const ar = locale === "ar";
@@ -67,6 +69,13 @@ export function Footer({
               <li>
                 <Link href={localePath(locale, `/offers`)} className="hover:text-white">
                   {dict.nav.offers}
+                </Link>
+              </li>
+            )}
+            {showCareers && (
+              <li>
+                <Link href={localePath(locale, `/careers`)} className="hover:text-white">
+                  {dict.nav.careers}
                 </Link>
               </li>
             )}

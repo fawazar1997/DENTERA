@@ -16,11 +16,13 @@ export function Header({
   locale,
   dict,
   showOffers = false,
+  showCareers = false,
 }: {
   locale: Locale;
   dict: Dictionary;
   /** Show the Offers menu link (only while there are live offers). */
   showOffers?: boolean;
+  showCareers?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -38,6 +40,7 @@ export function Header({
       children: [
         { href: localePath(locale, `/about`), label: dict.nav.aboutUs },
         { href: localePath(locale, `/about/identity`), label: dict.nav.identity },
+        ...(showCareers ? [{ href: localePath(locale, `/careers`), label: dict.nav.careers }] : []),
       ],
     },
     { href: localePath(locale, `/departments`), label: dict.nav.departments },

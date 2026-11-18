@@ -9,6 +9,7 @@ import {
 } from "@/lib/db";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { careersVisible } from "@/lib/careers";
 import { FontLinks } from "@/components/FontLinks";
 
 // Content is edited live from the control panel, so render on request
@@ -31,6 +32,7 @@ export default async function SiteLayout({
   const branches = await getActiveBranches();
   const settings = await getSettings();
   const showOffers = (await getLiveOffers()).length > 0;
+  const showCareers = await careersVisible();
 
   return (
     <html lang={locale} dir={rtl ? "rtl" : "ltr"}>
@@ -38,7 +40,7 @@ export default async function SiteLayout({
         <FontLinks />
       </head>
       <body className={rtl ? "font-arabic" : "font-sans"}>
-        <Header locale={locale} dict={dict} showOffers={showOffers} />
+        <Header locale={locale} dict={dict} showOffers={showOffers} showCareers={showCareers} />
         <main className="min-h-screen">{children}</main>
         <Footer
           locale={locale}
@@ -47,6 +49,7 @@ export default async function SiteLayout({
           branches={branches}
           social={settings.social}
           showOffers={showOffers}
+          showCareers={showCareers}
         />
       </body>
     </html>
