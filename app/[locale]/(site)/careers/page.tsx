@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Briefcase, GraduationCap, HeartHandshake, Lock, Sparkles } from "lucide-react";
+import { Briefcase, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
 import { getSiteDictionary } from "@/lib/content";
 import { pageMetadata } from "@/lib/seo";
 import { readCareers } from "@/lib/careers";
 import { careersText } from "@/lib/careersText";
 import { driveHealth } from "@/lib/googleDrive";
-import { Reveal } from "@/components/Reveal";
 import { ApplicationForm } from "@/components/careers/ApplicationForm";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +18,7 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   return pageMetadata({ locale, siteName: dict.meta.siteName, path: "/careers", title: t.metaTitle, description: t.metaDescription });
 }
 
-const WHY_ICONS = [Sparkles, HeartHandshake, GraduationCap];
-
-/** The careers page: why Dentera, and the application form. */
+/** The careers page: a short intro and the application form. */
 export default async function CareersPage({ params }: { params: { locale: string } }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const ar = locale === "ar";
@@ -49,37 +46,6 @@ export default async function CareersPage({ params }: { params: { locale: string
               {t.apply}
             </a>
           )}
-          <div className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-2">
-            {fields
-              .filter((f) => f.id !== "other")
-              .map((f) => (
-                <span key={f.id} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-ink-700 shadow-sm ring-1 ring-ink-100">
-                  {ar ? f.nameAr : f.nameEn}
-                </span>
-              ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-paper pb-6">
-        <div className="container-x">
-          <h2 className="text-center text-2xl font-extrabold text-ink-950">{t.whyTitle}</h2>
-          <div className="mx-auto mt-6 grid max-w-5xl gap-4 sm:grid-cols-3">
-            {t.why.map(([title, body], i) => {
-              const Icon = WHY_ICONS[i % WHY_ICONS.length];
-              return (
-                <Reveal key={title} delay={i * 80}>
-                  <div className="card h-full p-6">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink-950 text-primary-300">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <h3 className="mt-4 font-bold text-ink-950">{title}</h3>
-                    <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{body}</p>
-                  </div>
-                </Reveal>
-              );
-            })}
-          </div>
         </div>
       </section>
 
