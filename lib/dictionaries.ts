@@ -22,6 +22,7 @@ export const dictionaries = {
       offers: "Offers",
       contact: "Contact",
       careers: "Careers",
+      privacy: "Privacy policy",
     },
     booking: {
       phone: "800 301 2345",
@@ -669,6 +670,7 @@ export const dictionaries = {
       offers: "العروض",
       contact: "تواصل معنا",
       careers: "انضم إلى فريقنا",
+      privacy: "سياسة الخصوصية",
     },
     booking: {
       phone: "800 301 2345",

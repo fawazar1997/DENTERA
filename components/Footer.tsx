@@ -177,8 +177,13 @@ export function Footer({
 
       <div className="border-t border-ink-800">
         <div className="container-x py-6 text-center text-xs text-sand-300 sm:text-start">
-          <p>
-            &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
+          <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:justify-start">
+            <span>
+              &copy; {year} {dict.meta.siteName}. {dict.footer.rights}
+            </span>
+            <Link href={localePath(locale, `/privacy`)} className="hover:text-white">
+              {dict.nav.privacy}
+            </Link>
           </p>
         </div>
       </div>
