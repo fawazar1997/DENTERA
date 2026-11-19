@@ -346,6 +346,7 @@ export async function saveTemplateAction(input: {
       if (kind === "variable" || kind === "signerName") {
         field.fontSize = Math.min(48, Math.max(5, Number(f.fontSize) || 11));
         field.align = f.align === "center" || f.align === "end" ? f.align : "start";
+        field.font = f.font === "cambria" ? "cambria" : "dentera";
       }
       return [field];
     });

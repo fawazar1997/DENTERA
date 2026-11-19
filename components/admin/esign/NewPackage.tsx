@@ -18,6 +18,7 @@ import { MessageEditor } from "./MessageEditor";
 import { DEFAULT_SIGN_MESSAGE, STEP_COLORS, textFieldsOf, variableLabels, type EsignContact, type EsignField, type EsignTemplate } from "@/lib/esignTypes";
 import { PdfPages, boxStyle } from "@/components/esign/PdfPages";
 import { displayValue, renderTextPng } from "@/components/esign/renderTextPng";
+import { TextBox } from "@/components/esign/TextBox";
 
 type StepChoice = { stepId: string; mode: "same" | "perCopy"; contactId: string; name: string; phone: string };
 type Row = { label: string; signers: Record<string, { name: string; phone: string }>; values: Record<string, string> };
@@ -51,6 +52,8 @@ export function NewPackage({
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // Boxes whose value had to be made smaller (or was cut off) in the preview.
+  const [tight, setTight] = useState<Record<string, "small" | "overflow">>({});
   // The request keeps its own copy of the message it was sent with.
   const [message, setMessage] = useState(defaultMessage?.trim() || DEFAULT_SIGN_MESSAGE);
 
@@ -172,7 +175,8 @@ export function NewPackage({
       fontSize: field.fontSize,
       align: field.align,
       bold: field.kind === "signerName",
-    });
+      font: field.font,
+    }).then((r) => r.url);
   }
 
   if (!templates.length) {
@@ -413,6 +417,11 @@ export function NewPackage({
           <h2 className="font-bold text-ink-900">
             {t.previewCopy} {Math.min(previewRow, rows.length - 1) + 1}
           </h2>
+          {Object.keys(tight).length > 0 && (
+            <p role="status" className="mt-2 rounded-lg bg-accent-50 px-3 py-2 text-sm text-ink-800">
+              {t.textLongHint}
+            </p>
+          )}
           <div className="mx-auto mt-4 max-w-3xl">
             <PdfPages
               url={`/api/admin/esign/template/${template.id}`}
@@ -439,19 +448,34 @@ export function NewPackage({
                         );
                       }
                       const text = fieldText(f, current);
-                      const width = template.pages[page]?.w ?? 595;
+                      const size = template.pages[page] ?? { w: 595, h: 842 };
+                      const fit = text ? tight[f.id] : undefined;
                       return (
                         <div
                           key={f.id}
-                          dir="auto"
-                          style={{
-                            ...boxStyle(f),
-                            fontSize: `calc(${((f.fontSize ?? 11) / width) * 100}cqw)`,
-                            justifyContent: f.align === "center" ? "center" : f.align === "end" ? "flex-end" : "flex-start",
-                          }}
-                          className={`flex items-center overflow-hidden whitespace-nowrap px-[0.2cqw] leading-none text-ink-950 ${f.kind === "signerName" ? "font-bold" : ""} ${text ? "" : "rounded bg-accent-100/70"}`}
+                          style={boxStyle(f)}
+                          title={fit ? (fit === "overflow" ? t.textTooLong : t.textShrunk) : undefined}
+                          className={`${text ? "" : "rounded bg-accent-100/70"} ${fit ? "rounded outline outline-2 outline-offset-1 outline-accent-500" : ""}`}
                         >
-                          {text}
+                          <TextBox
+                            text={text}
+                            boxW={f.w * size.w}
+                            boxH={f.h * size.h}
+                            fontSize={f.fontSize}
+                            align={f.align}
+                            bold={f.kind === "signerName"}
+                            font={f.font}
+                            onFit={(r) =>
+                              setTight((prev) => {
+                                const state = r.overflow ? "overflow" : r.scale < 0.85 ? "small" : undefined;
+                                if (prev[f.id] === state) return prev;
+                                const next = { ...prev };
+                                if (state) next[f.id] = state;
+                                else delete next[f.id];
+                                return next;
+                              })
+                            }
+                          />
                         </div>
                       );
                     })}

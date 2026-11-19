@@ -24,6 +24,8 @@ import { localePath, type Locale } from "@/lib/i18n";
 import { saveTemplateAction } from "@/lib/esignActions";
 import { STEP_COLORS, type EsignContact, type EsignField, type EsignStep, type EsignTemplate } from "@/lib/esignTypes";
 import { PdfPages, boxStyle } from "@/components/esign/PdfPages";
+import { TextBox } from "@/components/esign/TextBox";
+import { fontStack } from "@/components/esign/renderTextPng";
 
 
 const DEFAULT_SIZE: Record<EsignField["kind"], { w: number; h: number }> = {
@@ -72,6 +74,8 @@ export function TemplateEditor({
   const [savedAt, setSavedAt] = useState(false);
   const [error, setError] = useState("");
   const drag = useRef<Drag | null>(null);
+  // Sample text per box for the preview (not saved), e.g. a long value to size the box.
+  const [samples, setSamples] = useState<Record<string, string>>({});
 
   const stepColor = useCallback(
     (stepId?: string) => STEP_COLORS[Math.max(0, steps.findIndex((s) => s.id === stepId)) % STEP_COLORS.length],
@@ -145,6 +149,7 @@ export function TemplateEditor({
     }
     if (placing === "variable" || placing === "signerName") {
       field.fontSize = 11;
+      field.font = "dentera";
       field.align = "start";
     }
     setFields((list) => [...list, field]);
@@ -201,6 +206,13 @@ export function TemplateEditor({
 
   const ready = steps.length > 0 && steps.every((s) => fields.some((f) => f.kind === "signature" && f.stepId === s.id));
   const roleOf = (stepId?: string) => steps.find((s) => s.id === stepId)?.role || "…";
+
+  /** The preview text of a box: its sample, or a default one. */
+  function sampleOf(f: EsignField): string {
+    const own = samples[f.id]?.trim();
+    if (own) return own;
+    return f.kind === "signerName" ? roleOf(f.stepId) : `${t.sample} ${f.label ?? ""}`;
+  }
 
   function boxText(f: EsignField) {
     if (f.kind === "signature") return `${t.signatureOf}: ${roleOf(f.stepId)}`;
@@ -396,6 +408,20 @@ export function TemplateEditor({
               </label>
             )}
             {(selectedField.kind === "variable" || selectedField.kind === "signerName") && (
+              <label className="block">
+                <span className="label">{t.fontLabel}</span>
+                <select
+                  value={selectedField.font ?? "dentera"}
+                  onChange={(e) => updateField(selectedField.id, { font: e.target.value as EsignField["font"] })}
+                  className="input"
+                  style={{ fontFamily: fontStack(selectedField.font) }}
+                >
+                  <option value="dentera">{t.fontDentera}</option>
+                  <option value="cambria">{t.fontCambria}</option>
+                </select>
+              </label>
+            )}
+            {(selectedField.kind === "variable" || selectedField.kind === "signerName") && (
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
                   <span className="label">{t.fontSize}</span>
@@ -421,6 +447,21 @@ export function TemplateEditor({
                   </select>
                 </label>
               </div>
+            )}
+            {(selectedField.kind === "variable" || selectedField.kind === "signerName") && (
+              <label className="block">
+                <span className="label">{t.sampleText}</span>
+                <input
+                  value={samples[selectedField.id] ?? ""}
+                  onChange={(e) => {
+                    setSamples((s) => ({ ...s, [selectedField.id]: e.target.value }));
+                    setPreview(true);
+                  }}
+                  placeholder={sampleOf(selectedField)}
+                  className="input"
+                />
+                <span className="mt-1 block text-xs text-ink-500">{t.textFitHint}</span>
+              </label>
             )}
             <button
               type="button"
@@ -476,12 +517,25 @@ export function TemplateEditor({
                         preview && !graphic ? "" : "rounded border-2 border-dashed"
                       } ${isSelected ? "ring-2 ring-ink-900 ring-offset-1" : ""} cursor-move`}
                     >
-                      {preview && f.kind === "stamp" && stampUrl ? (
+                      {preview && (f.kind === "variable" || f.kind === "signerName") ? (
+                        <TextBox
+                          text={sampleOf(f)}
+                          boxW={f.w * (template.pages[page]?.w ?? 595)}
+                          boxH={f.h * (template.pages[page]?.h ?? 842)}
+                          fontSize={f.fontSize}
+                          align={f.align}
+                          bold={f.kind === "signerName"}
+                          font={f.font}
+                        />
+                      ) : preview && f.kind === "stamp" && stampUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={stampUrl} alt={t.stampTitle} className="pointer-events-none h-full w-full object-contain" />
                       ) : (
-                        <span className={graphic ? "text-[0.65rem] font-bold sm:text-xs" : preview ? "" : "font-bold"}>
-                          {preview && f.kind === "variable" ? `${t.sample} ${f.label}` : boxText(f)}
+                        <span
+                          className={graphic ? "text-[0.65rem] font-bold sm:text-xs" : "font-bold"}
+                          style={graphic ? undefined : { fontFamily: fontStack(f.font) }}
+                        >
+                          {boxText(f)}
                         </span>
                       )}
                       {isSelected && (

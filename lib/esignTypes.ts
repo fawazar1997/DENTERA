@@ -1,6 +1,9 @@
 // Shapes of the e-signature system (التوقيع الإلكتروني), shared by the
 // server and the browser. See lib/esign.ts for how they're stored.
 
+/** Fonts a text box can use: Dentera's official font (Almarai) or Cambria. */
+export type EsignFont = "dentera" | "cambria";
+
 /** A box on a template page, in 0–1 of the page's width/height (from the top-left). */
 export type EsignField = {
   id: string;
@@ -19,6 +22,8 @@ export type EsignField = {
   /** Text size in PDF points (variable / signerName). */
   fontSize?: number;
   align?: "start" | "center" | "end";
+  /** variable / signerName: the font (default: Dentera's). */
+  font?: EsignFont;
 };
 
 /** One step of a template's procedure, in signing order. */
