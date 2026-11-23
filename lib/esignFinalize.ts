@@ -1,6 +1,7 @@
 import { changeEsign, readEsign, type EsignPackage } from "./esign";
 import { buildEsignPdf } from "./esignPdf";
-import { createDriveFolder, downloadDriveFile, uploadDriveBytes } from "./googleDrive";
+import { createDriveFolder, uploadDriveBytes } from "./googleDrive";
+import { copyBaseBytes } from "./esignServe";
 import { deletePrivateFolder } from "./privateBlob";
 
 // When a copy's last signature is in: build its PDF and save it to Drive
@@ -41,7 +42,7 @@ export async function finalizeEsignDocument(packageId: string, documentId: strin
         return { next: { ...file, packages }, result: created };
       });
     }
-    const templateBytes = await downloadDriveFile(template.driveFileId);
+    const templateBytes = await copyBaseBytes(template, doc);
     const bytes = await buildEsignPdf({ template, doc, templateBytes, title: `${pkg.ref} — ${pkg.title} — ${doc.label}` });
     const saved = await uploadDriveBytes({
       folderId,

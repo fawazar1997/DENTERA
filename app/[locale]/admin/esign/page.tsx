@@ -7,7 +7,10 @@ import {
   CheckCircle2,
   Circle,
   CircleDot,
+  Copy,
   ExternalLink,
+  FilePlus2,
+  FileUp,
   Eye,
   FileText,
   FolderOpen,
@@ -23,7 +26,18 @@ import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { requireAdminPage } from "@/lib/adminSession";
 import { esignText, type EsignText } from "@/lib/esignText";
-import { STAMP_PATH, contactSignaturePath, readEsign, type EsignContact, type EsignDocument, type EsignPackage, type EsignTemplate } from "@/lib/esign";
+import {
+  STAMP_PATH,
+  contactSignaturePath,
+  isDocumentTemplate,
+  readEsign,
+  templateContentPath,
+  type EsignContact,
+  type EsignDocument,
+  type EsignPackage,
+  type EsignTemplate,
+} from "@/lib/esign";
+import { EMPTY_DOC, sanitizeDocContent } from "@/lib/esignDoc";
 import { driveHealth } from "@/lib/googleDrive";
 import { readPrivateFile } from "@/lib/privateBlob";
 import { whatsappHref } from "@/lib/phone";
@@ -41,13 +55,19 @@ import {
   deleteContactSignatureAction,
   setMessageTemplateAction,
   setPackageMessageAction,
+  createDocumentTemplateAction,
+  duplicateTemplateAction,
+  updateEsignContactAction,
+  uploadContactSignatureAction,
+  setLetterheadFooterAction,
 } from "@/lib/esignActions";
+import { DocumentEditor } from "@/components/admin/esign/DocumentEditor";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { LinkActions } from "@/components/admin/esign/LinkActions";
 import { TemplateUpload } from "@/components/admin/esign/TemplateUpload";
 import { TemplateEditor } from "@/components/admin/esign/TemplateEditor";
-import { STEP_COLORS, fillSignMessage } from "@/lib/esignTypes";
+import { DEFAULT_LETTERHEAD_FOOTER, STEP_COLORS, fillSignMessage, templateReady } from "@/lib/esignTypes";
 import { MessageEditor } from "@/components/admin/esign/MessageEditor";
 import { NewPackage } from "@/components/admin/esign/NewPackage";
 
@@ -55,12 +75,7 @@ export const dynamic = "force-dynamic";
 
 type Tab = "packages" | "templates" | "settings";
 
-function isReady(template: EsignTemplate): boolean {
-  return (
-    template.steps.length > 0 &&
-    template.steps.every((s) => template.fields.some((f) => f.kind === "signature" && f.stepId === s.id))
-  );
-}
+const isReady = templateReady;
 
 function formatTime(iso: string, locale: Locale): string {
   return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {
@@ -103,6 +118,9 @@ export default async function AdminEsignPage({
     if (searchParams.saved === "contact") return { ok: true, text: t.saved };
     if (searchParams.saved === "message") return { ok: true, text: t.messageSaved };
     if (searchParams.saved === "stamp") return { ok: true, text: t.stampSaved };
+    if (searchParams.saved === "signature") return { ok: true, text: t.sigSaved };
+    if (searchParams.saved === "footer") return { ok: true, text: t.footerSaved };
+    if (searchParams.error === "signature") return { ok: false, text: t.sigError };
     if (searchParams.error === "stamp") return { ok: false, text: t.stampError };
     if (searchParams.error === "folder") return { ok: false, text: ar ? "تعذّر الوصول إلى هذا المجلد. تأكد من الرابط ومن أن حساب Google المربوط يملك صلاحية عليه." : "Couldn't reach that folder. Check the link and that the connected Google account can edit it." };
     if (searchParams.error === "drive") return { ok: false, text: t.driveDown };
@@ -121,6 +139,17 @@ export default async function AdminEsignPage({
     }
   }
   const pkg = searchParams.package ? store.packages.find((p) => p.id === searchParams.package) : undefined;
+  const footer = store.letterheadFooter || DEFAULT_LETTERHEAD_FOOTER;
+  // A document template's content, for its editor.
+  let content = EMPTY_DOC;
+  if (template && isDocumentTemplate(template) && !searchParams.new) {
+    const bytes = await readPrivateFile(templateContentPath(template.id)).catch(() => null);
+    try {
+      content = (bytes && sanitizeDocContent(JSON.parse(Buffer.from(bytes).toString("utf-8")))) || EMPTY_DOC;
+    } catch {
+      content = EMPTY_DOC;
+    }
+  }
 
   return (
     <div className="container-x py-10">
@@ -150,8 +179,12 @@ export default async function AdminEsignPage({
         </p>
       )}
 
-      {template ? (
-        <TemplateEditor template={template} contacts={store.contacts} locale={locale} stampUrl={stampUrl} />
+      {template && !searchParams.new ? (
+        isDocumentTemplate(template) ? (
+          <DocumentEditor template={template} content={content} contacts={store.contacts} locale={locale} footer={footer} />
+        ) : (
+          <TemplateEditor template={template} contacts={store.contacts} locale={locale} stampUrl={stampUrl} />
+        )
       ) : searchParams.new ? (
         <NewPackage
           templates={store.templates.filter(isReady)}
@@ -159,6 +192,8 @@ export default async function AdminEsignPage({
           locale={locale}
           initialTemplateId={searchParams.template ?? searchParams.from}
           defaultMessage={store.messageTemplate}
+          footer={footer}
+          stampReady={Boolean(store.stampSavedAt)}
         />
       ) : pkg ? (
         <PackageView
@@ -192,6 +227,7 @@ export default async function AdminEsignPage({
             <TemplatesTab templates={store.templates} packages={store.packages} locale={locale} t={t} canUpload={Boolean(store.folders.templates) && health === "ok"} />
           )}
           {tab === "settings" && <SettingsTab
+              footer={store.letterheadFooter}
               folders={store.folders}
               contacts={store.contacts}
               message={store.messageTemplate}
@@ -478,13 +514,32 @@ function TemplatesTab({
 }) {
   return (
     <div className="mt-6 space-y-4">
-      <section className="card p-6">
-        <h2 className="font-bold text-ink-900">{t.uploadTemplate}</h2>
-        <p className="mt-1 text-sm text-ink-500">{t.templatesHint}</p>
-        <div className="mt-4">
-          <TemplateUpload locale={locale} disabled={!canUpload} />
-        </div>
-      </section>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="card border-2 border-primary-200 p-6">
+          <h2 className="flex flex-wrap items-center gap-2 font-bold text-ink-900">
+            <FilePlus2 className="h-5 w-5 text-primary-600" /> {t.newDocument}
+            <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs text-primary-800">{t.recommended}</span>
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">{t.newDocumentHint}</p>
+          <form action={createDocumentTemplateAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+            <input type="hidden" name="locale" value={locale} />
+            <label className="block flex-1">
+              <span className="label">{t.templateName}</span>
+              <input name="name" required maxLength={120} placeholder={t.documentNamePh} className="input" />
+            </label>
+            <SubmitButton label={t.createDocument} savedLabel={t.saved} />
+          </form>
+        </section>
+        <section className="card p-6">
+          <h2 className="flex items-center gap-2 font-bold text-ink-900">
+            <FileUp className="h-5 w-5 text-primary-600" /> {t.uploadPdfOption}
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">{t.uploadPdfHint}</p>
+          <div className="mt-4">
+            <TemplateUpload locale={locale} disabled={!canUpload} />
+          </div>
+        </section>
+      </div>
       {templates.length === 0 ? (
         <p className="card p-6 text-ink-500">{t.noTemplates}</p>
       ) : (
@@ -496,9 +551,16 @@ function TemplatesTab({
               <li key={tpl.id} className="card p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-bold text-ink-950">{tpl.name}</p>
+                    <p className="flex items-center gap-2 font-bold text-ink-950">
+                      <span className="truncate">{tpl.name}</span>
+                      <span className="flex-shrink-0 rounded bg-ink-100 px-1.5 py-0.5 text-[0.65rem] font-bold text-ink-600">
+                        {isDocumentTemplate(tpl) ? t.typeDocument : t.typePdf}
+                      </span>
+                    </p>
                     <p className="mt-1 text-xs text-ink-500">
-                      {tpl.pages.length} {t.pagesCount} · {tpl.steps.length} {t.stepsCount} · {tpl.fields.length} {t.boxesCount}
+                      {isDocumentTemplate(tpl)
+                        ? `${tpl.steps.length} ${t.stepsCount} · ${(tpl.variables ?? []).length} ${t.varsCount}`
+                        : `${tpl.pages.length} ${t.pagesCount} · ${tpl.steps.length} ${t.stepsCount} · ${tpl.fields.length} ${t.boxesCount}`}
                     </p>
                     {tpl.steps.length > 0 && (
                       <p className="mt-2 flex flex-wrap items-center gap-1 text-xs font-bold">
@@ -521,6 +583,13 @@ function TemplatesTab({
                       <Plus className="h-3.5 w-3.5" /> {t.newPackage}
                     </Link>
                   )}
+                  <form action={duplicateTemplateAction}>
+                    <input type="hidden" name="locale" value={locale} />
+                    <input type="hidden" name="id" value={tpl.id} />
+                    <button type="submit" className="inline-flex items-center gap-1.5 rounded-full bg-ink-50 px-3 py-1.5 text-xs font-bold text-ink-700 hover:bg-ink-100">
+                      <Copy className="h-3.5 w-3.5" /> {t.duplicate}
+                    </button>
+                  </form>
                   {!used && <DeleteButton action={deleteTemplateAction} id={tpl.id} locale={locale} label={t.deleteTemplate} confirmText={`${t.deleteTemplate}?`} />}
                 </div>
               </li>
@@ -533,6 +602,7 @@ function TemplatesTab({
 }
 
 function SettingsTab({
+  footer,
   folders,
   contacts,
   message,
@@ -541,6 +611,7 @@ function SettingsTab({
   locale,
   t,
 }: {
+  footer?: string;
   folders: { parent?: string; parentName?: string };
   contacts: EsignContact[];
   message?: string;
@@ -589,6 +660,18 @@ function SettingsTab({
 
       <section className="card p-6">
         <h2 className="flex items-center gap-2 font-bold text-ink-900">
+          <FileText className="h-5 w-5 text-primary-600" /> {t.footerTitle}
+        </h2>
+        <p className="mt-1 text-sm text-ink-500">{t.footerHint}</p>
+        <form action={setLetterheadFooterAction} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <input type="hidden" name="locale" value={locale} />
+          <input name="footer" defaultValue={footer || DEFAULT_LETTERHEAD_FOOTER} maxLength={200} aria-label={t.footerTitle} className="input flex-1" />
+          <SubmitButton label={t.saveContact} savedLabel={t.saved} />
+        </form>
+      </section>
+
+      <section className="card p-6">
+        <h2 className="flex items-center gap-2 font-bold text-ink-900">
           <Stamp className="h-5 w-5 text-primary-600" /> {t.stampTitle}
         </h2>
         <p className="mt-1 text-sm text-ink-500">{t.stampHint}</p>
@@ -627,30 +710,75 @@ function SettingsTab({
         ) : (
           <ul className="mt-3 divide-y divide-ink-100">
             {contacts.map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="text-sm">
-                  <span className="font-bold text-ink-900">{c.name}</span>
-                  {c.title && <span className="text-ink-500"> — {c.title}</span>}
-                  {c.phone && (
-                    <span className="text-ink-400" dir="ltr">
-                      {" "}
-                      {c.phone}
-                    </span>
-                  )}
-                </span>
-                <span className="flex flex-shrink-0 items-center gap-2">
-                  {c.signatureSavedAt && (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-primary-50 py-1 pe-1 ps-3 text-xs font-bold text-primary-800">
+              <li key={c.id} className="py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm">
+                    <span className="font-bold text-ink-900">{c.name}</span>
+                    {c.title && <span className="text-ink-500"> — {c.title}</span>}
+                    {c.phone && (
+                      <>
+                        <span className="text-ink-300"> · </span>
+                        <span className="text-ink-400" dir="ltr">
+                          {c.phone}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <DeleteButton action={deleteEsignContactAction} id={c.id} locale={locale} label="" confirmText={`${c.name}?`} />
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  {c.signatureSavedAt ? (
+                    <span className="inline-flex items-center gap-2 rounded-xl bg-primary-50 py-1 pe-1 ps-2 text-xs font-bold text-primary-800">
                       {signatureUrls[c.id] && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={signatureUrls[c.id]} alt={t.savedSignature} className="h-6 w-auto max-w-[5rem] object-contain" />
+                        <img
+                          src={signatureUrls[c.id]}
+                          alt={t.savedSignature}
+                          className="h-10 w-auto max-w-[8rem] rounded bg-[repeating-conic-gradient(#f1f5f9_0_25%,#fff_0_50%)] bg-[length:10px_10px] object-contain px-1"
+                        />
                       )}
-                      {t.savedSignature}
+                      <span>
+                        {t.savedSignature}
+                        <span className="block font-normal text-primary-700">{c.signatureSource === "panel" ? t.sigByPanel : t.sigBySelf}</span>
+                      </span>
                       <DeleteButton action={deleteContactSignatureAction} id={c.id} locale={locale} label="" confirmText={`${t.deleteSavedSignature}: ${c.name}?`} />
                     </span>
-                  )}
-                  <DeleteButton action={deleteEsignContactAction} id={c.id} locale={locale} label="" confirmText={`${c.name}?`} />
-                </span>
+                  ) : null}
+                  <details className="group">
+                    <summary className="cursor-pointer list-none rounded-full bg-ink-50 px-3 py-1.5 text-xs font-bold text-ink-700 hover:bg-ink-100">
+                      {c.signatureSavedAt ? t.sigReplace : t.sigUpload}
+                    </summary>
+                    <form action={uploadContactSignatureAction} className="mt-2 space-y-2 rounded-xl border border-ink-100 p-3">
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="id" value={c.id} />
+                      <p className="text-xs text-ink-500">{t.sigUploadHint}</p>
+                      <input
+                        type="file"
+                        name="signature"
+                        required
+                        accept="image/png,image/jpeg,image/webp"
+                        aria-label={`${t.sigUpload}: ${c.name}`}
+                        className="max-w-full text-sm file:me-3 file:rounded-full file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-primary-700"
+                      />
+                      <SubmitButton label={t.sigUpload} savedLabel={t.saved} />
+                    </form>
+                  </details>
+                  <details>
+                    <summary className="cursor-pointer list-none rounded-full bg-ink-50 px-3 py-1.5 text-xs font-bold text-ink-700 hover:bg-ink-100">
+                      {t.editContact}
+                    </summary>
+                    <form action={updateEsignContactAction} className="mt-2 grid gap-2 rounded-xl border border-ink-100 p-3 sm:grid-cols-3">
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="id" value={c.id} />
+                      <input name="name" required defaultValue={c.name} aria-label={t.contactName} className="input" />
+                      <input name="title" defaultValue={c.title ?? ""} placeholder={t.contactTitle} aria-label={t.contactTitle} className="input" />
+                      <input name="phone" defaultValue={c.phone ?? ""} placeholder={t.contactPhone} aria-label={t.contactPhone} dir="ltr" inputMode="tel" className="input" />
+                      <div className="sm:col-span-3">
+                        <SubmitButton label={t.saveContact} savedLabel={t.saved} />
+                      </div>
+                    </form>
+                  </details>
+                </div>
               </li>
             ))}
           </ul>
@@ -660,6 +788,15 @@ function SettingsTab({
           <input name="name" required placeholder={t.contactName} aria-label={t.contactName} className="input" />
           <input name="title" placeholder={t.contactTitle} aria-label={t.contactTitle} className="input" />
           <input name="phone" placeholder={t.contactPhone} aria-label={t.contactPhone} dir="ltr" inputMode="tel" className="input" />
+          <label className="block sm:col-span-3">
+            <span className="label">{t.optionalSignature}</span>
+            <input
+              type="file"
+              name="signature"
+              accept="image/png,image/jpeg,image/webp"
+              className="max-w-full text-sm file:me-3 file:rounded-full file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-primary-700"
+            />
+          </label>
           <div className="sm:col-span-3">
             <SubmitButton label={t.addContact} savedLabel={t.saved} />
           </div>

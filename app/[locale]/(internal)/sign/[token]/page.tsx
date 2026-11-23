@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowDown, CheckCircle2, Circle, CircleDot, Clock, Download, FileSignature, XCircle } from "lucide-react";
 import { isLocale, defaultLocale, type Locale } from "@/lib/i18n";
-import { contactSignaturePath, findSigner } from "@/lib/esign";
+import { contactSignaturePath, copyFields, findSigner } from "@/lib/esign";
 import { readPrivateFile } from "@/lib/privateBlob";
 import { esignText } from "@/lib/esignText";
 import { SystemsHeader } from "@/components/SystemsHeader";
@@ -113,7 +113,7 @@ export default async function SignPage({ params }: { params: { locale: string; t
               token={params.token}
               locale={locale}
               canSign={yourTurn}
-              boxes={template.fields
+              boxes={copyFields(template, found.doc)
                 .filter((f) => f.kind === "signature" && f.stepId === signer.stepId)
                 .map((f) => ({ page: f.page, x: f.x, y: f.y, w: f.w, h: f.h }))}
               defaultName={signer.name}

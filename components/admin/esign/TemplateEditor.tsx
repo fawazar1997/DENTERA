@@ -1,19 +1,16 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   Check,
   Eye,
   EyeOff,
   Loader2,
   PenLine,
-  Plus,
   Trash2,
   Type,
   Stamp,
@@ -22,7 +19,10 @@ import {
 import { esignText } from "@/lib/esignText";
 import { localePath, type Locale } from "@/lib/i18n";
 import { saveTemplateAction } from "@/lib/esignActions";
-import { STEP_COLORS, type EsignContact, type EsignField, type EsignStep, type EsignTemplate } from "@/lib/esignTypes";
+import { STEP_COLORS, templateVariables, type EsignContact, type EsignField, type EsignStep, type EsignTemplate, type EsignVariable } from "@/lib/esignTypes";
+import { AUTO_VARS, autoVarName } from "@/lib/esignValues";
+import { StepsEditor } from "./StepsEditor";
+import { VariablesPanel } from "./VariablesPanel";
 import { PdfPages, boxStyle } from "@/components/esign/PdfPages";
 import { TextBox } from "@/components/esign/TextBox";
 import { fontStack } from "@/components/esign/renderTextPng";
@@ -65,6 +65,7 @@ export function TemplateEditor({
   const [name, setName] = useState(template.name);
   const [steps, setSteps] = useState<EsignStep[]>(template.steps);
   const [fields, setFields] = useState<EsignField[]>(template.fields);
+  const [variables, setVariables] = useState<EsignVariable[]>(() => templateVariables(template));
   const [selected, setSelected] = useState<string | null>(null);
   const [placing, setPlacing] = useState<EsignField["kind"] | null>(null);
   const [placingStep, setPlacingStep] = useState<string>(template.steps[0]?.id ?? "");
@@ -82,7 +83,17 @@ export function TemplateEditor({
     [steps]
   );
   const selectedField = fields.find((f) => f.id === selected) ?? null;
-  const labels = useMemo(() => [...new Set(fields.filter((f) => f.kind === "variable" && f.label).map((f) => f.label!))], [fields]);
+  const labels = useMemo(() => [...new Set(fields.filter((f) => f.kind === "variable" && !f.auto && f.label).map((f) => f.label!))], [fields]);
+  const usage = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const f of fields) if (f.kind === "variable" && !f.auto && f.label) out[f.label] = (out[f.label] ?? 0) + 1;
+    return out;
+  }, [fields]);
+  // Every label a box uses has a definition (type, default…).
+  useEffect(() => {
+    const missing = labels.filter((l) => !variables.some((v) => v.name === l));
+    if (missing.length) setVariables((list) => [...list, ...missing.map((name) => ({ name, type: "text" as const }))]);
+  }, [labels, variables]);
 
   function touch() {
     setDirty(true);
@@ -94,34 +105,14 @@ export function TemplateEditor({
     touch();
   }
 
-  function updateStep(id: string, patch: Partial<EsignStep>) {
-    setSteps((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-    touch();
-  }
-
-  function moveStep(index: number, by: number) {
-    setSteps((list) => {
-      const next = [...list];
-      const [step] = next.splice(index, 1);
-      next.splice(index + by, 0, step);
-      return next;
-    });
-    touch();
-  }
-
-  function addStep() {
-    const step: EsignStep = { id: newId(), role: "", defaultMode: steps.length === 0 ? "perCopy" : "same" };
-    setSteps((list) => [...list, step]);
-    if (!placingStep) setPlacingStep(step.id);
-    touch();
-  }
-
   function removeStep(id: string) {
-    setSteps((list) => list.filter((s) => s.id !== id));
     setFields((list) => list.filter((f) => f.stepId !== id));
     if (placingStep === id) setPlacingStep(steps.find((s) => s.id !== id)?.id ?? "");
-    touch();
   }
+
+  useEffect(() => {
+    if (!steps.some((s) => s.id === placingStep) && steps[0]) setPlacingStep(steps[0].id);
+  }, [steps, placingStep]);
 
   function place(page: number, e: React.MouseEvent<HTMLDivElement>) {
     if (!placing) {
@@ -193,7 +184,7 @@ export function TemplateEditor({
       return;
     }
     setSaving(true);
-    const result = await saveTemplateAction({ id: template.id, name, steps, fields }).catch(() => ({ ok: false }));
+    const result = await saveTemplateAction({ id: template.id, name, steps, fields, variables: variables.filter((v) => usage[v.name]) }).catch(() => ({ ok: false }));
     setSaving(false);
     if (!result.ok) {
       setError(t.failed);
@@ -211,6 +202,7 @@ export function TemplateEditor({
   function sampleOf(f: EsignField): string {
     const own = samples[f.id]?.trim();
     if (own) return own;
+    if (f.auto) return f.auto === "today" ? "23-11-2026" : f.auto === "ref" ? "ES-2026-0001" : name;
     return f.kind === "signerName" ? roleOf(f.stepId) : `${t.sample} ${f.label ?? ""}`;
   }
 
@@ -218,7 +210,8 @@ export function TemplateEditor({
     if (f.kind === "signature") return `${t.signatureOf}: ${roleOf(f.stepId)}`;
     if (f.kind === "stamp") return `${t.stampOf}: ${roleOf(f.stepId)}`;
     if (f.kind === "signerName") return preview ? roleOf(f.stepId) : `${t.nameOf}: ${roleOf(f.stepId)}`;
-    return preview ? `${f.label}` : f.label;
+    if (f.auto) return autoVarName(f.auto, ar ? "ar" : "en");
+    return f.label;
   }
 
   return (
@@ -248,72 +241,14 @@ export function TemplateEditor({
           {error && <p role="alert" className="text-sm font-bold text-accent-800">{error}</p>}
         </section>
 
-        <section className="card p-4">
-          <h2 className="font-bold text-ink-900">{t.procedure}</h2>
-          <p className="mt-1 text-xs text-ink-500">{t.procedureHint}</p>
-          <ol className="mt-3 space-y-3">
-            {steps.map((step, i) => (
-              <li key={step.id} className="rounded-xl border border-ink-100 p-3" style={{ borderInlineStartWidth: 4, borderInlineStartColor: stepColor(step.id) }}>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: stepColor(step.id) }}>
-                    {i + 1}
-                  </span>
-                  <input
-                    value={step.role}
-                    onChange={(e) => updateStep(step.id, { role: e.target.value })}
-                    placeholder={t.stepRole}
-                    aria-label={t.stepRole}
-                    className="input py-1.5"
-                  />
-                </div>
-                <div className="mt-2 grid gap-2">
-                  <select
-                    value={step.defaultMode ?? "same"}
-                    onChange={(e) => updateStep(step.id, { defaultMode: e.target.value as EsignStep["defaultMode"] })}
-                    aria-label={t.stepDefault}
-                    className="input py-1.5 text-sm"
-                  >
-                    <option value="perCopy">{t.modePerCopy}</option>
-                    <option value="same">{t.modeSame}</option>
-                  </select>
-                  {(step.defaultMode ?? "same") === "same" && contacts.length > 0 && (
-                    <select
-                      value={step.defaultContactId ?? ""}
-                      onChange={(e) => updateStep(step.id, { defaultContactId: e.target.value || undefined })}
-                      aria-label={t.defaultContact}
-                      className="input py-1.5 text-sm"
-                    >
-                      <option value="">{t.defaultContact}: {t.none}</option>
-                      {contacts.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                          {c.title ? ` — ${c.title}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <button type="button" disabled={i === 0} onClick={() => moveStep(i, -1)} className="rounded-lg p-1.5 text-ink-500 hover:bg-ink-50 disabled:opacity-30" aria-label="↑">
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                  <button type="button" disabled={i === steps.length - 1} onClick={() => moveStep(i, 1)} className="rounded-lg p-1.5 text-ink-500 hover:bg-ink-50 disabled:opacity-30" aria-label="↓">
-                    <ArrowDown className="h-4 w-4" />
-                  </button>
-                  <span className="ms-auto text-xs text-ink-400">
-                    {fields.filter((f) => f.stepId === step.id && f.kind === "signature").length} {t.signatureOf}
-                  </span>
-                  <button type="button" onClick={() => removeStep(step.id)} className="rounded-lg p-1.5 text-accent-800 hover:bg-accent-50" aria-label={t.deleteBox}>
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <button type="button" onClick={addStep} className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-primary-700">
-            <Plus className="h-4 w-4" /> {t.addStep}
-          </button>
-        </section>
+        <StepsEditor
+          steps={steps}
+          contacts={contacts}
+          t={t}
+          onChange={(next) => (setSteps(next), touch())}
+          onRemove={removeStep}
+          countOf={(id) => `${fields.filter((f) => f.stepId === id && f.kind === "signature").length} ${t.signatureOf}`}
+        />
 
         <section className="card p-4">
           <h2 className="font-bold text-ink-900">{t.boxes}</h2>
@@ -359,37 +294,65 @@ export function TemplateEditor({
           )}
         </section>
 
+        {variables.some((v) => usage[v.name]) && (
+          <VariablesPanel
+            variables={variables.filter((v) => usage[v.name])}
+            usage={usage}
+            t={t}
+            lang={ar ? "ar" : "en"}
+            canAdd={false}
+            onChange={(next) => {
+              setVariables((list) => [...next, ...list.filter((v) => !usage[v.name])]);
+              touch();
+            }}
+            onRename={(from, to) => {
+              setFields((list) => list.map((f) => (f.kind === "variable" && !f.auto && f.label === from ? { ...f, label: to } : f)));
+              setVariables((list) => list.map((v) => (v.name === from ? { ...v, name: to } : v)));
+              touch();
+            }}
+          />
+        )}
+
         {selectedField && (
           <section className="card space-y-3 p-4">
             <h2 className="font-bold text-ink-900">{t.boxSettings}</h2>
             {selectedField.kind === "variable" ? (
               <>
                 <label className="block">
-                  <span className="label">{t.varName}</span>
-                  <input
-                    value={selectedField.label ?? ""}
-                    list="esign-labels"
-                    onChange={(e) => updateField(selectedField.id, { label: e.target.value })}
-                    className="input"
-                  />
-                  <datalist id="esign-labels">
-                    {labels.map((l) => (
-                      <option key={l} value={l} />
-                    ))}
-                  </datalist>
-                </label>
-                <label className="block">
-                  <span className="label">{t.varType}</span>
+                  <span className="label">{t.insertVariable}</span>
                   <select
-                    value={selectedField.varType ?? "text"}
-                    onChange={(e) => updateField(selectedField.id, { varType: e.target.value as EsignField["varType"] })}
+                    value={selectedField.auto ?? ""}
+                    onChange={(e) => {
+                      const auto = (e.target.value || undefined) as EsignField["auto"];
+                      updateField(selectedField.id, auto ? { auto, label: autoVarName(auto) } : { auto: undefined, label: labels[0] ?? `${t.typeText} 1` });
+                    }}
                     className="input"
                   >
-                    <option value="text">{t.typeText}</option>
-                    <option value="number">{t.typeNumber}</option>
-                    <option value="date">{t.typeDate}</option>
+                    <option value="">{t.templateVars}</option>
+                    {AUTO_VARS.map((a) => (
+                      <option key={a.key} value={a.key}>
+                        {t.autoVars}: {a[ar ? "ar" : "en"]}
+                      </option>
+                    ))}
                   </select>
                 </label>
+                {!selectedField.auto && (
+                  <label className="block">
+                    <span className="label">{t.varName}</span>
+                    <input
+                      value={selectedField.label ?? ""}
+                      list="esign-labels"
+                      onChange={(e) => updateField(selectedField.id, { label: e.target.value })}
+                      className="input"
+                    />
+                    <datalist id="esign-labels">
+                      {labels.map((l) => (
+                        <option key={l} value={l} />
+                      ))}
+                    </datalist>
+                    <span className="mt-1 block text-xs text-ink-500">{t.variablesHint.split(".")[0]}.</span>
+                  </label>
+                )}
               </>
             ) : (
               <label className="block">

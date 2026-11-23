@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Eye, FileUp, Loader2, Plus, Send, Trash2, Wand2 } from "lucide-react";
@@ -11,19 +11,43 @@ import { foldArabic } from "@/lib/arabicSearch";
 import {
   activatePackageAction,
   createPackageAction,
+  finishCopyPagesAction,
   uploadCopyImagesAction,
+  uploadCopyPageAction,
   type NewPackageInput,
 } from "@/lib/esignActions";
 import { MessageEditor } from "./MessageEditor";
-import { DEFAULT_SIGN_MESSAGE, STEP_COLORS, textFieldsOf, variableLabels, type EsignContact, type EsignField, type EsignTemplate } from "@/lib/esignTypes";
+import {
+  DEFAULT_DOC_SETTINGS,
+  DEFAULT_SIGN_MESSAGE,
+  STEP_COLORS,
+  isDocumentTemplate,
+  templateVariables,
+  textFieldsOf,
+  type EsignContact,
+  type EsignField,
+  type EsignTemplate,
+  type EsignVariable,
+} from "@/lib/esignTypes";
+import { sanitizeDocContent, type DocNode } from "@/lib/esignDoc";
+import { autoVarName, detectOrder, displayValue, normalizeValue, riyadhToday } from "@/lib/esignValues";
 import { PdfPages, boxStyle } from "@/components/esign/PdfPages";
-import { displayValue, renderTextPng } from "@/components/esign/renderTextPng";
+import { renderTextPng } from "@/components/esign/renderTextPng";
 import { TextBox } from "@/components/esign/TextBox";
+import { DocPages } from "@/components/esign/document/DocPages";
+import { documentBodyHtml, langOf, pageHtml, type DocStep } from "@/components/esign/document/renderDocument";
+import { LOGO_PATH, PAGE_COUNT_LIMIT, measureDocument, renderPagePng, toDataUrl } from "@/components/esign/document/layout";
 
 type StepChoice = { stepId: string; mode: "same" | "perCopy"; contactId: string; name: string; phone: string };
-type Row = { label: string; signers: Record<string, { name: string; phone: string }>; values: Record<string, string> };
+type Signer = { name: string; phone: string; contactId?: string };
+type Row = { label: string; signers: Record<string, Signer>; values: Record<string, string> };
 
-const emptyRow = (): Row => ({ label: "", signers: {}, values: {} });
+/** A new copy, with the template's default values filled in. */
+const emptyRow = (vars: EsignVariable[] = []): Row => ({
+  label: "",
+  signers: {},
+  values: Object.fromEntries(vars.filter((v) => !v.fixed && v.default).map((v) => [v.name, v.default!])),
+});
 
 export function NewPackage({
   templates,
@@ -31,6 +55,7 @@ export function NewPackage({
   locale,
   initialTemplateId,
   defaultMessage,
+  footer,
 }: {
   templates: EsignTemplate[];
   contacts: EsignContact[];
@@ -38,6 +63,9 @@ export function NewPackage({
   initialTemplateId?: string;
   /** The saved default message (Settings). */
   defaultMessage?: string;
+  /** The letterhead footer line (document templates). */
+  footer: string;
+  stampReady?: boolean;
 }) {
   const t = esignText(locale);
   const ar = locale === "ar";
@@ -47,7 +75,7 @@ export function NewPackage({
   const template = templates.find((x) => x.id === templateId);
   const [title, setTitle] = useState("");
   const [choices, setChoices] = useState<StepChoice[]>(() => choicesFor(template));
-  const [rows, setRows] = useState<Row[]>([emptyRow()]);
+  const [rows, setRows] = useState<Row[]>(() => [emptyRow(template ? templateVariables(template) : [])]);
   const [previewRow, setPreviewRow] = useState(0);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -70,8 +98,41 @@ export function NewPackage({
     });
   }
 
-  const labels = useMemo(() => (template ? variableLabels(template) : []), [template]);
-  const varType = (label: string) => template?.fields.find((f) => f.kind === "variable" && f.label === label)?.varType ?? "text";
+  const isDoc = Boolean(template && isDocumentTemplate(template));
+  const variables = useMemo(() => (template ? templateVariables(template) : []), [template]);
+  const fixedVars = variables.filter((v) => v.fixed);
+  const labels = useMemo(() => variables.filter((v) => !v.fixed).map((v) => v.name), [variables]);
+  const variableOf = (name: string) => variables.find((v) => v.name === name);
+  const docSettings = { ...DEFAULT_DOC_SETTINGS, ...template?.settings };
+  const lang = isDoc ? langOf(docSettings) : "ar";
+  const contactByName = (name: string) => contacts.find((c) => c.name === name.trim());
+
+  // A document template's content (loaded when it is chosen).
+  const [content, setContent] = useState<DocNode | null>(null);
+  const [contentError, setContentError] = useState(false);
+  useEffect(() => {
+    setContent(null);
+    setContentError(false);
+    if (!template || !isDocumentTemplate(template)) return;
+    let alive = true;
+    fetch(`/api/admin/esign/template/${template.id}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((json) => {
+        const doc = sanitizeDocContent(json);
+        if (!alive) return;
+        if (doc) setContent(doc);
+        else setContentError(true);
+      })
+      .catch(() => alive && setContentError(true));
+    return () => {
+      alive = false;
+    };
+  }, [template]);
+
+  /** A value's check: its stored form, and whether it could be read (dates, numbers). */
+  function checkValue(name: string, raw: string) {
+    return normalizeValue(raw, variableOf(name)?.type ?? "text");
+  }
   const perCopySteps = choices.filter((c) => c.mode === "perCopy");
   const roleOf = (stepId: string) => template?.steps.find((s) => s.id === stepId)?.role ?? "";
   const colorOf = (stepId?: string) =>
@@ -85,15 +146,17 @@ export function NewPackage({
     setRows((list) => list.map((r, i) => (i === index ? change(r) : r)));
   }
 
-  function signerOf(row: Row, stepId: string) {
+  function signerOf(row: Row, stepId: string): Signer {
     const choice = choices.find((c) => c.stepId === stepId);
     if (!choice) return { name: "", phone: "" };
     return choice.mode === "same" ? { name: choice.name, phone: choice.phone } : row.signers[stepId] ?? { name: "", phone: "" };
   }
 
   function rowComplete(row: Row) {
-    return labels.every((l) => row.values[l]?.trim()) && choices.every((c) => signerOf(row, c.stepId).name.trim());
+    return labels.every((l) => row.values[l]?.trim() && checkValue(l, row.values[l]).ok) && choices.every((c) => signerOf(row, c.stepId).name.trim());
   }
+
+  const invalidCount = rows.reduce((n, r) => n + labels.filter((l) => r.values[l]?.trim() && !checkValue(l, r.values[l]).ok).length, 0);
 
   async function importSheet(file: File) {
     setError("");
@@ -107,14 +170,23 @@ export function NewPackage({
       const nameCol = col(["الاسم", "اسم", "name", first ? roleOf(first.stepId) : "-"]);
       const phoneCol = col(["الجوال", "جوال", "رقم الجوال", "mobile", "phone"]);
       const varCols = labels.map((l) => [l, col([l])] as const);
-      const imported: Row[] = body
-        .filter((cells) => cells.some((c) => String(c ?? "").trim()))
-        .map((cells) => {
-          const row = emptyRow();
-          if (first && nameCol >= 0) row.signers[first.stepId] = { name: String(cells[nameCol] ?? "").trim(), phone: phoneCol >= 0 ? String(cells[phoneCol] ?? "").trim() : "" };
-          for (const [label, c] of varCols) if (c >= 0) row.values[label] = String(cells[c] ?? "").trim();
-          return row;
-        });
+      const lines = body.filter((cells) => cells.some((c) => String(c ?? "").trim()));
+      // Dates: day/month or month/day, as the column's own dates show.
+      const orders = Object.fromEntries(varCols.map(([l, c]) => [l, detectOrder(c >= 0 ? lines.map((cells) => String(cells[c] ?? "")) : [])]));
+      const imported: Row[] = lines.map((cells) => {
+        const row = emptyRow(variables);
+        if (first && nameCol >= 0) {
+          const name = String(cells[nameCol] ?? "").trim();
+          row.signers[first.stepId] = { name, phone: phoneCol >= 0 ? String(cells[phoneCol] ?? "").trim() : "", contactId: contactByName(name)?.id };
+        }
+        for (const [label, c] of varCols) {
+          const raw = c >= 0 ? String(cells[c] ?? "").trim() : "";
+          if (!raw) continue;
+          const normal = normalizeValue(raw, variableOf(label)?.type ?? "text", orders[label]);
+          row.values[label] = normal.value;
+        }
+        return row;
+      });
       if (!imported.length) throw new Error();
       setRows((list) => [...list.filter((r) => rowHasData(r)), ...imported]);
       setNotice(`${t.imported} ${imported.length} ${t.rows}`);
@@ -139,18 +211,54 @@ export function NewPackage({
         title,
         message,
         steps: choices.map((c) => ({ stepId: c.stepId, mode: c.mode, name: c.name, phone: c.phone, contactId: c.contactId || undefined })),
-        copies: rows.map((r) => ({ label: r.label, signers: r.signers, values: r.values })),
+        copies: rows.map((r) => ({ label: r.label, signers: r.signers, values: rowValues(r) })),
       };
       const created = await createPackageAction(input);
       if (!created.ok) throw new Error(created.error === "drive" ? t.driveDown : created.error === "folder" ? t.folderMissing : t.incomplete);
-      const textFields = textFieldsOf(template);
-      for (const [i, docId] of created.documents.entries()) {
-        setBusy(`${t.preparingImages} ${i + 1} / ${created.documents.length}`);
-        const row = rows[i];
-        const images: Record<string, string> = {};
-        for (const field of textFields) images[field.id] = await fieldImage(field, row);
-        const uploaded = await uploadCopyImagesAction({ packageId: created.id, documentId: docId, images });
-        if (!uploaded.ok) throw new Error(t.failed);
+      const auto = { today: riyadhToday(new Date(created.createdAt)), ref: created.ref, title: title.trim() };
+      if (isDoc) {
+        if (!content) throw new Error(t.loadFailed);
+        let logo: string;
+        try {
+          logo = await toDataUrl(LOGO_PATH);
+        } catch {
+          throw new Error(t.renderFailed);
+        }
+        for (const [i, docId] of created.documents.entries()) {
+          setBusy(`${t.preparingPages} ${i + 1} / ${created.documents.length}`);
+          const body = documentBodyHtml(content, { mode: "final", settings: docSettings, variables, values: rowValues(rows[i]), auto, steps: docSteps(rows[i]) });
+          const layout = await measureDocument(body, docSettings);
+          if (layout.pages.length > PAGE_COUNT_LIMIT) throw new Error(t.tooManyPages);
+          for (const [p, slice] of layout.pages.entries()) {
+            let png: Blob;
+            try {
+              png = await renderPagePng(
+                pageHtml({ body, slice, index: p, count: layout.pages.length, settings: docSettings, footer, logoUrl: logo, pageLabel: { page: t.page, of: t.pageOf } })
+              );
+            } catch {
+              throw new Error(t.renderFailed);
+            }
+            const form = new FormData();
+            form.set("packageId", created.id);
+            form.set("documentId", docId);
+            form.set("index", String(p));
+            form.set("page", png, `page-${p}.png`);
+            const sent = await uploadCopyPageAction(form);
+            if (!sent.ok) throw new Error(t.failed);
+          }
+          const finished = await finishCopyPagesAction({ packageId: created.id, documentId: docId, pageCount: layout.pages.length, fields: layout.fields as EsignField[] });
+          if (!finished.ok) throw new Error(t.failed);
+        }
+      } else {
+        const textFields = textFieldsOf(template);
+        for (const [i, docId] of created.documents.entries()) {
+          setBusy(`${t.preparingImages} ${i + 1} / ${created.documents.length}`);
+          const row = rows[i];
+          const images: Record<string, string> = {};
+          for (const field of textFields) images[field.id] = await fieldImage(field, row, auto);
+          const uploaded = await uploadCopyImagesAction({ packageId: created.id, documentId: docId, images });
+          if (!uploaded.ok) throw new Error(t.failed);
+        }
       }
       const activated = await activatePackageAction({ packageId: created.id });
       if (!activated.ok) throw new Error(t.failed);
@@ -161,15 +269,36 @@ export function NewPackage({
     }
   }
 
-  function fieldText(field: EsignField, row: Row): string {
-    if (field.kind === "signerName") return signerOf(row, field.stepId ?? "").name.trim();
-    return displayValue(row.values[field.label ?? ""] ?? "", field.varType);
+  /** A copy's values in their stored form (fixed ones from the template). */
+  function rowValues(row: Row): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const v of variables) {
+      const raw = v.fixed ? v.default ?? "" : row.values[v.name]?.trim() || v.default || "";
+      out[v.name] = normalizeValue(raw, v.type).value;
+    }
+    return out;
   }
 
-  function fieldImage(field: EsignField, row: Row): Promise<string> {
+  /** The procedure with this copy's signers (document templates). */
+  function docSteps(row: Row): DocStep[] {
+    return (template?.steps ?? []).map((s, i) => ({ id: s.id, role: s.role, color: STEP_COLORS[i % STEP_COLORS.length], signer: signerOf(row, s.id).name.trim() }));
+  }
+
+  function fieldText(field: EsignField, row: Row, auto?: { today?: string; ref?: string; title?: string }): string {
+    if (field.kind === "signerName") return signerOf(row, field.stepId ?? "").name.trim();
+    if (field.auto) {
+      const value = field.auto === "today" ? auto?.today ?? riyadhToday() : field.auto === "title" ? auto?.title ?? title.trim() : auto?.ref;
+      return value || `[${autoVarName(field.auto)}]`;
+    }
+    const v = variableOf(field.label ?? "");
+    const raw = v?.fixed ? v.default ?? "" : row.values[field.label ?? ""]?.trim() || v?.default || "";
+    return displayValue(normalizeValue(raw, v?.type ?? field.varType ?? "text").value, v ?? field.varType, "ar");
+  }
+
+  function fieldImage(field: EsignField, row: Row, auto: { today: string; ref: string; title: string }): Promise<string> {
     const page = template!.pages[field.page];
     return renderTextPng({
-      text: fieldText(field, row),
+      text: fieldText(field, row, auto),
       boxW: field.w * page.w,
       boxH: field.h * page.h,
       fontSize: field.fontSize,
@@ -200,7 +329,7 @@ export function NewPackage({
               const next = templates.find((x) => x.id === e.target.value);
               setTemplateId(e.target.value);
               setChoices(choicesFor(next));
-              setRows([emptyRow()]);
+              setRows([emptyRow(next ? templateVariables(next) : [])]);
               setPreviewRow(0);
             }}
             className="input"
@@ -353,23 +482,42 @@ export function NewPackage({
                     {perCopySteps.map((c) => (
                       <PerCopyCells
                         key={c.stepId}
+                        contactLabel={t.contactLinked}
+                        linked={Boolean(row.signers[c.stepId]?.contactId)}
                         value={row.signers[c.stepId] ?? { name: "", phone: "" }}
                         labels={{ name: `${roleOf(c.stepId)} ${i + 1} — ${t.signerName}`, phone: `${roleOf(c.stepId)} ${i + 1} — ${t.signerPhone}` }}
-                        onChange={(v) => setRow(i, (r) => ({ ...r, signers: { ...r.signers, [c.stepId]: v } }))}
+                        onChange={(v) => {
+                          const contact = contactByName(v.name);
+                          const signer = { ...v, contactId: contact?.id, phone: contact && !v.phone ? contact.phone ?? "" : v.phone };
+                          setRow(i, (r) => ({ ...r, signers: { ...r.signers, [c.stepId]: signer } }));
+                        }}
                       />
                     ))}
                     {labels.map((label) => {
-                      const type = varType(label);
+                      const v = variableOf(label);
+                      const type = v?.type ?? "text";
+                      const value = row.values[label] ?? "";
+                      const check = checkValue(label, value);
+                      const shown = value.trim() && check.ok && type !== "text" ? displayValue(check.value, v, lang) : "";
                       return (
-                        <td key={label} className="px-1 py-1.5">
+                        <td key={label} className="px-1 py-1.5 align-top">
                           <input
-                            value={row.values[label] ?? ""}
+                            value={value}
                             onChange={(e) => setRow(i, (r) => ({ ...r, values: { ...r.values, [label]: e.target.value } }))}
-                            type={type === "date" ? "date" : "text"}
-                            inputMode={type === "number" ? "decimal" : undefined}
+                            onBlur={() => {
+                              if (value.trim() && check.ok && check.value !== value) setRow(i, (r) => ({ ...r, values: { ...r.values, [label]: check.value } }));
+                            }}
+                            placeholder={type === "date" ? t.dateHint : undefined}
+                            inputMode={type === "number" || type === "amount" ? "decimal" : undefined}
+                            dir={type === "text" ? undefined : "ltr"}
                             aria-label={`${label} ${i + 1}`}
-                            className={`input min-w-[8rem] px-2 py-1.5 ${row.values[label]?.trim() ? "" : "border-accent-300"}`}
+                            aria-invalid={!check.ok}
+                            title={check.ok ? shown || undefined : t.invalidValue}
+                            className={`input min-w-[8rem] px-2 py-1.5 ${
+                              !check.ok ? "border-accent-500 bg-accent-50" : value.trim() ? "" : "border-accent-300"
+                            }`}
                           />
+                          {type === "amount" && shown && <span className="mt-0.5 block max-w-[12rem] truncate text-[0.7rem] text-ink-500">{shown}</span>}
                         </td>
                       );
                     })}
@@ -406,7 +554,18 @@ export function NewPackage({
               </tbody>
             </table>
           </div>
-          <button type="button" onClick={() => setRows((list) => [...list, emptyRow()])} className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-primary-700">
+          {invalidCount > 0 && (
+            <p role="alert" className="mt-3 rounded-lg bg-accent-50 px-3 py-2 text-sm font-bold text-accent-800">
+              {t.invalidCells}
+            </p>
+          )}
+          {fixedVars.length > 0 && (
+            <p className="mt-3 text-xs text-ink-500">
+              <span className="font-bold">{t.fixedNote}:</span>{" "}
+              {fixedVars.map((v) => `${v.name}: ${displayValue(v.default ?? "", v, lang)}`).join(" · ")}
+            </p>
+          )}
+          <button type="button" onClick={() => setRows((list) => [...list, emptyRow(variables)])} className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-primary-700">
             <Plus className="h-4 w-4" /> {t.addCopy}
           </button>
         </section>
@@ -422,6 +581,30 @@ export function NewPackage({
               {t.textLongHint}
             </p>
           )}
+          {isDoc ? (
+            <div className="mx-auto mt-4 max-w-3xl rounded-2xl bg-ink-100/70 p-3 sm:p-5">
+              {contentError ? (
+                <p className="py-10 text-center text-sm font-bold text-accent-800">{t.loadFailed}</p>
+              ) : content ? (
+                <DocPages
+                  body={documentBodyHtml(content, {
+                    mode: "preview",
+                    settings: docSettings,
+                    variables,
+                    values: rowValues(current),
+                    auto: { today: riyadhToday(), title: title.trim() },
+                    steps: docSteps(current),
+                    labels: { signature: t.sigStep, stamp: t.stampOf, nameOf: t.nameOfRole },
+                  })}
+                  settings={docSettings}
+                  footer={footer}
+                  labels={{ page: t.page, of: t.pageOf, measuring: t.measuring }}
+                />
+              ) : (
+                <p className="py-10 text-center text-sm text-ink-500">{t.loading}</p>
+              )}
+            </div>
+          ) : (
           <div className="mx-auto mt-4 max-w-3xl">
             <PdfPages
               url={`/api/admin/esign/template/${template.id}`}
@@ -483,8 +666,17 @@ export function NewPackage({
               )}
             />
           </div>
+          )}
         </section>
       )}
+
+      <datalist id="esign-contacts">
+        {contacts.map((c) => (
+          <option key={c.id} value={c.name}>
+            {c.title ?? ""}
+          </option>
+        ))}
+      </datalist>
 
       {template && (
         <section className="card p-6">
@@ -520,23 +712,30 @@ export function NewPackage({
 function PerCopyCells({
   value,
   labels,
+  linked,
+  contactLabel,
   onChange,
 }: {
   value: { name: string; phone: string };
   labels: { name: string; phone: string };
+  /** The name is one of the saved signers (their saved signature is offered). */
+  linked: boolean;
+  contactLabel: string;
   onChange: (v: { name: string; phone: string }) => void;
 }) {
   return (
     <>
-      <td className="px-1 py-1.5">
+      <td className="px-1 py-1.5 align-top">
         <input
           value={value.name}
+          list="esign-contacts"
           onChange={(e) => onChange({ ...value, name: e.target.value })}
           aria-label={labels.name}
           className={`input min-w-[9rem] px-2 py-1.5 ${value.name.trim() ? "" : "border-accent-300"}`}
         />
+        {linked && <span className="mt-0.5 block text-[0.7rem] font-bold text-primary-700">✓ {contactLabel}</span>}
       </td>
-      <td className="px-1 py-1.5">
+      <td className="px-1 py-1.5 align-top">
         <input
           value={value.phone}
           onChange={(e) => onChange({ ...value, phone: e.target.value })}

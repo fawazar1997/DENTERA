@@ -1,5 +1,6 @@
 import { ARCHIVE_BRANCHES, foldArabic, type ArchiveKind, type PastLetter } from "./archive";
 import { driveIdFromLink } from "./googleDrive";
+import { detectOrder, isoDay, readDate, westernDigits, type DateOrder } from "./dateParse";
 
 // Reading the old letters register (the Google Sheet behind the Google
 // Forms, downloaded as Excel or CSV) into past letters. Columns are found by
@@ -37,44 +38,12 @@ function fieldOf(heading: string): Field | null {
   return RULES.find(([, re]) => re.test(text))?.[0] ?? null;
 }
 
-const digits = (text: string) =>
-  text.replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0));
-
-type DateOrder = "dmy" | "mdy";
+const digits = westernDigits;
 
 /** A date cell as { day: YYYY-MM-DD, time }, or null when it isn't a date. */
 function parseDate(raw: string, order: DateOrder): { day: string; time?: string } | null {
-  const text = digits(raw).trim();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const valid = (y: number, m: number, d: number) => y > 1900 && y < 2200 && m >= 1 && m <= 12 && d >= 1 && d <= 31;
-  // Excel day number (from an .xlsx file).
-  if (/^\d{5}(\.\d+)?$/.test(text)) {
-    const serial = Number(text);
-    if (serial > 20000 && serial < 120000) {
-      const ms = Math.round((serial - 25569) * 86400000);
-      const iso = new Date(ms).toISOString();
-      const time = iso.slice(11, 19);
-      return { day: iso.slice(0, 10), time: time === "00:00:00" ? undefined : time };
-    }
-  }
-  const time = text.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(ص|م|am|pm)?/i);
-  let clock: string | undefined;
-  if (time) {
-    let h = Number(time[1]);
-    const ampm = time[4]?.toLowerCase();
-    if ((ampm === "م" || ampm === "pm") && h < 12) h += 12;
-    if ((ampm === "ص" || ampm === "am") && h === 12) h = 0;
-    clock = `${pad(h)}:${time[2]}:${time[3] ?? "00"}`;
-  }
-  let m = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if (m && valid(+m[1], +m[2], +m[3])) return { day: `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`, time: clock };
-  m = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
-  if (m) {
-    const [a, b, y] = [+m[1], +m[2], +m[3]];
-    const [d, mo] = order === "mdy" ? [b, a] : [a, b];
-    if (valid(y, mo, d)) return { day: `${y}-${pad(mo)}-${pad(d)}`, time: clock };
-  }
-  return null;
+  const parts = readDate(raw, order);
+  return parts ? { day: isoDay(parts), time: parts.time } : null;
 }
 
 /** A Riyadh date and time as an ISO timestamp (undefined when invalid). */
@@ -82,19 +51,6 @@ function isoAt(day?: string, time = "12:00:00"): string | undefined {
   if (!day) return undefined;
   const t = new Date(`${day}T${time}+03:00`);
   return Number.isNaN(t.getTime()) ? undefined : t.toISOString();
-}
-
-/** Day/month or month/day: whichever the file's dates show (day first if unclear). */
-function detectOrder(cells: string[]): DateOrder {
-  let dmy = 0;
-  let mdy = 0;
-  for (const cell of cells) {
-    const m = digits(cell).match(/^(\d{1,2})[-/.](\d{1,2})[-/.]\d{4}/);
-    if (!m) continue;
-    if (+m[1] > 12) dmy++;
-    if (+m[2] > 12) mdy++;
-  }
-  return mdy > dmy ? "mdy" : "dmy";
 }
 
 /** An old number tidied to the current format (ABH-2026-61 → ABH-2026-0061). */

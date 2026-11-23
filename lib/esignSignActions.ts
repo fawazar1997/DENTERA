@@ -101,7 +101,7 @@ export async function signDocumentAction(input: {
       await changeEsign((file) => ({
         next: {
           ...file,
-          contacts: file.contacts.map((c) => (c.id === contact.id ? { ...c, signatureSavedAt: new Date().toISOString() } : c)),
+          contacts: file.contacts.map((c) => (c.id === contact.id ? { ...c, signatureSavedAt: new Date().toISOString(), signatureSource: "self" as const } : c)),
         },
         result: null,
       }));

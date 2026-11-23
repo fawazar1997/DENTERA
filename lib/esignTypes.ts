@@ -4,6 +4,36 @@
 /** Fonts a text box can use: Dentera's official font (Almarai) or Cambria. */
 export type EsignFont = "dentera" | "cambria";
 
+/** What a variable holds: shapes how its value is checked and printed. */
+export type EsignVarType = "text" | "number" | "amount" | "date";
+
+/** A template's variable (e.g. الراتب): filled per copy unless fixed. */
+export type EsignVariable = {
+  name: string;
+  type: EsignVarType;
+  /** Prefilled in every copy (and always used when fixed). */
+  default?: string;
+  /** Always the default value: no column when filling. */
+  fixed?: boolean;
+  /** amount: also written in words. */
+  words?: boolean;
+};
+
+/** Values filled in automatically: the approval date, the request number and title. */
+export type EsignAutoVar = "today" | "ref" | "title";
+
+/** A document template's page setup. */
+export type EsignDocSettings = {
+  /** Dentera's letterhead (logo at the top, footer line, page numbers). */
+  letterhead: boolean;
+  dir: "rtl" | "ltr";
+  font: EsignFont;
+  /** Body text size in points. */
+  size: number;
+};
+
+export const DEFAULT_DOC_SETTINGS: EsignDocSettings = { letterhead: true, dir: "rtl", font: "dentera", size: 11 };
+
 /** A box on a template page, in 0–1 of the page's width/height (from the top-left). */
 export type EsignField = {
   id: string;
@@ -18,7 +48,9 @@ export type EsignField = {
   stepId?: string;
   /** variable: its name (e.g. الراتب), shown as a column when filling. */
   label?: string;
-  varType?: "text" | "number" | "date";
+  varType?: EsignVarType;
+  /** variable: filled in automatically instead of per copy. */
+  auto?: EsignAutoVar;
   /** Text size in PDF points (variable / signerName). */
   fontSize?: number;
   align?: "start" | "center" | "end";
@@ -40,12 +72,21 @@ export type EsignStep = {
 export type EsignTemplate = {
   id: string;
   name: string;
-  /** The PDF in Drive («القوالب»). */
+  /** "document": written in the platform's editor (its content is a private file); missing: an uploaded PDF. */
+  type?: "pdf" | "document";
+  /** Variable definitions (type, default, fixed). Older PDF templates have none: see templateVariables. */
+  variables?: EsignVariable[];
+  /** document: page setup. */
+  settings?: EsignDocSettings;
+  /** document: the steps that have a signature block (checked when saved). */
+  signatureSteps?: string[];
+  /** The PDF in Drive («القوالب»); empty for a document template. */
   driveFileId: string;
   fileName: string;
-  /** Page sizes in PDF points. */
+  /** Page sizes in PDF points (PDF templates). */
   pages: { w: number; h: number }[];
   steps: EsignStep[];
+  /** The boxes (PDF templates; a document copy has its own, measured when it is made). */
   fields: EsignField[];
   createdAt: string;
   updatedAt?: string;
@@ -75,6 +116,9 @@ export type EsignDocument = {
   label: string;
   /** Variable values by variable label (boxes sharing a label share the value). */
   values: Record<string, string>;
+  /** Document templates: where this copy's signature, stamp boxes landed (measured when made). Its base PDF is esign/<id>/base.pdf. */
+  fields?: EsignField[];
+  pages?: { w: number; h: number }[];
   status: EsignDocumentStatus;
   /** Index (in the procedure) of the step whose turn it is. */
   currentStep: number;
@@ -114,8 +158,10 @@ export type EsignContact = {
   name: string;
   title?: string;
   phone?: string;
-  /** When they saved their signature to reuse (esign/contacts/<id>.png). */
+  /** When their signature was saved to reuse (esign/contacts/<id>.png). */
   signatureSavedAt?: string;
+  /** Who saved it: uploaded from the panel, or by them when signing. */
+  signatureSource?: "panel" | "self";
 };
 
 export type EsignDriveFolders = {
@@ -134,18 +180,59 @@ export const MAX_TEMPLATE_BYTES = 15 * 1024 * 1024;
 /** Largest drawn signature / rendered text image accepted. */
 export const MAX_ESIGN_IMAGE_BYTES = 300 * 1024;
 
-/** The images a copy needs before it can be sent: one per variable / name box. */
-export function textFieldsOf(template: Pick<EsignTemplate, "fields">): EsignField[] {
+/** Largest document template content (JSON). */
+export const MAX_DOC_CONTENT_BYTES = 500 * 1024;
+/** Largest rendered page image of a document copy. */
+export const MAX_PAGE_IMAGE_BYTES = 3 * 1024 * 1024;
+/** A4 in PDF points. */
+export const A4 = { w: 595.28, h: 841.89 };
+
+export const isDocumentTemplate = (t: Pick<EsignTemplate, "type">) => t.type === "document";
+
+/** The boxes of a copy: the template's (PDF), or the ones measured for that copy (document). */
+export function copyFields(template: Pick<EsignTemplate, "type" | "fields">, doc: Pick<EsignDocument, "fields">): EsignField[] {
+  return template.type === "document" ? doc.fields ?? [] : template.fields;
+}
+
+/** A template can be used once every step has somewhere to sign. */
+export function templateReady(template: EsignTemplate): boolean {
+  if (!template.steps.length) return false;
+  if (template.type === "document") return template.steps.every((s) => template.signatureSteps?.includes(s.id));
+  return template.steps.every((s) => template.fields.some((f) => f.kind === "signature" && f.stepId === s.id));
+}
+
+/** The letterhead's footer until one is saved in Settings. */
+export const DEFAULT_LETTERHEAD_FOOTER = "عيادات دنتيرا لطب الأسنان  •  Dentera Dental Clinics  •  dentera.com.sa";
+
+/** The images a PDF-template copy needs before it can be sent: one per variable / name box. */
+export function textFieldsOf(template: Pick<EsignTemplate, "fields" | "type">): EsignField[] {
+  if (template.type === "document") return [];
   return template.fields.filter((f) => f.kind === "variable" || f.kind === "signerName");
 }
 
-/** The variables to fill per copy, one per distinct label (several boxes may share one). */
-export function variableLabels(template: Pick<EsignTemplate, "fields">): string[] {
-  const seen: string[] = [];
-  for (const f of template.fields) {
-    if (f.kind === "variable" && f.label && !seen.includes(f.label)) seen.push(f.label);
+/**
+ * A template's variables, in order. Older PDF templates have no list: their
+ * boxes' labels and types are used (one per distinct label).
+ */
+export function templateVariables(template: Pick<EsignTemplate, "fields" | "variables" | "type">): EsignVariable[] {
+  const list = [...(template.variables ?? [])];
+  if (template.type !== "document") {
+    for (const f of template.fields) {
+      if (f.kind === "variable" && !f.auto && f.label && !list.some((v) => v.name === f.label)) {
+        list.push({ name: f.label, type: f.varType ?? "text" });
+      }
+    }
+    // Only the variables a box still uses.
+    return list.filter((v) => template.fields.some((f) => f.kind === "variable" && !f.auto && f.label === v.name));
   }
-  return seen;
+  return list;
+}
+
+/** The variables filled per copy (not fixed), one per name. */
+export function variableLabels(template: Pick<EsignTemplate, "fields" | "variables" | "type">): string[] {
+  return templateVariables(template)
+    .filter((v) => !v.fixed)
+    .map((v) => v.name);
 }
 
 // --- The message sent with a signing link ---

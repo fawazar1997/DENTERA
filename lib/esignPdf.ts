@@ -1,8 +1,8 @@
 import { PDFDocument, StandardFonts, rgb, type PDFImage } from "pdf-lib";
 import { readPrivateFile } from "./privateBlob";
-import { STAMP_PATH, imagePath, stampTime, textFieldsOf, type EsignDocument, type EsignTemplate } from "./esign";
+import { STAMP_PATH, copyFields, imagePath, stampTime, textFieldsOf, type EsignDocument, type EsignTemplate } from "./esign";
 
-// Builds a copy's PDF: the template with that copy's values and names
+// Builds a copy's PDF: the template (or a document copy's own base PDF) with that copy's values and names
 // (images rendered in the admin's browser, so Arabic is shaped exactly as
 // on screen), each signature made so far, very faintly under each
 // signature the date and time it was signed (Riyadh), and the clinic
@@ -21,6 +21,8 @@ export async function buildEsignPdf(input: {
   const pages = pdf.getPages();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const images = new Map<string, PDFImage | null>();
+  // A document copy's own boxes (its values are already in its pages).
+  const fields = copyFields(template, doc);
 
   async function image(name: string): Promise<PDFImage | null> {
     if (!images.has(name)) {
@@ -46,7 +48,7 @@ export async function buildEsignPdf(input: {
   }
 
   // Signatures, each fitted inside its box, with the faint time under it.
-  for (const field of template.fields) {
+  for (const field of fields) {
     if (field.kind !== "signature") continue;
     const signer = doc.signers.find((s) => s.stepId === field.stepId);
     if (!signer?.signedAt) continue;
@@ -80,7 +82,7 @@ export async function buildEsignPdf(input: {
   }
 
   // The clinic stamp, in its boxes, once their step has signed.
-  const stampFields = template.fields.filter(
+  const stampFields = fields.filter(
     (f) => f.kind === "stamp" && doc.signers.find((s) => s.stepId === f.stepId)?.signedAt
   );
   if (stampFields.length) {

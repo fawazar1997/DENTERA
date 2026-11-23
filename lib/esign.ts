@@ -16,9 +16,12 @@ import type {
 
 export * from "./esignTypes";
 
-// The e-signature system (التوقيع الإلكتروني). Templates are PDFs kept in
-// Google Drive with boxes drawn on them (signatures, variables, names) and
-// an ordered procedure of signers. A package sends one template to one or
+// The e-signature system (التوقيع الإلكتروني). Templates are either
+// documents written in the platform's editor (content in a private file;
+// each copy's pages are made in the admin's browser when a request is
+// approved, and kept as that copy's base PDF) or PDFs kept in Google Drive
+// with boxes drawn on them (signatures, variables, names). Both have an
+// ordered procedure of signers. A package sends one template to one or
 // more copies; each copy has its own values and its own link per signer,
 // and becomes one signed PDF in Drive.
 //
@@ -38,6 +41,8 @@ type EsignFile = {
   messageTemplate?: string;
   /** When the clinic stamp was uploaded (esign/assets/stamp.png). */
   stampSavedAt?: string;
+  /** The letterhead's footer line on document templates (Settings). */
+  letterheadFooter?: string;
 };
 
 const ESIGN_PATH = "data/esign.json";
@@ -167,6 +172,16 @@ export const STAMP_PATH = "esign/assets/stamp.png";
 /** A saved signer's saved signature. */
 export function contactSignaturePath(contactId: string): string {
   return `esign/contacts/${contactId}.png`;
+}
+
+/** A document template's content (the editor's JSON). */
+export function templateContentPath(templateId: string): string {
+  return `esign/templates/${templateId}.json`;
+}
+
+/** A document copy's base PDF (its pages as made when the request was approved). */
+export function basePdfPath(docId: string): string {
+  return `esign/${docId}/base.pdf`;
 }
 
 /** Where a copy's images live. */

@@ -16,8 +16,15 @@ import {
   takeRef,
   STAMP_PATH,
   contactSignaturePath,
+  basePdfPath,
+  templateContentPath,
   textFieldsOf,
-  variableLabels,
+  templateVariables,
+  isDocumentTemplate,
+  A4,
+  DEFAULT_DOC_SETTINGS,
+  MAX_DOC_CONTENT_BYTES,
+  MAX_PAGE_IMAGE_BYTES,
   MAX_ESIGN_IMAGE_BYTES,
   MAX_MESSAGE_LENGTH,
   MAX_TEMPLATE_BYTES,
@@ -26,8 +33,14 @@ import {
   type EsignPackage,
   type EsignStep,
   type EsignTemplate,
+  type EsignVariable,
+  type EsignContact,
+  type EsignDocSettings,
 } from "./esign";
-import { deletePrivateFile, deletePrivateFolder, putPrivateFile } from "./privateBlob";
+import { deletePrivateFile, deletePrivateFolder, putPrivateFile, readPrivateFile } from "./privateBlob";
+import { PDFDocument } from "pdf-lib";
+import { docSignatureSteps, docStepRefs, docVariableNames, sanitizeDocContent, EMPTY_DOC } from "./esignDoc";
+import { normalizeValue } from "./esignValues";
 import {
   DriveError,
   checkDriveFolder,
@@ -179,7 +192,7 @@ export async function deleteContactSignatureAction(form: FormData) {
     const index = file.contacts.findIndex((c) => c.id === id);
     if (index === -1) return { next: null, result: null };
     const contacts = [...file.contacts];
-    contacts[index] = { ...contacts[index], signatureSavedAt: undefined };
+    contacts[index] = { ...contacts[index], signatureSavedAt: undefined, signatureSource: undefined };
     return { next: { ...file, contacts }, result: contacts[index].name };
   });
   await deletePrivateFile(contactSignaturePath(id)).catch(() => undefined);
@@ -188,15 +201,124 @@ export async function deleteContactSignatureAction(form: FormData) {
   back(form, "tab=settings");
 }
 
+/**
+ * A signature photo or scan as a clean PNG: the paper made transparent (ink
+ * darkness becomes opacity), the ink black, the margins trimmed. Null if
+ * the image can't be read or has no ink.
+ */
+async function signatureFromImage(file: File): Promise<Uint8Array | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+    const input = Buffer.from(await file.arrayBuffer());
+    const grey = await sharp(input)
+      .rotate()
+      .flatten({ background: "#ffffff" })
+      .resize({ width: 1400, height: 700, fit: "inside", withoutEnlargement: true })
+      .greyscale()
+      .normalise()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { width, height } = grey.info;
+    const rgba = Buffer.alloc(width * height * 4);
+    let ink = 0;
+    for (let i = 0; i < width * height; i++) {
+      const v = grey.data[i];
+      // Paper (light) → clear; ink (dark) → solid, with a soft edge.
+      const alpha = v >= 215 ? 0 : v <= 110 ? 255 : Math.round(((215 - v) / 105) * 255);
+      if (alpha > 128) ink++;
+      rgba[i * 4] = 17;
+      rgba[i * 4 + 1] = 24;
+      rgba[i * 4 + 2] = 39;
+      rgba[i * 4 + 3] = alpha;
+    }
+    if (ink < 50) return null;
+    const png = await sharp(rgba, { raw: { width, height, channels: 4 } })
+      .trim({ threshold: 1 })
+      .resize({ width: 900, height: 450, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    return new Uint8Array(png);
+  } catch {
+    return null;
+  }
+}
+
+function signatureFile(form: FormData): File | null {
+  const file = form.get("signature");
+  if (!(file instanceof File) || !file.size) return null;
+  if (file.size > 5 * 1024 * 1024 || !/^image\/(png|jpeg|webp)$/.test(file.type)) return null;
+  return file;
+}
+
 export async function addEsignContactAction(form: FormData) {
   const user = await requireAdmin();
   const name = str(form, "name", 80);
   if (!name) back(form, "tab=settings&error=contact");
-  const contact = { id: newEsignId(), name, title: str(form, "title", 80) || undefined, phone: phoneOf(form.get("phone")) };
-  await changeEsign((file) => ({ next: { ...file, contacts: [...file.contacts, contact] }, result: null }));
+  const contact: EsignContact = { id: newEsignId(), name, title: str(form, "title", 80) || undefined, phone: phoneOf(form.get("phone")) };
+  const file = form.get("signature");
+  if (file instanceof File && file.size) {
+    const upload = signatureFile(form);
+    const png = upload ? await signatureFromImage(upload) : null;
+    if (!png) back(form, "tab=settings&error=signature");
+    await putPrivateFile(contactSignaturePath(contact.id), png!, "image/png");
+    contact.signatureSavedAt = new Date().toISOString();
+    contact.signatureSource = "panel";
+  }
+  await changeEsign((f) => ({ next: { ...f, contacts: [...f.contacts, contact] }, result: null }));
   await logActivity(user, "/esign", "create", name);
   refresh();
   back(form, "tab=settings&saved=contact");
+}
+
+/** Settings: a saved signer's name, title and phone. */
+export async function updateEsignContactAction(form: FormData) {
+  const user = await requireAdmin();
+  const id = str(form, "id");
+  const name = str(form, "name", 80);
+  if (!name) back(form, "tab=settings&error=contact");
+  const done = await changeEsign((file) => {
+    const index = file.contacts.findIndex((c) => c.id === id);
+    if (index === -1) return { next: null, result: false };
+    const contacts = [...file.contacts];
+    contacts[index] = { ...contacts[index], name, title: str(form, "title", 80) || undefined, phone: phoneOf(form.get("phone")) };
+    return { next: { ...file, contacts }, result: true };
+  });
+  if (done) await logActivity(user, "/esign", "update", name);
+  refresh();
+  back(form, "tab=settings&saved=contact");
+}
+
+/** Settings: uploads a saved signer's signature (a photo or scan of it). */
+export async function uploadContactSignatureAction(form: FormData) {
+  const user = await requireAdmin();
+  const id = str(form, "id");
+  const { contacts } = await readEsign();
+  const contact = contacts.find((c) => c.id === id);
+  const upload = signatureFile(form);
+  if (!contact || !upload) back(form, "tab=settings&error=signature");
+  const png = await signatureFromImage(upload!);
+  if (!png) back(form, "tab=settings&error=signature");
+  await putPrivateFile(contactSignaturePath(id), png!, "image/png");
+  await changeEsign((file) => ({
+    next: {
+      ...file,
+      contacts: file.contacts.map((c) => (c.id === id ? { ...c, signatureSavedAt: new Date().toISOString(), signatureSource: "panel" as const } : c)),
+    },
+    result: null,
+  }));
+  await logActivity(user, "/esign", "upload", `التوقيع المحفوظ — ${contact!.name}`);
+  refresh();
+  back(form, "tab=settings&saved=signature");
+}
+
+/** Settings: the footer line of the letterhead on document templates. */
+export async function setLetterheadFooterAction(form: FormData) {
+  const user = await requireAdmin();
+  const footer = str(form, "footer", 200) || undefined;
+  await changeEsign((file) => ({ next: { ...file, letterheadFooter: footer }, result: null }));
+  await logActivity(user, "/esign", "settings", "تذييل الترويسة");
+  refresh();
+  back(form, "tab=settings&saved=footer");
 }
 
 export async function deleteEsignContactAction(form: FormData) {
@@ -308,20 +430,45 @@ export async function uploadTemplateFileAction(form: FormData): Promise<{ ok: tr
 const unit = (v: unknown) => Math.min(1, Math.max(0, Number(v) || 0));
 
 /** Saves a template's procedure and boxes (from the editor). */
+function cleanSteps(input: unknown): EsignStep[] {
+  return (Array.isArray(input) ? input : []).slice(0, 20).map((s) => ({
+    id: clean(s?.id, 40) || newEsignId(),
+    role: clean(s?.role, 60),
+    defaultMode: s?.defaultMode === "perCopy" ? "perCopy" : "same",
+    defaultContactId: clean(s?.defaultContactId, 40) || undefined,
+  }));
+}
+
+const VAR_TYPES = new Set(["text", "number", "amount", "date"]);
+
+/** A template's variable list, checked: unique names, valid types, defaults in their stored form. */
+function cleanVariables(input: unknown): EsignVariable[] {
+  const out: EsignVariable[] = [];
+  for (const v of (Array.isArray(input) ? input : []).slice(0, 80)) {
+    const name = clean(v?.name, 60).replace(/[{}]/g, "").trim();
+    if (!name || out.some((x) => x.name === name)) continue;
+    const type = (VAR_TYPES.has(v?.type) ? v.type : "text") as EsignVariable["type"];
+    const normal = normalizeValue(clean(v?.default, 300), type);
+    const variable: EsignVariable = { name, type };
+    if (normal.value && normal.ok) variable.default = normal.value;
+    if (v?.fixed === true && variable.default) variable.fixed = true;
+    if (type === "amount" && v?.words === true) variable.words = true;
+    out.push(variable);
+  }
+  return out;
+}
+
+/** Saves a template's procedure and boxes (from the editor). */
 export async function saveTemplateAction(input: {
   id: string;
   name: string;
   steps: EsignStep[];
   fields: EsignField[];
+  variables?: EsignVariable[];
 }): Promise<{ ok: boolean }> {
   const user = await requireAdmin();
   const name = clean(input.name, 120);
-  const steps: EsignStep[] = (Array.isArray(input.steps) ? input.steps : []).slice(0, 20).map((s) => ({
-    id: clean(s.id, 40) || newEsignId(),
-    role: clean(s.role, 60),
-    defaultMode: s.defaultMode === "perCopy" ? "perCopy" : "same",
-    defaultContactId: clean(s.defaultContactId, 40) || undefined,
-  }));
+  const steps = cleanSteps(input.steps);
   if (!name || steps.some((s) => !s.role)) return { ok: false };
   const stepIds = new Set(steps.map((s) => s.id));
   const result = await changeEsign((file) => {
@@ -336,9 +483,10 @@ export async function saveTemplateAction(input: {
       if (box.w < 0.01 || box.h < 0.005) return [];
       const field: EsignField = { id: clean(f.id, 40) || newEsignId(), kind, page, ...box };
       if (kind === "variable") {
-        field.label = clean(f.label, 60);
+        if (f.auto === "today" || f.auto === "ref" || f.auto === "title") field.auto = f.auto;
+        field.label = clean(f.label, 60).replace(/[{}]/g, "").trim();
         if (!field.label) return [];
-        field.varType = f.varType === "number" || f.varType === "date" ? f.varType : "text";
+        field.varType = f.varType && VAR_TYPES.has(f.varType) ? f.varType : "text";
       } else {
         if (!f.stepId || !stepIds.has(f.stepId)) return [];
         field.stepId = f.stepId;
@@ -350,8 +498,21 @@ export async function saveTemplateAction(input: {
       }
       return [field];
     });
+    if (isDocumentTemplate(template)) return { next: null, result: false };
+    // Variable definitions for the labels the boxes use (types follow the definition).
+    const used = new Set(fields.filter((f) => f.kind === "variable" && !f.auto).map((f) => f.label!));
+    const variables = cleanVariables(input.variables).filter((v) => used.has(v.name));
+    for (const label of used) {
+      if (!variables.some((v) => v.name === label)) {
+        variables.push({ name: label, type: fields.find((f) => f.label === label)?.varType ?? "text" });
+      }
+    }
+    for (const f of fields) {
+      const v = f.kind === "variable" && !f.auto ? variables.find((x) => x.name === f.label) : undefined;
+      if (v) f.varType = v.type;
+    }
     const templates = [...file.templates];
-    templates[index] = { ...template, name, steps, fields, updatedAt: new Date().toISOString() };
+    templates[index] = { ...template, name, steps, fields, variables, updatedAt: new Date().toISOString() };
     return { next: { ...file, templates }, result: true };
   });
   if (result) {
@@ -370,9 +531,114 @@ export async function deleteTemplateAction(form: FormData) {
     return { next: { ...file, templates: file.templates.filter((t) => t.id !== id) }, result: template.name };
   });
   if (!name) back(form, "tab=templates&error=in-use");
+  await deletePrivateFile(templateContentPath(id)).catch(() => undefined);
   await logActivity(user, "/esign", "delete", name);
   refresh();
   back(form, "tab=templates");
+}
+
+// --- Document templates (written in the platform) ---
+
+/** Starts a new document template and opens it in the editor. */
+export async function createDocumentTemplateAction(form: FormData) {
+  const user = await requireAdmin();
+  const name = str(form, "name", 120) || "مستند جديد";
+  const step: EsignStep = { id: newEsignId(), role: "الموقّع", defaultMode: "perCopy" };
+  const template: EsignTemplate = {
+    id: newEsignId(),
+    name,
+    type: "document",
+    driveFileId: "",
+    fileName: "",
+    pages: [],
+    steps: [step],
+    fields: [],
+    variables: [],
+    settings: { ...DEFAULT_DOC_SETTINGS },
+    signatureSteps: [],
+    createdAt: new Date().toISOString(),
+  };
+  await putPrivateFile(templateContentPath(template.id), new TextEncoder().encode(JSON.stringify(EMPTY_DOC)), "application/json");
+  await changeEsign((f) => ({ next: { ...f, templates: [...f.templates, template] }, result: null }));
+  await logActivity(user, "/esign", "create", name);
+  refresh();
+  back(form, `template=${template.id}`);
+}
+
+/** A copy of a template (either kind), named «… (نسخة)». */
+export async function duplicateTemplateAction(form: FormData) {
+  const user = await requireAdmin();
+  const id = str(form, "id");
+  const store = await readEsign();
+  const source = store.templates.find((t) => t.id === id);
+  if (!source) back(form, "tab=templates");
+  const copy: EsignTemplate = {
+    ...structuredClone(source!),
+    id: newEsignId(),
+    name: `${source!.name} (نسخة)`.slice(0, 120),
+    createdAt: new Date().toISOString(),
+    updatedAt: undefined,
+  };
+  if (isDocumentTemplate(source!)) {
+    const content = await readPrivateFile(templateContentPath(source!.id));
+    await putPrivateFile(templateContentPath(copy.id), content ?? new TextEncoder().encode(JSON.stringify(EMPTY_DOC)), "application/json");
+  }
+  await changeEsign((f) => ({ next: { ...f, templates: [...f.templates, copy] }, result: null }));
+  await logActivity(user, "/esign", "create", copy.name);
+  refresh();
+  back(form, `template=${copy.id}`);
+}
+
+export type SaveDocumentResult =
+  | { ok: true }
+  | { ok: false; error: "name" | "steps" | "content" | "variables" | "signatures"; detail?: string };
+
+/** Saves a document template: its procedure, variables, page setup and content. */
+export async function saveDocumentTemplateAction(input: {
+  id: string;
+  name: string;
+  steps: EsignStep[];
+  variables: EsignVariable[];
+  settings: EsignDocSettings;
+  content: unknown;
+}): Promise<SaveDocumentResult> {
+  const user = await requireAdmin();
+  const name = clean(input.name, 120);
+  if (!name) return { ok: false, error: "name" };
+  const steps = cleanSteps(input.steps);
+  if (!steps.length || steps.some((s) => !s.role)) return { ok: false, error: "steps" };
+  const content = sanitizeDocContent(input.content);
+  const json = content ? JSON.stringify(content) : "";
+  if (!content || json.length > MAX_DOC_CONTENT_BYTES) return { ok: false, error: "content" };
+  const variables = cleanVariables(input.variables);
+  const missing = docVariableNames(content).find((n) => !variables.some((v) => v.name === n));
+  if (missing) return { ok: false, error: "variables", detail: missing };
+  const stepIds = new Set(steps.map((s) => s.id));
+  if (docStepRefs(content).some((id) => !stepIds.has(id))) return { ok: false, error: "steps" };
+  const signatureSteps = docSignatureSteps(content);
+  const unsigned = steps.find((s) => !signatureSteps.includes(s.id));
+  if (unsigned) return { ok: false, error: "signatures", detail: unsigned.role };
+  const raw = input.settings ?? DEFAULT_DOC_SETTINGS;
+  const settings: EsignDocSettings = {
+    letterhead: raw.letterhead !== false,
+    dir: raw.dir === "ltr" ? "ltr" : "rtl",
+    font: raw.font === "cambria" ? "cambria" : "dentera",
+    size: Math.min(16, Math.max(8, Math.round(Number(raw.size) || 11))),
+  };
+  const found = (await readEsign()).templates.find((t) => t.id === input.id);
+  if (!found || !isDocumentTemplate(found)) return { ok: false, error: "content" };
+  await putPrivateFile(templateContentPath(found.id), new TextEncoder().encode(json), "application/json");
+  const ok = await changeEsign((file) => {
+    const index = file.templates.findIndex((t) => t.id === input.id);
+    if (index === -1) return { next: null, result: false };
+    const templates = [...file.templates];
+    templates[index] = { ...templates[index], name, steps, variables, settings, signatureSteps, updatedAt: new Date().toISOString() };
+    return { next: { ...file, templates }, result: true };
+  });
+  if (!ok) return { ok: false, error: "content" };
+  await logActivity(user, "/esign", "update", name);
+  refresh();
+  return { ok: true };
 }
 
 // --- Packages ---
@@ -386,7 +652,7 @@ export type NewPackageInput = {
   copies: {
     label?: string;
     /** Per-copy signers by step id. */
-    signers: Record<string, { name: string; phone?: string }>;
+    signers: Record<string, { name: string; phone?: string; contactId?: string }>;
     values: Record<string, string>;
   }[];
 };
@@ -397,7 +663,7 @@ export type NewPackageInput = {
  */
 export async function createPackageAction(
   input: NewPackageInput
-): Promise<{ ok: true; id: string; documents: string[] } | { ok: false; error: "fields" | "drive" | "folder" }> {
+): Promise<{ ok: true; id: string; ref: string; createdAt: string; documents: string[] } | { ok: false; error: "fields" | "drive" | "folder" }> {
   const user = await requireAdmin();
   const store = await readEsign();
   if (!store.folders.signed) return { ok: false, error: "folder" };
@@ -422,14 +688,19 @@ export async function createPackageAction(
     };
   });
   if (steps.some((s) => s.mode === "same" && !s.name)) return { ok: false, error: "fields" };
-  const labels = variableLabels(template);
+  const variables = templateVariables(template);
+  // A per-copy signer is linked to a saved signer with exactly the same name.
+  const contactNamed = (name: string, id?: string) =>
+    store.contacts.find((c) => c.id === id && c.name === name) ?? store.contacts.find((c) => c.name === name);
 
   const documents: EsignDocument[] = [];
   for (const [i, copy] of copies.entries()) {
     const values: Record<string, string> = {};
-    for (const label of labels) {
-      values[label] = clean(copy.values?.[label], 300);
-      if (!values[label]) return { ok: false, error: "fields" };
+    for (const variable of variables) {
+      const typed = variable.fixed ? variable.default ?? "" : clean(copy.values?.[variable.name], 300) || variable.default || "";
+      const normal = normalizeValue(typed, variable.type);
+      if (!normal.value || !normal.ok) return { ok: false, error: "fields" };
+      values[variable.name] = normal.value;
     }
     const signers = steps.map((s) => {
       const own = copy.signers?.[s.stepId];
@@ -438,7 +709,7 @@ export async function createPackageAction(
         stepId: s.stepId,
         name,
         phone: s.mode === "same" ? s.phone : phoneOf(own?.phone),
-        contactId: s.mode === "same" ? s.contactId : undefined,
+        contactId: s.mode === "same" ? s.contactId : name ? contactNamed(name, clean(own?.contactId, 40))?.id : undefined,
         token: newSignToken(),
       };
     });
@@ -471,7 +742,7 @@ export async function createPackageAction(
     pkg.ref = takeRef(counters);
     return { next: { ...file, counters, packages: [pkg, ...file.packages] }, result: null };
   });
-  return { ok: true, id: pkg.id, documents: documents.map((d) => d.id) };
+  return { ok: true, id: pkg.id, ref: pkg.ref, createdAt: pkg.createdAt, documents: documents.map((d) => d.id) };
 }
 
 /** Saves one copy's rendered text images (data URLs by field id). */
@@ -494,6 +765,83 @@ export async function uploadCopyImagesAction(input: {
   return { ok: true };
 }
 
+const isPng = (b: Uint8Array) => b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+
+/** Document copies: saves one rendered page (a PNG file, in order). */
+export async function uploadCopyPageAction(form: FormData): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  const packageId = str(form, "packageId");
+  const documentId = str(form, "documentId");
+  const index = Math.floor(Number(form.get("index")));
+  const file = form.get("page");
+  if (!(index >= 0 && index < 60) || !(file instanceof File) || !file.size || file.size > MAX_PAGE_IMAGE_BYTES) return { ok: false };
+  const store = await readEsign();
+  const pkg = store.packages.find((p) => p.id === packageId && p.status === "preparing");
+  const doc = pkg?.documents.find((d) => d.id === documentId);
+  const template = store.templates.find((t) => t.id === pkg?.templateId);
+  if (!pkg || !doc || !template || !isDocumentTemplate(template)) return { ok: false };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!isPng(bytes)) return { ok: false };
+  await putPrivateFile(imagePath(doc.id, `page-${index}`), bytes, "image/png");
+  return { ok: true };
+}
+
+/**
+ * Document copies: once its pages are in, makes the copy's base PDF (one A4
+ * page per image) and records where its signature and stamp boxes landed.
+ */
+export async function finishCopyPagesAction(input: {
+  packageId: string;
+  documentId: string;
+  pageCount: number;
+  fields: EsignField[];
+}): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  const store = await readEsign();
+  const pkg = store.packages.find((p) => p.id === input.packageId && p.status === "preparing");
+  const doc = pkg?.documents.find((d) => d.id === input.documentId);
+  const template = store.templates.find((t) => t.id === pkg?.templateId);
+  const pageCount = Math.floor(Number(input.pageCount));
+  if (!pkg || !doc || !template || !isDocumentTemplate(template) || !(pageCount >= 1 && pageCount <= 60)) return { ok: false };
+  const stepIds = new Set(template.steps.map((s) => s.id));
+  const fields: EsignField[] = (Array.isArray(input.fields) ? input.fields : []).slice(0, 200).flatMap((f) => {
+    const kind = f?.kind === "signature" || f?.kind === "stamp" ? f.kind : null;
+    const page = Math.floor(Number(f?.page));
+    if (!kind || !(page >= 0 && page < pageCount) || !stepIds.has(f.stepId!)) return [];
+    const box = { x: unit(f.x), y: unit(f.y), w: unit(f.w), h: unit(f.h) };
+    if (box.w < 0.01 || box.h < 0.005 || box.x + box.w > 1.001 || box.y + box.h > 1.001) return [];
+    return [{ id: newEsignId(), kind, page, stepId: f.stepId, ...box }];
+  });
+  if (!template.steps.every((s) => fields.some((f) => f.kind === "signature" && f.stepId === s.id))) return { ok: false };
+
+  const pdf = await PDFDocument.create();
+  for (let i = 0; i < pageCount; i++) {
+    const bytes = await readPrivateFile(imagePath(doc.id, `page-${i}`));
+    if (!bytes) return { ok: false };
+    const image = await pdf.embedPng(bytes).catch(() => null);
+    if (!image) return { ok: false };
+    const page = pdf.addPage([A4.w, A4.h]);
+    page.drawImage(image, { x: 0, y: 0, width: A4.w, height: A4.h });
+  }
+  pdf.setTitle(`${pkg.ref} — ${pkg.title} — ${doc.label}`);
+  pdf.setProducer("Dentera e-signature");
+  await putPrivateFile(basePdfPath(doc.id), await pdf.save(), "application/pdf");
+  for (let i = 0; i < pageCount; i++) await deletePrivateFile(imagePath(doc.id, `page-${i}`)).catch(() => undefined);
+
+  const pages = Array.from({ length: pageCount }, () => ({ w: A4.w, h: A4.h }));
+  const ok = await changeEsign((file) => {
+    const index = file.packages.findIndex((p) => p.id === pkg.id && p.status === "preparing");
+    if (index === -1) return { next: null, result: false };
+    const packages = [...file.packages];
+    packages[index] = {
+      ...packages[index],
+      documents: packages[index].documents.map((d) => (d.id === doc.id ? { ...d, fields, pages } : d)),
+    };
+    return { next: { ...file, packages }, result: true };
+  });
+  return { ok };
+}
+
 /** A PNG data URL's bytes (null if it isn't a reasonably small PNG). */
 function pngBytes(dataUrl: unknown): Uint8Array | null {
   const match = String(dataUrl ?? "").match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
@@ -511,6 +859,8 @@ export async function activatePackageAction(input: { packageId: string }): Promi
     if (index === -1) return { next: null, result: null };
     const packages = [...file.packages];
     const pkg = packages[index];
+    const template = file.templates.find((t) => t.id === pkg.templateId);
+    if (template && isDocumentTemplate(template) && pkg.documents.some((d) => !d.fields?.length)) return { next: null, result: null };
     packages[index] = {
       ...pkg,
       status: "active",

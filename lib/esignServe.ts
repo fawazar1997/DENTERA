@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readEsign, type EsignDocument, type EsignPackage, type EsignTemplate } from "./esign";
+import { basePdfPath, isDocumentTemplate, readEsign, type EsignDocument, type EsignPackage, type EsignTemplate } from "./esign";
+import { readPrivateFile } from "./privateBlob";
 import { buildEsignPdf } from "./esignPdf";
 import { downloadDriveFile } from "./googleDrive";
 
@@ -19,10 +20,20 @@ export function pdfResponse(bytes: Uint8Array, name = "document.pdf"): NextRespo
 
 export const notFound = () => NextResponse.json({ ok: false }, { status: 404, headers: { "Cache-Control": "no-store" } });
 
-/** A copy as it stands: the signed file once saved, else built from the template and what's signed so far. */
+/** The PDF a copy is built on: the template's from Drive, or a document copy's own base PDF. */
+export async function copyBaseBytes(template: EsignTemplate, doc: EsignDocument): Promise<Uint8Array> {
+  if (isDocumentTemplate(template)) {
+    const bytes = await readPrivateFile(basePdfPath(doc.id));
+    if (!bytes) throw new Error("e-sign: the copy's pages are missing");
+    return bytes;
+  }
+  return downloadDriveFile(template.driveFileId);
+}
+
+/** A copy as it stands: the signed file once saved, else built from its base and what's signed so far. */
 export async function copyPdf(pkg: EsignPackage, doc: EsignDocument, template: EsignTemplate): Promise<Uint8Array> {
   if (doc.signedFileId) return downloadDriveFile(doc.signedFileId);
-  const templateBytes = await downloadDriveFile(template.driveFileId);
+  const templateBytes = await copyBaseBytes(template, doc);
   return buildEsignPdf({ template, doc, templateBytes, title: `${pkg.ref} — ${pkg.title}` });
 }
 
