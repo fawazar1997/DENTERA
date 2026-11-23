@@ -96,6 +96,13 @@ export const DOC_CSS = `
 .esign-sig.esign-al-end{margin-inline-start:auto;}
 .esign-doc td .esign-sig{width:100% !important;}
 .esign-sig-role{font-weight:700;margin-bottom:4px;}
+.esign-stampblock{position:relative;margin:0.4em 0 0.6em 0;max-width:100%;}
+.esign-stampblock.esign-al-start{margin-inline-end:auto;}
+.esign-stampblock.esign-al-center{margin-inline-start:auto;margin-inline-end:auto;}
+.esign-stampblock.esign-al-end{margin-inline-start:auto;}
+.esign-doc td .esign-stampblock{max-width:100%;}
+.esign-stamp-box{display:flex;align-items:center;justify-content:center;}
+.esign-preview .esign-stamp-empty{border:2px dashed var(--c);border-radius:50%;background:var(--cb);color:var(--c);font-size:8pt;font-weight:700;font-family:${FONT_STACKS.dentera};text-align:center;line-height:1.3;padding:4px;}
 .esign-sig-row{position:relative;width:100%;}
 .esign-sig-box{width:100%;border-bottom:1px solid #374151;}
 .esign-sig-stamp{position:absolute;top:50%;inset-inline-end:-8px;transform:translateY(-50%);}

@@ -74,14 +74,14 @@ function cut(root: HTMLElement, box: { top: number; height: number }): DocLayout
   };
 
   // Signature blocks and table rows are never cut (a row taller than a page is, between its lines).
-  const sigs = Array.from(root.querySelectorAll<HTMLElement>(".esign-sig"));
+  const sigs = Array.from(root.querySelectorAll<HTMLElement>(".esign-sig, .esign-stampblock"));
   sigs.forEach((el) => add(el.getBoundingClientRect(), "sig"));
   const keptRows = new Set<Element>();
   root.querySelectorAll("tr").forEach((tr) => {
     const r = tr.getBoundingClientRect();
     if (r.height <= H) {
       keptRows.add(tr);
-      add(r, tr.querySelector(".esign-sig") ? "sig" : "row");
+      add(r, tr.querySelector(".esign-sig, .esign-stampblock") ? "sig" : "row");
     }
   });
   root.querySelectorAll("hr").forEach((el) => add(el.getBoundingClientRect(), "block"));

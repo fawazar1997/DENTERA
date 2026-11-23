@@ -60,6 +60,7 @@ export function NewPackage({
   defaultMessage,
   footer,
   official,
+  stampUrl,
 }: {
   templates: EsignTemplate[];
   contacts: EsignContact[];
@@ -71,7 +72,8 @@ export function NewPackage({
   footer: string;
   /** The official letterhead (الكليشة), when uploaded. */
   official?: OfficialFrame;
-  stampReady?: boolean;
+  /** The clinic stamp's image (previews). */
+  stampUrl?: string;
 }) {
   const t = esignText(locale);
   const ar = locale === "ar";
@@ -705,6 +707,7 @@ export function NewPackage({
                     auto: { today: riyadhToday(), title: title.trim() },
                     steps: docSteps(current),
                     labels: { signature: t.sigStep, stamp: t.stampOf, nameOf: t.nameOfRole },
+                    stampUrl,
                   })}
                   settings={docSettings}
                   footer={footer}

@@ -753,6 +753,8 @@ export async function createPackageAction(
       name: mode === "same" ? clean(chosen?.name, 80) : undefined,
       phone: mode === "same" ? phoneOf(chosen?.phone) : undefined,
       contactId: contact?.id,
+      // One person signs every copy: also one link to sign them all at once.
+      bulkToken: mode === "same" ? newSignToken() : undefined,
     };
   });
   if (steps.some((s) => s.mode === "same" && !s.name)) return { ok: false, error: "fields" };
@@ -950,6 +952,23 @@ export async function activatePackageAction(input: { packageId: string }): Promi
     refresh();
   }
   return { ok: Boolean(title) };
+}
+
+/** A unified link for a request made before they existed. */
+export async function addBulkLinkAction(form: FormData) {
+  await requireAdmin();
+  const id = str(form, "id");
+  const stepId = str(form, "step");
+  await changeEsign((file) => {
+    const index = file.packages.findIndex((p) => p.id === id);
+    const pkg = file.packages[index];
+    if (!pkg || !pkg.steps.some((s) => s.stepId === stepId && s.mode === "same" && !s.bulkToken)) return { next: null, result: null };
+    const packages = [...file.packages];
+    packages[index] = { ...pkg, steps: pkg.steps.map((s) => (s.stepId === stepId ? { ...s, bulkToken: newSignToken() } : s)) };
+    return { next: { ...file, packages }, result: null };
+  });
+  refresh();
+  back(form, `package=${id}`);
 }
 
 export async function cancelPackageAction(form: FormData) {

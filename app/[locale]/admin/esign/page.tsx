@@ -62,6 +62,7 @@ import {
   setLetterheadFooterAction,
   deleteOfficialLetterheadAction,
   setOfficialMarginsAction,
+  addBulkLinkAction,
 } from "@/lib/esignActions";
 import { OfficialLetterheadUpload } from "@/components/admin/esign/OfficialLetterheadUpload";
 import { DocumentEditor } from "@/components/admin/esign/DocumentEditor";
@@ -150,6 +151,7 @@ export default async function AdminEsignPage({
   const official = store.officialSavedAt
     ? { url: `/api/admin/esign/letterhead?v=${encodeURIComponent(store.officialSavedAt)}`, ...margins }
     : undefined;
+  const stampImage = store.stampSavedAt ? `/api/admin/esign/stamp?v=${encodeURIComponent(store.stampSavedAt)}` : undefined;
   // A document template's content, for its editor.
   let content = EMPTY_DOC;
   if (template && isDocumentTemplate(template) && !searchParams.new) {
@@ -191,7 +193,7 @@ export default async function AdminEsignPage({
 
       {template && !searchParams.new ? (
         isDocumentTemplate(template) ? (
-          <DocumentEditor template={template} content={content} contacts={store.contacts} locale={locale} footer={footer} official={official} />
+          <DocumentEditor template={template} content={content} contacts={store.contacts} locale={locale} footer={footer} official={official} stampUrl={stampImage} />
         ) : (
           <TemplateEditor template={template} contacts={store.contacts} locale={locale} stampUrl={stampUrl} />
         )
@@ -204,7 +206,7 @@ export default async function AdminEsignPage({
           defaultMessage={store.messageTemplate}
           footer={footer}
           official={official}
-          stampReady={Boolean(store.stampSavedAt)}
+          stampUrl={stampImage}
         />
       ) : pkg ? (
         <PackageView
@@ -410,6 +412,64 @@ function PackageView({
           </details>
         )}
       </section>
+
+      {pkg.documents.length > 1 && pkg.status === "active" && pkg.steps.some((s) => s.mode === "same") && (
+        <section className="card mt-4 p-5">
+          <h3 className="font-bold text-ink-900">{t.unifiedLink}</h3>
+          <p className="mt-1 text-sm text-ink-500">{t.unifiedLinkHint}</p>
+          <ul className="mt-3 grid gap-2">
+            {pkg.steps
+              .filter((s) => s.mode === "same")
+              .map((step) => {
+                const index = pkg.steps.findIndex((s) => s.stepId === step.stepId);
+                const live = pkg.documents.filter((d) => d.status !== "cancelled" && d.status !== "preparing");
+                const signedCount = live.filter((d) => d.signers[index]?.signedAt).length;
+                const url = step.bulkToken ? `${origin}/sign/all/${step.bulkToken}` : "";
+                const message = fillSignMessage(messageTemplate, {
+                  name: step.name ?? "",
+                  role: roleOf(step.stepId),
+                  title: pkg.title,
+                  copy: `${t.allCopies} (${live.length})`,
+                  ref: pkg.ref,
+                  link: url,
+                });
+                return (
+                  <li key={step.stepId} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-primary-50 px-3 py-2.5 ring-1 ring-primary-200">
+                    <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ background: colorOf(step.stepId) }} />
+                    <span className="text-sm">
+                      <span className="font-bold text-ink-900">{roleOf(step.stepId)}</span>
+                      <span className="text-ink-600"> — {step.name}</span>
+                    </span>
+                    <span className="text-xs font-bold text-ink-500">
+                      {signedCount} / {live.length} {t.signed}
+                    </span>
+                    <span className="ms-auto">
+                      {step.bulkToken ? (
+                        signedCount < live.length && (
+                          <LinkActions
+                            url={url}
+                            whatsappUrl={step.phone ? whatsappHref(step.phone, message) : `https://wa.me/?text=${encodeURIComponent(message)}`}
+                            labels={linkLabels}
+                            highlight
+                          />
+                        )
+                      ) : (
+                        <form action={addBulkLinkAction}>
+                          <input type="hidden" name="locale" value={locale} />
+                          <input type="hidden" name="id" value={pkg.id} />
+                          <input type="hidden" name="step" value={step.stepId} />
+                          <button type="submit" className="rounded-full bg-ink-900 px-3 py-1.5 text-xs font-bold text-white">
+                            {t.addUnified}
+                          </button>
+                        </form>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+      )}
 
       <ul className="mt-4 space-y-3">
         {pkg.documents.map((doc) => (

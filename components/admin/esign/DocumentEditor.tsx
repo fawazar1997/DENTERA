@@ -23,6 +23,7 @@ import {
   Braces,
   Check,
   Columns3,
+  Stamp as StampIcon,
   Eye,
   Heading1,
   Heading2,
@@ -56,7 +57,8 @@ import {
 } from "@/lib/esignTypes";
 import { docVariableNames, walkDoc, type DocNode } from "@/lib/esignDoc";
 import { AUTO_VARS, riyadhToday } from "@/lib/esignValues";
-import { DocTable, EditorInfoContext, PageBreakNode, SignatureBlockNode, VariableNode, type EditorInfo } from "@/components/esign/document/editorNodes";
+import { DocTable, EditorInfoContext, PageBreakNode, SignatureBlockNode, StampBlockNode, VariableNode, type EditorInfo } from "@/components/esign/document/editorNodes";
+import { STAMP_MM } from "@/lib/esignDoc";
 import { CONTENT_W, EDITOR_CSS, FONT_STACKS, PAGE_H, PAGE_W, type OfficialFrame } from "@/components/esign/document/docStyles";
 import { documentBodyHtml, langOf } from "@/components/esign/document/renderDocument";
 import { ensureDocFonts } from "@/components/esign/document/layout";
@@ -71,6 +73,7 @@ export function DocumentEditor({
   locale,
   footer,
   official,
+  stampUrl,
 }: {
   template: EsignTemplate;
   content: DocNode;
@@ -80,6 +83,8 @@ export function DocumentEditor({
   footer: string;
   /** The official letterhead (الكليشة), when uploaded. */
   official?: OfficialFrame;
+  /** The clinic stamp's image, when uploaded. */
+  stampUrl?: string;
 }) {
   const t = esignText(locale);
   const ar = locale === "ar";
@@ -103,8 +108,8 @@ export function DocumentEditor({
   const onOfficial = background === "official" && Boolean(official);
 
   const info: EditorInfo = useMemo(
-    () => ({ steps: steps.map((s, i) => ({ id: s.id, role: s.role, color: stepColorAt(i) })), t, lang }),
-    [steps, t, lang]
+    () => ({ steps: steps.map((s, i) => ({ id: s.id, role: s.role, color: stepColorAt(i) })), t, lang, stampUrl }),
+    [steps, t, lang, stampUrl]
   );
 
   const touch = useCallback(() => {
@@ -149,6 +154,7 @@ export function DocumentEditor({
       TableCell,
       VariableNode,
       SignatureBlockNode,
+      StampBlockNode,
       PageBreakNode.configure({ label: t.pageBreak }),
     ],
     content,
@@ -204,7 +210,7 @@ export function DocumentEditor({
 
   function removeStep(id: string) {
     changeNodes((n) =>
-      (n.type.name === "signatureBlock" && n.attrs.stepId === id) || (n.type.name === "variable" && n.attrs.auto === "signer" && n.attrs.stepId === id)
+      ((n.type.name === "signatureBlock" || n.type.name === "stampBlock") && n.attrs.stepId === id) || (n.type.name === "variable" && n.attrs.auto === "signer" && n.attrs.stepId === id)
         ? "delete"
         : null
     );
@@ -219,6 +225,14 @@ export function DocumentEditor({
       ?.chain()
       .focus()
       .insertContent({ type: "signatureBlock", attrs: { stepId, showName: true, showRole: true, stamp: false, size: "m", align: "start" } })
+      .run();
+  }
+
+  function insertStamp(stepId: string) {
+    editor
+      ?.chain()
+      .focus()
+      .insertContent({ type: "stampBlock", attrs: { stepId, size: STAMP_MM.default, align: "end", overlap: false } })
       .run();
   }
 
@@ -268,6 +282,7 @@ export function DocumentEditor({
 
   const selection = editor?.state.selection;
   const selectedSig = selection instanceof NodeSelection && selection.node.type.name === "signatureBlock" ? selection.node : null;
+  const selectedStamp = selection instanceof NodeSelection && selection.node.type.name === "stampBlock" ? selection.node : null;
   const inTable = editor?.isActive("table") ?? false;
   const ready = steps.length > 0 && steps.every((s) => (sigCount[s.id] ?? 0) > 0);
 
@@ -282,9 +297,10 @@ export function DocumentEditor({
             auto: { today: riyadhToday(), title: name },
             steps: info.steps,
             labels: { signature: t.sigStep, stamp: t.stampOf, nameOf: t.nameOfRole },
+            stampUrl,
           })
         : "",
-    [preview, snapshot, settings, variables, name, info.steps, t]
+    [preview, snapshot, settings, variables, name, info.steps, t, stampUrl]
   );
 
   return (
@@ -325,6 +341,17 @@ export function DocumentEditor({
             steps={info.steps}
             attrs={selectedSig.attrs}
             onChange={(patch) => editor.chain().updateAttributes("signatureBlock", patch).run()}
+            onRemove={() => editor.chain().focus().deleteSelection().run()}
+          />
+        )}
+
+        {selectedStamp && editor && (
+          <StampOptions
+            t={t}
+            steps={info.steps}
+            attrs={selectedStamp.attrs}
+            hasStamp={Boolean(stampUrl)}
+            onChange={(patch) => editor.chain().updateAttributes("stampBlock", patch).run()}
             onRemove={() => editor.chain().focus().deleteSelection().run()}
           />
         )}
@@ -441,6 +468,7 @@ export function DocumentEditor({
                 insertVariable({ name: n });
               }}
               onInsertSignature={() => sigStep && insertSignature(sigStep)}
+              onInsertStamp={() => sigStep && insertStamp(sigStep)}
               onInsertSignatureRow={insertSignatureRow}
             />
             <div className="overflow-x-auto rounded-b-2xl bg-ink-100/70 p-3 sm:p-6">
@@ -524,6 +552,7 @@ function Toolbar({
   onInsertVariable,
   onNewVariable,
   onInsertSignature,
+  onInsertStamp,
   onInsertSignatureRow,
 }: {
   editor: Editor | null;
@@ -537,6 +566,7 @@ function Toolbar({
   onInsertVariable: (attrs: { name: string; auto?: string; stepId?: string }) => void;
   onNewVariable: (name: string) => void;
   onInsertSignature: () => void;
+  onInsertStamp: () => void;
   onInsertSignatureRow: () => void;
 }) {
   const [menu, setMenu] = useState(false);
@@ -685,6 +715,16 @@ function Toolbar({
         >
           <Columns3 className="h-4 w-4" /> {t.insertSignatureRow}
         </button>
+        <button
+          type="button"
+          disabled={!steps.length}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onInsertStamp}
+          title={t.insertStampHint}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-bold text-ink-700 ring-1 ring-ink-200 hover:bg-ink-50 disabled:opacity-40"
+        >
+          <StampIcon className="h-4 w-4" /> {t.insertStamp}
+        </button>
       </div>
 
       {inTable && (
@@ -782,7 +822,8 @@ function SignatureOptions({
         [
           ["showRole", t.showRole],
           ["showName", t.showName],
-          ["stamp", t.withStamp],
+          // Older boxes may carry a stamp beside them (new ones use «مربع ختم»).
+          ...(attrs.stamp ? ([["stamp", t.withStamp]] as const) : []),
         ] as const
       ).map(([key, label]) => (
         <label key={key} className="flex items-center gap-2 text-sm text-ink-800">
@@ -790,6 +831,69 @@ function SignatureOptions({
           {label}
         </label>
       ))}
+      <button type="button" onClick={onRemove} className="inline-flex items-center gap-1.5 text-sm font-bold text-accent-800">
+        <Trash2 className="h-4 w-4" /> {t.removeBlock}
+      </button>
+    </section>
+  );
+}
+
+function StampOptions({
+  t,
+  steps,
+  attrs,
+  hasStamp,
+  onChange,
+  onRemove,
+}: {
+  t: EsignText;
+  steps: EditorInfo["steps"];
+  attrs: Record<string, unknown>;
+  hasStamp: boolean;
+  onChange: (patch: Record<string, unknown>) => void;
+  onRemove: () => void;
+}) {
+  const size = Number(attrs.size) || STAMP_MM.default;
+  return (
+    <section className="card space-y-3 border-2 border-ink-900 p-4">
+      <h2 className="font-bold text-ink-900">{t.stampOptions}</h2>
+      {!hasStamp && <p className="rounded-lg bg-accent-50 px-3 py-2 text-xs text-ink-700">{t.stampMissing}</p>}
+      <label className="block">
+        <span className="label">{t.stampAfterStep}</span>
+        <select value={String(attrs.stepId)} onChange={(e) => onChange({ stepId: e.target.value })} className="input py-1.5 text-sm">
+          {steps.map((s, i) => (
+            <option key={s.id} value={s.id}>
+              {i + 1}. {s.role || "…"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block">
+        <span className="label">
+          {t.stampSize}: <span dir="ltr">{size} mm</span>
+        </span>
+        <input
+          type="range"
+          min={STAMP_MM.min}
+          max={STAMP_MM.max}
+          step={1}
+          value={size}
+          onChange={(e) => onChange({ size: Number(e.target.value) })}
+          className="w-full accent-primary-600"
+        />
+      </label>
+      <label className="block">
+        <span className="label">{t.align}</span>
+        <select value={String(attrs.align)} onChange={(e) => onChange({ align: e.target.value })} className="input py-1.5 text-sm">
+          <option value="start">{t.alignStart}</option>
+          <option value="center">{t.alignCenter}</option>
+          <option value="end">{t.alignEnd}</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-sm text-ink-800">
+        <input type="checkbox" checked={Boolean(attrs.overlap)} onChange={(e) => onChange({ overlap: e.target.checked })} />
+        {t.stampOverlap}
+      </label>
       <button type="button" onClick={onRemove} className="inline-flex items-center gap-1.5 text-sm font-bold text-accent-800">
         <Trash2 className="h-4 w-4" /> {t.removeBlock}
       </button>

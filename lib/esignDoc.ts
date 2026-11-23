@@ -26,6 +26,18 @@ export type SignatureBlockAttrs = {
   align: "start" | "center" | "end";
 };
 
+/** A clinic stamp on its own, anywhere in the text: printed once its step has signed. */
+export type StampBlockAttrs = {
+  stepId: string;
+  /** Diameter in millimetres. */
+  size: number;
+  align: "start" | "center" | "end";
+  /** Pulled up to overlap what is just above it (e.g. a signature), as a real stamp would. */
+  overlap: boolean;
+};
+
+export const STAMP_MM = { min: 15, max: 60, default: 35 };
+
 export type VariableAttrs = {
   /** A template variable's name, or for an automatic one its display name. */
   name: string;
@@ -45,6 +57,7 @@ const BLOCKS = new Set([
   "table",
   "horizontalRule",
   "signatureBlock",
+  "stampBlock",
   "pageBreak",
 ]);
 const MARKS = new Set(["bold", "italic", "underline"]);
@@ -131,7 +144,7 @@ export function sanitizeDocContent(input: unknown): DocNode | null {
           const cells = (Array.isArray(row.content) ? row.content : []).slice(0, 12).flatMap((cell) => {
             if (++count > MAX_NODES || (cell?.type !== "tableCell" && cell?.type !== "tableHeader")) return [];
             const ca = cell.attrs ?? {};
-            const content = blocks(cell.content, depth + 1, new Set(["paragraph", "heading", "bulletList", "orderedList", "signatureBlock"]));
+            const content = blocks(cell.content, depth + 1, new Set(["paragraph", "heading", "bulletList", "orderedList", "signatureBlock", "stampBlock"]));
             const colwidth = Array.isArray(ca.colwidth) ? ca.colwidth.slice(0, 12).map((w: unknown) => Math.max(20, Math.min(2000, Math.round(Number(w) || 0)))) : null;
             return [
               {
@@ -154,6 +167,17 @@ export function sanitizeDocContent(input: unknown): DocNode | null {
         return { type: "horizontalRule" };
       case "pageBreak":
         return { type: "pageBreak" };
+      case "stampBlock": {
+        const stepId = cleanText(a.stepId, 40);
+        if (!stepId) return null;
+        const attrs: StampBlockAttrs = {
+          stepId,
+          size: Math.round(Math.min(STAMP_MM.max, Math.max(STAMP_MM.min, Number(a.size) || STAMP_MM.default))),
+          align: a.align === "center" || a.align === "end" ? a.align : "start",
+          overlap: a.overlap === true,
+        };
+        return { type: "stampBlock", attrs };
+      }
       case "signatureBlock": {
         const stepId = cleanText(a.stepId, 40);
         if (!stepId) return null;
@@ -211,7 +235,8 @@ export function docSignatureSteps(doc: DocNode): string[] {
 export function docStepRefs(doc: DocNode): string[] {
   const steps: string[] = [];
   walkDoc(doc, (n) => {
-    const id = n.type === "signatureBlock" || (n.type === "variable" && n.attrs?.auto === "signer") ? String(n.attrs?.stepId ?? "") : "";
+    const id =
+      n.type === "signatureBlock" || n.type === "stampBlock" || (n.type === "variable" && n.attrs?.auto === "signer") ? String(n.attrs?.stepId ?? "") : "";
     if (id && !steps.includes(id)) steps.push(id);
   });
   return steps;

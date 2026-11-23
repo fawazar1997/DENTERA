@@ -151,6 +151,37 @@ export async function findSigner(token: string): Promise<SignerContext | null> {
   return signerIn(file, token);
 }
 
+export type BulkContext = {
+  pkg: EsignPackage;
+  template: EsignTemplate | undefined;
+  step: EsignPackage["steps"][number];
+  /** The step's position in the procedure. */
+  stepIndex: number;
+  contact?: EsignContact;
+};
+
+/** Finds a unified link (one signer, every copy of a request). */
+export async function findBulk(token: string): Promise<BulkContext | null> {
+  if (!/^[\w-]{20,64}$/.test(token)) return null;
+  return bulkIn(await readEsign(), token);
+}
+
+export function bulkIn(file: EsignFile, token: string): BulkContext | null {
+  for (const pkg of file.packages) {
+    const step = pkg.steps.find((s) => s.mode === "same" && sameKey(s.bulkToken, token));
+    if (!step) continue;
+    const template = file.templates.find((t) => t.id === pkg.templateId);
+    return {
+      pkg,
+      template,
+      step,
+      stepIndex: pkg.steps.findIndex((s) => s.stepId === step.stepId),
+      contact: file.contacts.find((c) => c.id === step.contactId),
+    };
+  }
+  return null;
+}
+
 export function signerIn(file: EsignFile, token: string): SignerContext | null {
   for (const pkg of file.packages) {
     for (const doc of pkg.documents) {

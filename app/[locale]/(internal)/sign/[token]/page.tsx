@@ -119,6 +119,8 @@ export default async function SignPage({ params }: { params: { locale: string; t
               defaultName={signer.name}
               savedSignature={savedSignature}
               canSave={Boolean(found.contact)}
+              signed={Boolean(signer.signedAt)}
+              version={`${doc.signers.filter((s) => s.signedAt).length}-${doc.status}-${doc.signedFileId ? 1 : 0}`}
             />
           </div>
         )}

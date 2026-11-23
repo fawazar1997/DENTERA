@@ -161,7 +161,15 @@ export type EsignPackage = {
   templateId: string;
   /** "preparing" until its images are uploaded, then "active". */
   status: "preparing" | "active" | "completed" | "cancelled";
-  steps: { stepId: string; mode: "same" | "perCopy"; name?: string; phone?: string; contactId?: string }[];
+  steps: {
+    stepId: string;
+    mode: "same" | "perCopy";
+    name?: string;
+    phone?: string;
+    contactId?: string;
+    /** "same" steps: one link to sign every copy at once (/sign/all/<token>). */
+    bulkToken?: string;
+  }[];
   documents: EsignDocument[];
   /** The package's folder inside «المستندات الموقّعة». */
   driveFolderId?: string;

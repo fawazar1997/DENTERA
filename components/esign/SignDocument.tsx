@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, PenLine, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, PenLine, XCircle } from "lucide-react";
 import { esignText } from "@/lib/esignText";
 import type { Locale } from "@/lib/i18n";
 import { declineDocumentAction, signDocumentAction } from "@/lib/esignSignActions";
@@ -23,6 +23,8 @@ export function SignDocument({
   defaultName,
   savedSignature,
   canSave = false,
+  signed = false,
+  version = "",
 }: {
   token: string;
   locale: Locale;
@@ -34,6 +36,10 @@ export function SignDocument({
   savedSignature?: string;
   /** A saved signer without one yet: offer to keep this drawing. */
   canSave?: boolean;
+  /** This signer has signed: their boxes are shown done, with their signature in them. */
+  signed?: boolean;
+  /** Changes whenever someone signs, so the document is loaded again with the new signatures. */
+  version?: string;
 }) {
   const t = esignText(locale);
   const router = useRouter();
@@ -46,6 +52,16 @@ export function SignDocument({
   const [note, setNote] = useState("");
   const [useSaved, setUseSaved] = useState(Boolean(savedSignature));
   const [saveMine, setSaveMine] = useState(false);
+  // Just signed on this page: once the document is back with the signature, show it.
+  const [justSigned, setJustSigned] = useState(false);
+  const [loaded, setLoaded] = useState(0);
+  const firstBox = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (justSigned && signed && loaded) {
+      firstBox.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [justSigned, signed, loaded]);
 
   async function sign() {
     setError("");
@@ -56,6 +72,7 @@ export function SignDocument({
     setBusy(true);
     const result = await signDocumentAction({ token, png: png ?? undefined, useSaved, saveSignature: saveMine && !useSaved, typedName: name }).catch(() => ({ ok: false as const, error: "failed" as const }));
     if (result.ok) {
+      setJustSigned(true);
       router.refresh();
       return;
     }
@@ -78,10 +95,27 @@ export function SignDocument({
     <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
       <div className="min-w-0">
         <PdfPages
-          url={`/api/sign/${token}`}
+          url={`/api/sign/${token}${version ? `?v=${encodeURIComponent(version)}` : ""}`}
           labels={{ loading: t.loading, failed: t.loadFailed, page: t.page }}
+          onLoaded={() => setLoaded((n) => n + 1)}
           overlay={(page) =>
-            canSign
+            signed
+              ? boxes
+                  .map((b, i) => ({ b, i }))
+                  .filter(({ b }) => b.page === page)
+                  .map(({ b, i }) => (
+                    <div
+                      key={i}
+                      ref={i === 0 ? firstBox : undefined}
+                      style={boxStyle(b)}
+                      className="pointer-events-none rounded border-2 border-primary-500 bg-primary-400/5"
+                    >
+                      <span className="absolute -top-2.5 start-1 inline-flex items-center gap-1 rounded bg-primary-600 px-1.5 py-0.5 text-[0.6rem] font-bold text-white shadow sm:-top-3 sm:text-xs">
+                        <CheckCircle2 className="h-3 w-3" /> {t.signedHere}
+                      </span>
+                    </div>
+                  ))
+              : canSign
               ? boxes
                   .filter((b) => b.page === page)
                   .map((b, i) => (
@@ -97,6 +131,20 @@ export function SignDocument({
           }
         />
       </div>
+
+      {signed && justSigned && (
+        <aside className="lg:sticky lg:top-4 lg:self-start">
+          <section role="status" className="card border-2 border-primary-300 p-5">
+            <h2 className="flex items-center gap-2 font-bold text-ink-950">
+              <CheckCircle2 className="h-6 w-6 text-primary-600" /> {t.signedDoneTitle}
+            </h2>
+            <p className="mt-2 text-sm text-ink-600">{t.signedDoneText}</p>
+            <button type="button" onClick={() => firstBox.current?.scrollIntoView({ behavior: "smooth", block: "center" })} className="btn-outline mt-4 w-full">
+              {t.showMySignature}
+            </button>
+          </section>
+        </aside>
+      )}
 
       {canSign && (
         <aside id="sign-pad" className="scroll-mt-4 lg:sticky lg:top-4 lg:self-start">

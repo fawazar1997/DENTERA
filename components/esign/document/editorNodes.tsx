@@ -16,6 +16,8 @@ export type EditorInfo = {
   steps: { id: string; role: string; color: string }[];
   t: EsignText;
   lang: ValueLang;
+  /** The clinic stamp's image (uploaded in Settings). */
+  stampUrl?: string;
 };
 
 export const EditorInfoContext = createContext<EditorInfo | null>(null);
@@ -205,6 +207,81 @@ export const SignatureBlockNode = Node.create({
   },
   addNodeView() {
     return ReactNodeViewRenderer(SignatureView);
+  },
+});
+
+function StampView({ node, selected }: NodeViewProps) {
+  const info = useContext(EditorInfoContext);
+  const a = node.attrs;
+  const step = info?.steps.find((s) => s.id === a.stepId);
+  const color = step?.color ?? "#64748b";
+  const px = Math.round(((Number(a.size) || 35) * 96) / 25.4);
+  const margin =
+    a.align === "center" ? { marginInline: "auto" } : a.align === "end" ? { marginInlineStart: "auto" } : { marginInlineEnd: "auto" };
+  return (
+    <NodeViewWrapper
+      data-drag-handle=""
+      className="esign-stampblock"
+      style={{ width: px, ...margin, marginTop: a.overlap ? -Math.round(px * 0.55) : undefined, cursor: "grab", zIndex: 1 }}
+    >
+      <div
+        style={{
+          width: px,
+          height: px,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: info?.stampUrl ? undefined : `2px dashed ${color}`,
+          background: info?.stampUrl ? undefined : `${color}14`,
+          color,
+          fontSize: "8pt",
+          fontWeight: 700,
+          textAlign: "center",
+          outline: selected ? "2px solid #0f172a" : `1px dashed ${color}88`,
+          outlineOffset: 2,
+        }}
+      >
+        {info?.stampUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={info.stampUrl} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "contain", opacity: 0.9 }} />
+        ) : (
+          `${info?.t.stampOf ?? "ختم"}: ${step?.role || "…"}`
+        )}
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+/** The clinic stamp on its own (size in mm, alignment, optional overlap with what is above). */
+export const StampBlockNode = Node.create({
+  name: "stampBlock",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  addAttributes() {
+    return { stepId: { default: "" }, size: { default: 35 }, align: { default: "end" }, overlap: { default: false } };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: "div[data-stamp-block]",
+        getAttrs: (el) => {
+          try {
+            return JSON.parse((el as HTMLElement).getAttribute("data-stamp-block") ?? "{}");
+          } catch {
+            return false;
+          }
+        },
+      },
+    ];
+  },
+  renderHTML({ node }) {
+    return ["div", { "data-stamp-block": JSON.stringify(node.attrs) }];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(StampView);
   },
 });
 

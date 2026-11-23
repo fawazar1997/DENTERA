@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { changeEsign, contactSignaturePath, findSigner, imagePath, readEsign, signerIn, MAX_ESIGN_IMAGE_BYTES } from "./esign";
+import { bulkIn, changeEsign, contactSignaturePath, findBulk, findSigner, imagePath, readEsign, signerIn, MAX_ESIGN_IMAGE_BYTES, type EsignDocument } from "./esign";
 import { finalizeEsignDocument, settlePackage } from "./esignFinalize";
 import { putPrivateFile, readPrivateFile } from "./privateBlob";
 
@@ -144,4 +144,99 @@ export async function declineDocumentAction(input: { token: string; note: string
     return { next: { ...file, packages }, result: now.doc.id };
   });
   return { ok: Boolean(docId) };
+}
+
+// --- The unified link: one signer, every copy of a request ---
+
+/** Copies of the request waiting for this step now. */
+function readyCopies(docs: EsignDocument[], stepIndex: number, stepId: string): EsignDocument[] {
+  return docs.filter((d) => d.status === "active" && d.currentStep === stepIndex && d.signers[stepIndex]?.stepId === stepId && !d.signers[stepIndex].signedAt);
+}
+
+export type SignAllResult =
+  | { ok: true; signed: number; completed: string[] }
+  | { ok: false; error: "turn" | "image" | "name" | "failed" };
+
+/**
+ * Signs every chosen copy that is waiting for this step, with one signature
+ * (drawn, or the signer's saved one). Copies whose last signature this is
+ * are returned so the page can save them to Drive one by one.
+ */
+export async function signAllAction(input: {
+  token: string;
+  docIds: string[];
+  png?: string;
+  useSaved?: boolean;
+  saveSignature?: boolean;
+  typedName: string;
+}): Promise<SignAllResult> {
+  const token = String(input.token ?? "");
+  const typedName = String(input.typedName ?? "").replace(/\s+/g, " ").trim().slice(0, 100);
+  if (typedName.length < 2) return { ok: false, error: "name" };
+  const ctx = await findBulk(token);
+  if (!ctx || ctx.pkg.status !== "active") return { ok: false, error: "turn" };
+  const chosen = new Set((Array.isArray(input.docIds) ? input.docIds : []).map(String));
+  const ready = readyCopies(ctx.pkg.documents, ctx.stepIndex, ctx.step.stepId).filter((d) => chosen.has(d.id));
+  if (!ready.length) return { ok: false, error: "turn" };
+
+  let bytes: Uint8Array | null = null;
+  if (input.useSaved) {
+    if (ctx.contact?.signatureSavedAt) bytes = await readPrivateFile(contactSignaturePath(ctx.contact.id));
+  } else {
+    bytes = pngBytes(input.png);
+  }
+  if (!bytes) return { ok: false, error: "image" };
+
+  try {
+    for (const doc of ready) await putPrivateFile(imagePath(doc.id, `s-${ctx.step.stepId}`), bytes, "image/png");
+    const { ip, userAgent } = clientInfo();
+    const result = await changeEsign((file) => {
+      const now = bulkIn(file, token);
+      if (!now || now.pkg.status !== "active") return { next: null, result: null };
+      const ids = new Set(readyCopies(now.pkg.documents, now.stepIndex, now.step.stepId).filter((d) => ready.some((r) => r.id === d.id)).map((d) => d.id));
+      if (!ids.size) return { next: null, result: null };
+      const completed: string[] = [];
+      const at = new Date().toISOString();
+      const packages = file.packages.map((pkg) => {
+        if (pkg.id !== now.pkg.id) return pkg;
+        return settlePackage({
+          ...pkg,
+          documents: pkg.documents.map((doc) => {
+            if (!ids.has(doc.id)) return doc;
+            const signers = doc.signers.map((s, i) => (i === now.stepIndex ? { ...s, signedAt: at, typedName, ip, userAgent } : s));
+            const last = now.stepIndex >= doc.signers.length - 1;
+            if (last) completed.push(doc.id);
+            // A finished copy is marked unsaved until its PDF is in Drive (the panel can retry it).
+            return { ...doc, signers, currentStep: now.stepIndex + 1, ...(last ? { status: "completed" as const, completedAt: at, saveError: true } : {}) };
+          }),
+        });
+      });
+      return { next: { ...file, packages }, result: { signed: ids.size, completed } };
+    });
+    if (!result) return { ok: false, error: "turn" };
+    if (input.saveSignature && !input.useSaved && ctx.contact) {
+      const contact = ctx.contact;
+      await putPrivateFile(contactSignaturePath(contact.id), bytes, "image/png");
+      await changeEsign((file) => ({
+        next: {
+          ...file,
+          contacts: file.contacts.map((c) => (c.id === contact.id ? { ...c, signatureSavedAt: new Date().toISOString(), signatureSource: "self" as const } : c)),
+        },
+        result: null,
+      }));
+    }
+    return { ok: true, signed: result.signed, completed: result.completed };
+  } catch (error) {
+    console.error("e-sign: signing all failed", error);
+    return { ok: false, error: "failed" };
+  }
+}
+
+/** Saves one fully signed copy to Drive (after signAllAction), by the unified link. */
+export async function saveSignedCopyAction(input: { token: string; docId: string }): Promise<{ ok: boolean }> {
+  const ctx = await findBulk(String(input.token ?? ""));
+  const doc = ctx?.pkg.documents.find((d) => d.id === String(input.docId ?? ""));
+  if (!ctx || !doc || doc.status !== "completed") return { ok: false };
+  if (doc.signedFileId) return { ok: true };
+  return { ok: await finalizeEsignDocument(ctx.pkg.id, doc.id) };
 }

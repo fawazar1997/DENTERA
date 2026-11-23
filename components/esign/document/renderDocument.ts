@@ -1,7 +1,7 @@
 // A document template's content as HTML, with a copy's values filled in.
 // Used for the previews, the page-break measuring and the page images.
 
-import type { DocNode, SignatureBlockAttrs } from "@/lib/esignDoc";
+import { STAMP_MM, type DocNode, type SignatureBlockAttrs, type StampBlockAttrs } from "@/lib/esignDoc";
 import { docBackground, type EsignDocSettings, type EsignVariable } from "@/lib/esignTypes";
 import { autoVarName, displayValue, type ValueLang } from "@/lib/esignValues";
 import { FONT_STACKS, MARGIN_X, PAGE_H, SIG_SIZES, contentBox, type OfficialFrame } from "./docStyles";
@@ -20,6 +20,8 @@ export type RenderContext = {
   steps: DocStep[];
   /** Labels for the preview boxes. */
   labels?: { signature: string; stamp: string; nameOf: string };
+  /** The clinic stamp's image, shown in its boxes in previews. */
+  stampUrl?: string;
 };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -97,6 +99,24 @@ function signatureBlock(node: DocNode, ctx: RenderContext): string {
   }<div class="esign-sig-row">${box}${stamp}</div>${nameLine}</div>`;
 }
 
+/** A stamp on its own: an empty square box (the stamp is printed in it after its step signs). */
+function stampBlock(node: DocNode, ctx: RenderContext): string {
+  const a = node.attrs as unknown as StampBlockAttrs;
+  const step = ctx.steps.find((s) => s.id === a.stepId);
+  const color = step?.color ?? "#64748b";
+  const mm = Math.min(STAMP_MM.max, Math.max(STAMP_MM.min, Number(a.size) || STAMP_MM.default));
+  const px = Math.round((mm * 96) / 25.4);
+  const preview = ctx.mode === "preview";
+  const inner = preview
+    ? ctx.stampUrl
+      ? `<img src="${esc(ctx.stampUrl)}" alt="" style="width:100%;height:100%;object-fit:contain;opacity:0.9"/>`
+      : esc(`${ctx.labels?.stamp ?? "ختم"}: ${step?.role ?? ""}`)
+    : "";
+  const look = preview && !ctx.stampUrl ? " esign-stamp-empty" : "";
+  const pull = a.overlap ? `margin-top:-${Math.round(px * 0.55)}px;` : "";
+  return `<div class="esign-stampblock esign-al-${a.align}" style="width:${px}px;${pull}--c:${color};--cb:${color}14"><div class="esign-stamp-box${look}" data-field="stamp" data-step="${esc(a.stepId)}" style="width:${px}px;height:${px}px">${inner}</div></div>`;
+}
+
 function table(node: DocNode, ctx: RenderContext): string {
   const rows = node.content ?? [];
   // Column widths from the first row (set by dragging in the editor), as shares of the width.
@@ -157,6 +177,8 @@ function blocks(nodes: DocNode[] | undefined, ctx: RenderContext): string {
           return '<div class="esign-pagebreak" data-pagebreak="1"></div>';
         case "signatureBlock":
           return signatureBlock(n, ctx);
+        case "stampBlock":
+          return stampBlock(n, ctx);
         default:
           return "";
       }
