@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { EsignDocSettings } from "@/lib/esignTypes";
-import { PAGE_H, PAGE_W } from "./docStyles";
+import { PAGE_H, PAGE_W, type OfficialFrame } from "./docStyles";
 import { LOGO_PATH, measureDocument, type DocLayout } from "./layout";
 import { pageHtml } from "./renderDocument";
 
@@ -17,6 +17,7 @@ export function DocPages({
   footer,
   labels,
   onLayout,
+  official,
 }: {
   /** The body's HTML (documentBodyHtml). */
   body: string;
@@ -24,6 +25,8 @@ export function DocPages({
   footer: string;
   labels: { page: string; of: string; measuring: string };
   onLayout?: (layout: DocLayout) => void;
+  /** The official letterhead (image and text margins), when uploaded. */
+  official?: OfficialFrame;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -43,7 +46,7 @@ export function DocPages({
   useEffect(() => {
     let alive = true;
     const timer = setTimeout(() => {
-      measureDocument(body, settings)
+      measureDocument(body, settings, official)
         .then((l) => {
           if (!alive) return;
           setLayout(l);
@@ -56,7 +59,7 @@ export function DocPages({
       clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [body, settings.letterhead, settings.dir, settings.font, settings.size]);
+  }, [body, settings.letterhead, settings.background, settings.dir, settings.font, settings.size, official?.top, official?.bottom]);
 
   const scale = width ? Math.min(1, width / PAGE_W) : 0;
 
@@ -87,6 +90,7 @@ export function DocPages({
                     footer,
                     logoUrl: LOGO_PATH,
                     pageLabel: { page: labels.page, of: labels.of },
+                    official,
                   }),
                 }}
               />

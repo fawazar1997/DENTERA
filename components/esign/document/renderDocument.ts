@@ -2,9 +2,9 @@
 // Used for the previews, the page-break measuring and the page images.
 
 import type { DocNode, SignatureBlockAttrs } from "@/lib/esignDoc";
-import type { EsignDocSettings, EsignVariable } from "@/lib/esignTypes";
+import { docBackground, type EsignDocSettings, type EsignVariable } from "@/lib/esignTypes";
 import { autoVarName, displayValue, type ValueLang } from "@/lib/esignValues";
-import { FONT_STACKS, MARGIN_X, PAGE_H, SIG_SIZES, contentBox } from "./docStyles";
+import { FONT_STACKS, MARGIN_X, PAGE_H, SIG_SIZES, contentBox, type OfficialFrame } from "./docStyles";
 
 export type DocStep = { id: string; role: string; color: string; signer?: string };
 
@@ -176,8 +176,10 @@ export function documentBodyHtml(doc: DocNode, ctx: RenderContext): string {
 export type PageSlice = { start: number; end: number };
 
 /**
- * One A4 page: the letterhead (if on), the slice of the body that falls on
- * it, and the footer with the page number.
+ * One A4 page: its background (the official letterhead, or Dentera's
+ * built-in one), the slice of the body that falls on it, and the page
+ * number. `clear`: a see-through page without the official letterhead's
+ * image (for page images; the server puts them on the letterhead itself).
  */
 export function pageHtml(input: {
   body: string;
@@ -188,15 +190,29 @@ export function pageHtml(input: {
   footer: string;
   logoUrl: string;
   pageLabel: { page: string; of: string };
+  official?: OfficialFrame;
+  clear?: boolean;
 }): string {
-  const { settings, slice } = input;
-  const box = contentBox(settings);
+  const { settings, slice, official } = input;
+  const background = docBackground(settings);
+  const box = contentBox(settings, official);
   const dir = settings.dir;
-  const head = settings.letterhead
+  if (background === "official" && official) {
+    const number =
+      input.count > 1
+        ? `<div class="esign-pageno" dir="${dir}" style="top:${PAGE_H - official.bottom - 18}px">${esc(
+            `${input.pageLabel.page} ${input.index + 1} ${input.pageLabel.of} ${input.count}`
+          )}</div>`
+        : "";
+    const bg = !input.clear && official.url ? `<img class="esign-bg" src="${esc(official.url)}" alt=""/>` : "";
+    const height = Math.max(0, slice.end - slice.start);
+    return `<div class="esign-page" dir="${dir}"${input.clear ? ' style="background:transparent"' : ""}>${bg}<div class="esign-viewport" style="top:${box.top}px;height:${Math.min(height, PAGE_H)}px"><div style="transform:translateY(-${slice.start}px)">${input.body}</div></div>${number}</div>`;
+  }
+  const head = background === "dentera"
     ? `<div class="esign-head" dir="${dir}"><img src="${esc(input.logoUrl)}" alt="Dentera"/><div class="esign-head-meta"></div></div>`
     : "";
   const number = `${input.pageLabel.page} ${input.index + 1} ${input.pageLabel.of} ${input.count}`;
-  const foot = settings.letterhead
+  const foot = background === "dentera"
     ? `<div class="esign-foot" dir="${dir}"><span class="esign-foot-line">${esc(input.footer)}</span><span>${esc(number)}</span></div>`
     : input.count > 1
       ? `<div style="position:absolute;bottom:30px;left:0;right:0;text-align:center;font-family:${FONT_STACKS.dentera};font-size:8pt;color:#6b7280">${esc(number)}</div>`

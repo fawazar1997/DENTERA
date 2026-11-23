@@ -43,6 +43,10 @@ type EsignFile = {
   stampSavedAt?: string;
   /** The letterhead's footer line on document templates (Settings). */
   letterheadFooter?: string;
+  /** When the official letterhead (الكليشة) was uploaded (esign/assets/letterhead.jpg). */
+  officialSavedAt?: string;
+  /** Where text goes on it (CSS pixels from the top and bottom of the page). */
+  officialMargins?: { top: number; bottom: number };
 };
 
 const ESIGN_PATH = "data/esign.json";
@@ -168,6 +172,9 @@ export function signerIn(file: EsignFile, token: string): SignerContext | null {
 
 /** The clinic stamp image. */
 export const STAMP_PATH = "esign/assets/stamp.png";
+
+/** The official letterhead (الكليشة): an A4 page image used as the background of document templates. */
+export const OFFICIAL_PATH = "esign/assets/letterhead.jpg";
 
 /** A saved signer's saved signature. */
 export function contactSignaturePath(contactId: string): string {

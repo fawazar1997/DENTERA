@@ -60,14 +60,17 @@ import {
   updateEsignContactAction,
   uploadContactSignatureAction,
   setLetterheadFooterAction,
+  deleteOfficialLetterheadAction,
+  setOfficialMarginsAction,
 } from "@/lib/esignActions";
+import { OfficialLetterheadUpload } from "@/components/admin/esign/OfficialLetterheadUpload";
 import { DocumentEditor } from "@/components/admin/esign/DocumentEditor";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { LinkActions } from "@/components/admin/esign/LinkActions";
 import { TemplateUpload } from "@/components/admin/esign/TemplateUpload";
 import { TemplateEditor } from "@/components/admin/esign/TemplateEditor";
-import { DEFAULT_LETTERHEAD_FOOTER, STEP_COLORS, fillSignMessage, templateReady } from "@/lib/esignTypes";
+import { DEFAULT_LETTERHEAD_FOOTER, DEFAULT_OFFICIAL_MARGINS, PX_PER_MM, STEP_COLORS, fillSignMessage, templateReady } from "@/lib/esignTypes";
 import { MessageEditor } from "@/components/admin/esign/MessageEditor";
 import { NewPackage } from "@/components/admin/esign/NewPackage";
 
@@ -120,6 +123,8 @@ export default async function AdminEsignPage({
     if (searchParams.saved === "stamp") return { ok: true, text: t.stampSaved };
     if (searchParams.saved === "signature") return { ok: true, text: t.sigSaved };
     if (searchParams.saved === "footer") return { ok: true, text: t.footerSaved };
+    if (searchParams.saved === "official") return { ok: true, text: t.officialSaved };
+    if (searchParams.saved === "margins") return { ok: true, text: t.marginsSaved };
     if (searchParams.error === "signature") return { ok: false, text: t.sigError };
     if (searchParams.error === "stamp") return { ok: false, text: t.stampError };
     if (searchParams.error === "folder") return { ok: false, text: ar ? "تعذّر الوصول إلى هذا المجلد. تأكد من الرابط ومن أن حساب Google المربوط يملك صلاحية عليه." : "Couldn't reach that folder. Check the link and that the connected Google account can edit it." };
@@ -140,6 +145,11 @@ export default async function AdminEsignPage({
   }
   const pkg = searchParams.package ? store.packages.find((p) => p.id === searchParams.package) : undefined;
   const footer = store.letterheadFooter || DEFAULT_LETTERHEAD_FOOTER;
+  const margins = store.officialMargins ?? DEFAULT_OFFICIAL_MARGINS;
+  // The official letterhead (الكليشة), when uploaded: its image and where text goes on it.
+  const official = store.officialSavedAt
+    ? { url: `/api/admin/esign/letterhead?v=${encodeURIComponent(store.officialSavedAt)}`, ...margins }
+    : undefined;
   // A document template's content, for its editor.
   let content = EMPTY_DOC;
   if (template && isDocumentTemplate(template) && !searchParams.new) {
@@ -181,7 +191,7 @@ export default async function AdminEsignPage({
 
       {template && !searchParams.new ? (
         isDocumentTemplate(template) ? (
-          <DocumentEditor template={template} content={content} contacts={store.contacts} locale={locale} footer={footer} />
+          <DocumentEditor template={template} content={content} contacts={store.contacts} locale={locale} footer={footer} official={official} />
         ) : (
           <TemplateEditor template={template} contacts={store.contacts} locale={locale} stampUrl={stampUrl} />
         )
@@ -193,6 +203,7 @@ export default async function AdminEsignPage({
           initialTemplateId={searchParams.template ?? searchParams.from}
           defaultMessage={store.messageTemplate}
           footer={footer}
+          official={official}
           stampReady={Boolean(store.stampSavedAt)}
         />
       ) : pkg ? (
@@ -227,6 +238,7 @@ export default async function AdminEsignPage({
             <TemplatesTab templates={store.templates} packages={store.packages} locale={locale} t={t} canUpload={Boolean(store.folders.templates) && health === "ok"} />
           )}
           {tab === "settings" && <SettingsTab
+              official={official}
               footer={store.letterheadFooter}
               folders={store.folders}
               contacts={store.contacts}
@@ -602,6 +614,7 @@ function TemplatesTab({
 }
 
 function SettingsTab({
+  official,
   footer,
   folders,
   contacts,
@@ -611,6 +624,7 @@ function SettingsTab({
   locale,
   t,
 }: {
+  official?: { url: string; top: number; bottom: number };
   footer?: string;
   folders: { parent?: string; parentName?: string };
   contacts: EsignContact[];
@@ -656,6 +670,53 @@ function SettingsTab({
           </label>
           <SubmitButton label={t.saveFolder} savedLabel={t.saved} />
         </form>
+      </section>
+
+      <section className="card p-6 xl:col-span-2">
+        <h2 className="flex items-center gap-2 font-bold text-ink-900">
+          <FileText className="h-5 w-5 text-primary-600" /> {t.officialTitle}
+        </h2>
+        <p className="mt-1 text-sm text-ink-500">{t.officialHint}</p>
+        <div className="mt-4 grid gap-6 md:grid-cols-[14rem_1fr]">
+          {official ? (
+            <div className="relative mx-auto aspect-[210/297] w-56 overflow-hidden rounded-lg border border-ink-200 bg-white shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={official.url} alt={t.officialTitle} className="absolute inset-0 h-full w-full" />
+              {/* Where text goes */}
+              <div
+                className="absolute inset-x-[8.5%] rounded border-2 border-dashed border-primary-500 bg-primary-500/10"
+                style={{ top: `${(official.top / 1123) * 100}%`, bottom: `${(official.bottom / 1123) * 100}%` }}
+                aria-hidden="true"
+              />
+            </div>
+          ) : (
+            <p className="flex aspect-[210/297] w-56 items-center justify-center rounded-lg border-2 border-dashed border-ink-200 p-4 text-center text-sm text-ink-400">
+              {t.officialNone}
+            </p>
+          )}
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <OfficialLetterheadUpload locale={locale} replace={Boolean(official)} />
+              {official && <DeleteButton action={deleteOfficialLetterheadAction} id="official" locale={locale} label={t.officialDelete} confirmText={`${t.officialDelete}?`} />}
+            </div>
+            <form action={setOfficialMarginsAction} className="space-y-3">
+              <input type="hidden" name="locale" value={locale} />
+              <p className="text-sm font-bold text-ink-900">{t.officialMargins}</p>
+              <p className="text-xs text-ink-500">{t.officialMarginsHint}</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="block">
+                  <span className="label">{t.marginTop}</span>
+                  <input name="top" type="number" min={15} max={120} step={1} defaultValue={Math.round((official?.top ?? DEFAULT_OFFICIAL_MARGINS.top) / PX_PER_MM)} className="input w-28" dir="ltr" />
+                </label>
+                <label className="block">
+                  <span className="label">{t.marginBottom}</span>
+                  <input name="bottom" type="number" min={10} max={100} step={1} defaultValue={Math.round((official?.bottom ?? DEFAULT_OFFICIAL_MARGINS.bottom) / PX_PER_MM)} className="input w-28" dir="ltr" />
+                </label>
+                <SubmitButton label={t.saveContact} savedLabel={t.saved} />
+              </div>
+            </form>
+          </div>
+        </div>
       </section>
 
       <section className="card p-6">

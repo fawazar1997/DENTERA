@@ -35,6 +35,29 @@ export async function pdfPageSizes(data: ArrayBuffer): Promise<{ w: number; h: n
   return sizes;
 }
 
+/** A PDF's first page as a PNG about `width` pixels wide (e.g. the official letterhead). */
+export async function pdfFirstPagePng(data: ArrayBuffer, width = 1654): Promise<Blob> {
+  const pdfjs = await loadPdfJs();
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(data.slice(0)), disableFontFace: true, useSystemFonts: false }).promise;
+  try {
+    const page = await doc.getPage(1);
+    const base = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: width / base.width });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("render failed");
+    return blob;
+  } finally {
+    await doc.destroy();
+  }
+}
+
 export function PdfPages({
   url,
   data,

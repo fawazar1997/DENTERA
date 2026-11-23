@@ -15,6 +15,7 @@ import {
   readEsign,
   takeRef,
   STAMP_PATH,
+  OFFICIAL_PATH,
   contactSignaturePath,
   basePdfPath,
   templateContentPath,
@@ -23,6 +24,9 @@ import {
   isDocumentTemplate,
   A4,
   DEFAULT_DOC_SETTINGS,
+  DEFAULT_OFFICIAL_MARGINS,
+  PX_PER_MM,
+  docBackground,
   MAX_DOC_CONTENT_BYTES,
   MAX_PAGE_IMAGE_BYTES,
   MAX_ESIGN_IMAGE_BYTES,
@@ -311,6 +315,67 @@ export async function uploadContactSignatureAction(form: FormData) {
   back(form, "tab=settings&saved=signature");
 }
 
+// --- The official letterhead (الكليشة) ---
+
+/** A4 at about 200 dpi. */
+const OFFICIAL_W = 1654;
+const OFFICIAL_H = 2339;
+
+/**
+ * Settings: the official letterhead, as an image of an A4 page (a PDF is
+ * turned into one in the browser first). Kept as a JPEG at about 200 dpi.
+ */
+export async function uploadOfficialLetterheadAction(form: FormData): Promise<{ ok: boolean }> {
+  const user = await requireAdmin();
+  const file = form.get("letterhead");
+  if (!(file instanceof File) || !file.size || file.size > 15 * 1024 * 1024 || !/^image\/(png|jpeg|webp)$/.test(file.type)) return { ok: false };
+  let jpeg: Buffer;
+  try {
+    const sharp = (await import("sharp")).default;
+    const input = sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: 80_000_000 }).rotate();
+    const meta = await input.metadata();
+    const ratio = (meta.width ?? 1) / (meta.height ?? 1);
+    // Close to A4: stretched to fill it exactly; otherwise fitted inside, on white.
+    const nearA4 = Math.abs(ratio - OFFICIAL_W / OFFICIAL_H) < 0.03;
+    jpeg = await input
+      .flatten({ background: "#ffffff" })
+      .resize({ width: OFFICIAL_W, height: OFFICIAL_H, fit: nearA4 ? "fill" : "contain", background: "#ffffff" })
+      .jpeg({ quality: 88, mozjpeg: true })
+      .toBuffer();
+  } catch {
+    return { ok: false };
+  }
+  await putPrivateFile(OFFICIAL_PATH, new Uint8Array(jpeg), "image/jpeg");
+  await changeEsign((f) => ({ next: { ...f, officialSavedAt: new Date().toISOString() }, result: null }));
+  await logActivity(user, "/esign", "upload", "الكليشة الرسمية");
+  refresh();
+  return { ok: true };
+}
+
+export async function deleteOfficialLetterheadAction(form: FormData) {
+  const user = await requireAdmin();
+  await deletePrivateFile(OFFICIAL_PATH).catch(() => undefined);
+  await changeEsign((f) => ({ next: { ...f, officialSavedAt: undefined }, result: null }));
+  await logActivity(user, "/esign", "delete", "الكليشة الرسمية");
+  refresh();
+  back(form, "tab=settings");
+}
+
+/** Settings: where text goes on the official letterhead (millimetres from the top and bottom). */
+export async function setOfficialMarginsAction(form: FormData) {
+  const user = await requireAdmin();
+  const mm = (key: string, min: number, max: number, fallback: number) => {
+    const n = Number(str(form, key, 8));
+    return Number.isFinite(n) && n > 0 ? Math.min(max, Math.max(min, n)) : fallback;
+  };
+  const top = Math.round(mm("top", 15, 120, DEFAULT_OFFICIAL_MARGINS.top / PX_PER_MM) * PX_PER_MM);
+  const bottom = Math.round(mm("bottom", 10, 100, DEFAULT_OFFICIAL_MARGINS.bottom / PX_PER_MM) * PX_PER_MM);
+  await changeEsign((f) => ({ next: { ...f, officialMargins: { top, bottom } }, result: null }));
+  await logActivity(user, "/esign", "settings", "هوامش الكليشة");
+  refresh();
+  back(form, "tab=settings&saved=margins");
+}
+
 /** Settings: the footer line of the letterhead on document templates. */
 export async function setLetterheadFooterAction(form: FormData) {
   const user = await requireAdmin();
@@ -544,6 +609,7 @@ export async function createDocumentTemplateAction(form: FormData) {
   const user = await requireAdmin();
   const name = str(form, "name", 120) || "مستند جديد";
   const step: EsignStep = { id: newEsignId(), role: "الموقّع", defaultMode: "perCopy" };
+  const { officialSavedAt } = await readEsign();
   const template: EsignTemplate = {
     id: newEsignId(),
     name,
@@ -554,7 +620,7 @@ export async function createDocumentTemplateAction(form: FormData) {
     steps: [step],
     fields: [],
     variables: [],
-    settings: { ...DEFAULT_DOC_SETTINGS },
+    settings: { ...DEFAULT_DOC_SETTINGS, background: officialSavedAt ? "official" : "dentera" },
     signatureSteps: [],
     createdAt: new Date().toISOString(),
   };
@@ -619,8 +685,10 @@ export async function saveDocumentTemplateAction(input: {
   const unsigned = steps.find((s) => !signatureSteps.includes(s.id));
   if (unsigned) return { ok: false, error: "signatures", detail: unsigned.role };
   const raw = input.settings ?? DEFAULT_DOC_SETTINGS;
+  const background = raw.background === "official" || raw.background === "dentera" || raw.background === "none" ? raw.background : docBackground(raw);
   const settings: EsignDocSettings = {
-    letterhead: raw.letterhead !== false,
+    background,
+    letterhead: background !== "none",
     dir: raw.dir === "ltr" ? "ltr" : "rtl",
     font: raw.font === "cambria" ? "cambria" : "dentera",
     size: Math.min(16, Math.max(8, Math.round(Number(raw.size) || 11))),
@@ -815,12 +883,21 @@ export async function finishCopyPagesAction(input: {
   if (!template.steps.every((s) => fields.some((f) => f.kind === "signature" && f.stepId === s.id))) return { ok: false };
 
   const pdf = await PDFDocument.create();
+  // The official letterhead under every page (the page images are see-through there).
+  let letterhead = null;
+  if (docBackground(template.settings ?? DEFAULT_DOC_SETTINGS) === "official") {
+    const bytes = await readPrivateFile(OFFICIAL_PATH);
+    if (!bytes) return { ok: false };
+    letterhead = await pdf.embedJpg(bytes).catch(() => null);
+    if (!letterhead) return { ok: false };
+  }
   for (let i = 0; i < pageCount; i++) {
     const bytes = await readPrivateFile(imagePath(doc.id, `page-${i}`));
     if (!bytes) return { ok: false };
     const image = await pdf.embedPng(bytes).catch(() => null);
     if (!image) return { ok: false };
     const page = pdf.addPage([A4.w, A4.h]);
+    if (letterhead) page.drawImage(letterhead, { x: 0, y: 0, width: A4.w, height: A4.h });
     page.drawImage(image, { x: 0, y: 0, width: A4.w, height: A4.h });
   }
   pdf.setTitle(`${pkg.ref} — ${pkg.title} — ${doc.label}`);

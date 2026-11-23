@@ -2,7 +2,10 @@
 // editor, the previews, the measuring for page breaks and the page images,
 // so what is previewed is exactly what is signed.
 
-import type { EsignDocSettings } from "@/lib/esignTypes";
+import { docBackground, type EsignDocSettings } from "@/lib/esignTypes";
+
+/** The official letterhead for a page: its image (none when making page images) and text margins. */
+export type OfficialFrame = { url?: string; top: number; bottom: number };
 
 /** A4 in CSS pixels (96 per inch). */
 export const PAGE_W = 794;
@@ -10,10 +13,15 @@ export const PAGE_H = 1123;
 export const MARGIN_X = 68;
 export const CONTENT_W = PAGE_W - MARGIN_X * 2;
 
-/** Where the text starts and ends on a page (with and without the letterhead). */
-export function contentBox(settings: Pick<EsignDocSettings, "letterhead">): { top: number; bottom: number; height: number } {
-  const top = settings.letterhead ? 132 : 76;
-  const bottom = settings.letterhead ? 92 : 76;
+/** Where the text starts and ends on a page (by its background). */
+export function contentBox(
+  settings: Pick<EsignDocSettings, "letterhead" | "background">,
+  official?: OfficialFrame
+): { top: number; bottom: number; height: number } {
+  const background = docBackground(settings);
+  // The official letterhead's page number sits just under the text.
+  const top = background === "official" && official ? official.top : background === "dentera" ? 132 : 76;
+  const bottom = background === "official" && official ? official.bottom + 22 : background === "dentera" ? 92 : 76;
   return { top, bottom, height: PAGE_H - top - bottom };
 }
 
@@ -56,6 +64,8 @@ export const SIG_SIZES = {
 export const DOC_CSS = `
 .esign-page{position:relative;width:${PAGE_W}px;height:${PAGE_H}px;background:#ffffff;overflow:hidden;color:#000000;box-sizing:border-box;}
 .esign-page *{box-sizing:border-box;}
+.esign-page img.esign-bg{position:absolute;left:0;top:0;width:${PAGE_W}px;height:${PAGE_H}px;}
+.esign-pageno{position:absolute;left:0;right:0;text-align:center;font-family:${FONT_STACKS.dentera};font-size:8pt;color:#6b7280;}
 .esign-head{position:absolute;top:34px;left:${MARGIN_X}px;right:${MARGIN_X}px;height:78px;display:flex;align-items:center;justify-content:space-between;border-bottom:1.5px solid #0CB8CD;}
 .esign-head img{height:58px;width:auto;}
 .esign-head-meta{font-family:${FONT_STACKS.dentera};font-size:8.5pt;color:#4b5563;line-height:1.5;}

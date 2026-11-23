@@ -47,6 +47,7 @@ import { localePath, type Locale } from "@/lib/i18n";
 import { saveDocumentTemplateAction } from "@/lib/esignActions";
 import {
   DEFAULT_DOC_SETTINGS,
+  docBackground,
   type EsignContact,
   type EsignDocSettings,
   type EsignStep,
@@ -56,7 +57,7 @@ import {
 import { docVariableNames, walkDoc, type DocNode } from "@/lib/esignDoc";
 import { AUTO_VARS, riyadhToday } from "@/lib/esignValues";
 import { DocTable, EditorInfoContext, PageBreakNode, SignatureBlockNode, VariableNode, type EditorInfo } from "@/components/esign/document/editorNodes";
-import { CONTENT_W, EDITOR_CSS, FONT_STACKS, PAGE_W } from "@/components/esign/document/docStyles";
+import { CONTENT_W, EDITOR_CSS, FONT_STACKS, PAGE_H, PAGE_W, type OfficialFrame } from "@/components/esign/document/docStyles";
 import { documentBodyHtml, langOf } from "@/components/esign/document/renderDocument";
 import { ensureDocFonts } from "@/components/esign/document/layout";
 import { DocPages } from "@/components/esign/document/DocPages";
@@ -69,6 +70,7 @@ export function DocumentEditor({
   contacts,
   locale,
   footer,
+  official,
 }: {
   template: EsignTemplate;
   content: DocNode;
@@ -76,6 +78,8 @@ export function DocumentEditor({
   locale: Locale;
   /** The letterhead footer line (Settings). */
   footer: string;
+  /** The official letterhead (الكليشة), when uploaded. */
+  official?: OfficialFrame;
 }) {
   const t = esignText(locale);
   const ar = locale === "ar";
@@ -95,6 +99,8 @@ export function DocumentEditor({
   const [sigStep, setSigStep] = useState(template.steps[0]?.id ?? "");
   const [snapshot, setSnapshot] = useState<DocNode>(content);
   const lang = langOf(settings);
+  const background = docBackground(settings);
+  const onOfficial = background === "official" && Boolean(official);
 
   const info: EditorInfo = useMemo(
     () => ({ steps: steps.map((s, i) => ({ id: s.id, role: s.role, color: stepColorAt(i) })), t, lang }),
@@ -343,14 +349,26 @@ export function DocumentEditor({
 
         <section className="card space-y-3 p-4">
           <h2 className="font-bold text-ink-900">{t.pageSetup}</h2>
-          <label className="flex items-center gap-2 text-sm text-ink-800">
-            <input
-              type="checkbox"
-              checked={settings.letterhead}
-              onChange={(e) => (setSettings((s) => ({ ...s, letterhead: e.target.checked })), touch())}
-            />
-            {t.letterheadOn}
+          <label className="block">
+            <span className="label">{t.backgroundLabel}</span>
+            <select
+              value={background}
+              onChange={(e) => {
+                const value = e.target.value as "official" | "dentera" | "none";
+                setSettings((s) => ({ ...s, background: value, letterhead: value !== "none" }));
+                touch();
+              }}
+              className="input py-1.5 text-sm"
+            >
+              <option value="official" disabled={!official}>
+                {t.bgOfficial}
+                {official ? "" : ` — ${t.bgOfficialMissing}`}
+              </option>
+              <option value="dentera">{t.bgDentera}</option>
+              <option value="none">{t.bgNone}</option>
+            </select>
           </label>
+          {background === "official" && !official && <p className="rounded-lg bg-accent-50 px-3 py-2 text-xs text-ink-700">{t.bgOfficialMissing}</p>}
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="label">{t.direction}</span>
@@ -398,7 +416,13 @@ export function DocumentEditor({
         {preview ? (
           <div className="rounded-2xl bg-ink-100/70 p-3 sm:p-6">
             <p className="mb-4 text-center text-sm text-ink-600">{t.docPreviewHint}</p>
-            <DocPages body={previewBody} settings={settings} footer={footer} labels={{ page: t.page, of: t.pageOf, measuring: t.measuring }} />
+            <DocPages
+              body={previewBody}
+              settings={settings}
+              footer={footer}
+              official={official}
+              labels={{ page: t.page, of: t.pageOf, measuring: t.measuring }}
+            />
           </div>
         ) : (
           <EditorInfoContext.Provider value={info}>
@@ -421,8 +445,20 @@ export function DocumentEditor({
             />
             <div className="overflow-x-auto rounded-b-2xl bg-ink-100/70 p-3 sm:p-6">
               <div
-                className="mx-auto rounded-md bg-white px-4 py-10 shadow-md ring-1 ring-ink-200 sm:px-[68px]"
-                style={{ maxWidth: PAGE_W, minHeight: 900 }}
+                className="mx-auto rounded-md bg-white bg-no-repeat px-4 py-10 shadow-md ring-1 ring-ink-200 sm:px-[68px]"
+                style={
+                  onOfficial
+                    ? {
+                        maxWidth: PAGE_W,
+                        minHeight: PAGE_H,
+                        // The letterhead behind the text, as on the page (its header at the top).
+                        backgroundImage: `url(${official!.url})`,
+                        backgroundSize: "100% auto",
+                        paddingTop: official!.top,
+                        paddingBottom: official!.bottom,
+                      }
+                    : { maxWidth: PAGE_W, minHeight: 900 }
+                }
               >
                 <div
                   className="esign-doc esign-editing"

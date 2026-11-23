@@ -21,6 +21,7 @@ import {
   DEFAULT_DOC_SETTINGS,
   DEFAULT_SIGN_MESSAGE,
   STEP_COLORS,
+  docBackground,
   isDocumentTemplate,
   templateVariables,
   textFieldsOf,
@@ -37,6 +38,7 @@ import { TextBox } from "@/components/esign/TextBox";
 import { DocPages } from "@/components/esign/document/DocPages";
 import { documentBodyHtml, langOf, pageHtml, type DocStep } from "@/components/esign/document/renderDocument";
 import { LOGO_PATH, PAGE_COUNT_LIMIT, measureDocument, renderPagePng, toDataUrl } from "@/components/esign/document/layout";
+import type { OfficialFrame } from "@/components/esign/document/docStyles";
 
 type StepChoice = { stepId: string; mode: "same" | "perCopy"; contactId: string; name: string; phone: string };
 type Signer = { name: string; phone: string; contactId?: string };
@@ -56,6 +58,7 @@ export function NewPackage({
   initialTemplateId,
   defaultMessage,
   footer,
+  official,
 }: {
   templates: EsignTemplate[];
   contacts: EsignContact[];
@@ -65,6 +68,8 @@ export function NewPackage({
   defaultMessage?: string;
   /** The letterhead footer line (document templates). */
   footer: string;
+  /** The official letterhead (الكليشة), when uploaded. */
+  official?: OfficialFrame;
   stampReady?: boolean;
 }) {
   const t = esignText(locale);
@@ -227,13 +232,29 @@ export function NewPackage({
         for (const [i, docId] of created.documents.entries()) {
           setBusy(`${t.preparingPages} ${i + 1} / ${created.documents.length}`);
           const body = documentBodyHtml(content, { mode: "final", settings: docSettings, variables, values: rowValues(rows[i]), auto, steps: docSteps(rows[i]) });
-          const layout = await measureDocument(body, docSettings);
+          // On the official letterhead, the pages are see-through: the server lays them on it.
+          const onOfficial = docBackground(docSettings) === "official";
+          if (onOfficial && !official) throw new Error(t.bgOfficialMissing);
+          const frame = onOfficial ? official : undefined;
+          const layout = await measureDocument(body, docSettings, frame);
           if (layout.pages.length > PAGE_COUNT_LIMIT) throw new Error(t.tooManyPages);
           for (const [p, slice] of layout.pages.entries()) {
             let png: Blob;
             try {
               png = await renderPagePng(
-                pageHtml({ body, slice, index: p, count: layout.pages.length, settings: docSettings, footer, logoUrl: logo, pageLabel: { page: t.page, of: t.pageOf } })
+                pageHtml({
+                  body,
+                  slice,
+                  index: p,
+                  count: layout.pages.length,
+                  settings: docSettings,
+                  footer,
+                  logoUrl: logo,
+                  pageLabel: { page: t.page, of: t.pageOf },
+                  official: frame,
+                  clear: onOfficial,
+                }),
+                { transparent: onOfficial }
               );
             } catch {
               throw new Error(t.renderFailed);
@@ -598,6 +619,7 @@ export function NewPackage({
                   })}
                   settings={docSettings}
                   footer={footer}
+                  official={official}
                   labels={{ page: t.page, of: t.pageOf, measuring: t.measuring }}
                 />
               ) : (

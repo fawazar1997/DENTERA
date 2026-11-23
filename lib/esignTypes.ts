@@ -24,8 +24,13 @@ export type EsignAutoVar = "today" | "ref" | "title";
 
 /** A document template's page setup. */
 export type EsignDocSettings = {
-  /** Dentera's letterhead (logo at the top, footer line, page numbers). */
+  /** Dentera's letterhead (logo at the top, footer line, page numbers). Older setting: see background. */
   letterhead: boolean;
+  /**
+   * The page background: the official letterhead uploaded in Settings
+   * (الكليشة), the built-in Dentera letterhead, or none.
+   */
+  background?: "official" | "dentera" | "none";
   dir: "rtl" | "ltr";
   font: EsignFont;
   /** Body text size in points. */
@@ -33,6 +38,20 @@ export type EsignDocSettings = {
 };
 
 export const DEFAULT_DOC_SETTINGS: EsignDocSettings = { letterhead: true, dir: "rtl", font: "dentera", size: 11 };
+
+/** A document's page background (older templates: from `letterhead`). */
+export function docBackground(settings: Pick<EsignDocSettings, "letterhead" | "background">): "official" | "dentera" | "none" {
+  return settings.background ?? (settings.letterhead ? "dentera" : "none");
+}
+
+/** Where text may go on the official letterhead (CSS pixels from the top and bottom of an A4 page). */
+export type OfficialMargins = { top: number; bottom: number };
+
+/** Below the logo and above the footer of Dentera's official letterhead. */
+export const DEFAULT_OFFICIAL_MARGINS: OfficialMargins = { top: 172, bottom: 152 };
+
+/** CSS pixels per millimetre (96 dpi). */
+export const PX_PER_MM = 96 / 25.4;
 
 /** A box on a template page, in 0–1 of the page's width/height (from the top-left). */
 export type EsignField = {

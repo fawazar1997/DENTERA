@@ -12,7 +12,7 @@
 // HTML inside, onto a canvas), so Arabic is shaped exactly as on screen.
 
 import type { EsignDocSettings, EsignField } from "@/lib/esignTypes";
-import { DOC_CSS, MARGIN_X, PAGE_H, PAGE_W, contentBox, fontFaceCss } from "./docStyles";
+import { DOC_CSS, MARGIN_X, PAGE_H, PAGE_W, contentBox, fontFaceCss, type OfficialFrame } from "./docStyles";
 import type { PageSlice } from "./renderDocument";
 
 const FONT_PATH = "/fonts/esign/";
@@ -48,7 +48,7 @@ export type DocLayout = { pages: PageSlice[]; fields: MeasuredField[] };
 type Interval = { top: number; bottom: number; kind: "line" | "head" | "sig" | "row" | "block" };
 
 /** Lays the body out off-screen and cuts it into pages. */
-export async function measureDocument(bodyHtml: string, settings: EsignDocSettings): Promise<DocLayout> {
+export async function measureDocument(bodyHtml: string, settings: EsignDocSettings, official?: OfficialFrame): Promise<DocLayout> {
   await ensureDocFonts();
   const host = document.createElement("div");
   host.setAttribute("aria-hidden", "true");
@@ -56,7 +56,7 @@ export async function measureDocument(bodyHtml: string, settings: EsignDocSettin
   host.innerHTML = bodyHtml;
   document.body.appendChild(host);
   try {
-    return cut(host.firstElementChild as HTMLElement, contentBox(settings));
+    return cut(host.firstElementChild as HTMLElement, contentBox(settings, official));
   } finally {
     host.remove();
   }
@@ -253,11 +253,12 @@ const FONT_SETTLE_MS = 400;
 /** Pixels per CSS pixel in the page images (about 200 dpi). */
 export const PAGE_SCALE = 2.1;
 
-/** One page (its HTML, images as data URLs) as a PNG. */
-export async function renderPagePng(markup: string, scale = PAGE_SCALE): Promise<Blob> {
+/** One page (its HTML, images as data URLs) as a PNG; `transparent`: no white paper (it goes on the letterhead). */
+export async function renderPagePng(markup: string, options: { scale?: number; transparent?: boolean } = {}): Promise<Blob> {
+  const scale = options.scale ?? PAGE_SCALE;
   const css = await pageImageCss();
   const wrapper = document.createElement("div");
-  wrapper.setAttribute("style", `width:${PAGE_W}px;height:${PAGE_H}px;margin:0;padding:0;background:#ffffff`);
+  wrapper.setAttribute("style", `width:${PAGE_W}px;height:${PAGE_H}px;margin:0;padding:0;background:${options.transparent ? "transparent" : "#ffffff"}`);
   const style = document.createElement("style");
   style.textContent = css;
   wrapper.appendChild(style);
@@ -281,8 +282,10 @@ export async function renderPagePng(markup: string, scale = PAGE_SCALE): Promise
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, w, h);
+    if (!options.transparent) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+    }
     ctx.drawImage(img, 0, 0, w, h);
     return canvas;
   };
