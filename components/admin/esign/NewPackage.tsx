@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Eye, FileUp, Loader2, Plus, Send, Trash2, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Download, Eye, FileUp, Loader2, Plus, Send, Trash2, Wand2 } from "lucide-react";
 import { esignText } from "@/lib/esignText";
 import { localePath, type Locale } from "@/lib/i18n";
 import { readSpreadsheet } from "@/lib/spreadsheet";
 import { foldArabic } from "@/lib/arabicSearch";
+import { headerWorkbook } from "@/lib/xlsxWrite";
 import {
   activatePackageAction,
   createPackageAction,
@@ -163,6 +164,37 @@ export function NewPackage({
 
   const invalidCount = rows.reduce((n, r) => n + labels.filter((l) => r.values[l]?.trim() && !checkValue(l, r.values[l]).ok).length, 0);
 
+  /** The fill-in sheet's column names (the import reads the same names back). */
+  const stepHeader = (stepId: string, part: "name" | "phone") => `${roleOf(stepId)} — ${part === "name" ? t.signerName : t.signerPhone}`;
+  const sheetHeaders = () => [
+    ...perCopySteps.flatMap((c) => [stepHeader(c.stepId, "name"), stepHeader(c.stepId, "phone")]),
+    ...(perCopySteps.length ? [] : [t.copyLabel]),
+    ...labels,
+  ];
+
+  /** Downloads an Excel file to fill in: one row per copy, the columns this template needs. */
+  function downloadSheet() {
+    if (!template) return;
+    const headers = sheetHeaders();
+    const phoneCols = perCopySteps.map((_, i) => i * 2 + 1);
+    const textVarCols = labels.map((l, i) => (variableOf(l)?.type === "text" ? headers.length - labels.length + i : -1)).filter((i) => i >= 0);
+    const bytes = headerWorkbook({
+      sheet: ar ? "النسخ" : "Copies",
+      headers,
+      textColumns: [...phoneCols, ...textVarCols],
+      widths: headers.map((h) => Math.min(40, Math.max(16, h.length + 8))),
+      rtl: ar,
+    });
+    const url = URL.createObjectURL(new Blob([bytes as unknown as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${t.sheetFileName} - ${template.name}.xlsx`.replace(/[\\/:*?"<>|]+/g, "-");
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   async function importSheet(file: File) {
     setError("");
     setNotice("");
@@ -170,20 +202,33 @@ export function NewPackage({
       const table = readSpreadsheet(new Uint8Array(await file.arrayBuffer()), file.name);
       const [head, ...body] = table;
       if (!head?.length) throw new Error();
-      const col = (names: string[]) => head.findIndex((h) => names.some((n) => foldArabic(h) === foldArabic(n)));
+      const fold = (h: string) => foldArabic(h).replace(/\s*[—–-]\s*/g, " - ");
+      const col = (names: string[]) => head.findIndex((h) => names.some((n) => fold(h) === fold(n)));
       const first = perCopySteps[0];
-      const nameCol = col(["الاسم", "اسم", "name", first ? roleOf(first.stepId) : "-"]);
-      const phoneCol = col(["الجوال", "جوال", "رقم الجوال", "mobile", "phone"]);
+      // Each per-copy step's own columns (from the downloaded sheet), else the first step's «الاسم»/«الجوال».
+      const stepCols = perCopySteps.map((c) => ({ stepId: c.stepId, name: col([stepHeader(c.stepId, "name")]), phone: col([stepHeader(c.stepId, "phone")]) }));
+      const fallback = !stepCols.some((c) => c.name >= 0) && first;
+      const taken = (n: string) => labels.some((l) => fold(l) === fold(n));
+      const nameCol = fallback ? col(["الاسم", "اسم", "name", roleOf(first.stepId)].filter((n) => !taken(n))) : -1;
+      const phoneCol = fallback ? col(["الجوال", "جوال", "رقم الجوال", "mobile", "phone"].filter((n) => !taken(n))) : -1;
+      const labelCol = perCopySteps.length ? -1 : col([t.copyLabel, "اسم النسخة", "copy"]);
       const varCols = labels.map((l) => [l, col([l])] as const);
       const lines = body.filter((cells) => cells.some((c) => String(c ?? "").trim()));
       // Dates: day/month or month/day, as the column's own dates show.
       const orders = Object.fromEntries(varCols.map(([l, c]) => [l, detectOrder(c >= 0 ? lines.map((cells) => String(cells[c] ?? "")) : [])]));
       const imported: Row[] = lines.map((cells) => {
         const row = emptyRow(variables);
-        if (first && nameCol >= 0) {
-          const name = String(cells[nameCol] ?? "").trim();
-          row.signers[first.stepId] = { name, phone: phoneCol >= 0 ? String(cells[phoneCol] ?? "").trim() : "", contactId: contactByName(name)?.id };
+        const cell = (i: number) => (i >= 0 ? String(cells[i] ?? "").trim() : "");
+        for (const sc of stepCols) {
+          if (sc.name < 0) continue;
+          const name = cell(sc.name);
+          row.signers[sc.stepId] = { name, phone: cell(sc.phone), contactId: contactByName(name)?.id };
         }
+        if (fallback && nameCol >= 0) {
+          const name = cell(nameCol);
+          row.signers[first.stepId] = { name, phone: cell(phoneCol), contactId: contactByName(name)?.id };
+        }
+        if (labelCol >= 0) row.label = cell(labelCol);
         for (const [label, c] of varCols) {
           const raw = c >= 0 ? String(cells[c] ?? "").trim() : "";
           if (!raw) continue;
@@ -447,6 +492,16 @@ export function NewPackage({
               <h2 className="font-bold text-ink-900">{t.copiesTitle}</h2>
               <p className="mt-1 text-sm text-ink-500">{t.copiesHint}</p>
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={downloadSheet}
+              title={t.sheetDownloadHint}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-2 text-xs font-bold text-primary-800 hover:bg-primary-100"
+            >
+              <Download className="h-4 w-4" />
+              {t.sheetDownload}
+            </button>
             <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-ink-50 px-3 py-2 text-xs font-bold text-ink-700 hover:bg-ink-100" title={t.importHint}>
               <FileUp className="h-4 w-4" />
               {t.importSheet}
@@ -461,120 +516,154 @@ export function NewPackage({
                 }}
               />
             </label>
+            </div>
           </div>
           {notice && <p className="mt-3 rounded-lg bg-primary-100 px-3 py-2 text-sm font-bold text-ink-900">{notice}</p>}
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[36rem] border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr className="text-start text-xs text-ink-500">
-                  <th className="px-2 pb-2 text-start font-bold">#</th>
-                  {perCopySteps.map((c) => (
-                    <th key={c.stepId} colSpan={2} className="px-2 pb-2 text-start font-bold" style={{ color: colorOf(c.stepId) }}>
-                      {roleOf(c.stepId)} — {t.signerName} / {t.signerPhone}
-                    </th>
-                  ))}
-                  {labels.map((label) => (
-                    <th key={label} className="px-2 pb-2 text-start font-bold">
-                      <span className="inline-flex items-center gap-1">
-                        {label}
+          <ol className="mt-4 space-y-3">
+            {rows.map((row, i) => {
+              const missing = labels.filter((l) => !row.values[l]?.trim()).length + perCopySteps.filter((c) => !row.signers[c.stepId]?.name.trim()).length;
+              const invalid = labels.filter((l) => row.values[l]?.trim() && !checkValue(l, row.values[l]).ok).length;
+              const title = (perCopySteps[0] && row.signers[perCopySteps[0].stepId]?.name.trim()) || row.label.trim();
+              return (
+                <li key={i}>
+                  <details
+                    open={i < 3 || i === previewRow || invalid > 0}
+                    className={`group rounded-xl border ${i === previewRow ? "border-primary-300 bg-primary-50/40" : "border-ink-100"}`}
+                  >
+                    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 px-4 py-3">
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-ink-900 text-xs font-bold text-white">{i + 1}</span>
+                      <span className="min-w-0 truncate font-bold text-ink-900">{title || `${t.copyLabel} ${i + 1}`}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                          invalid ? "bg-accent-100 text-accent-800" : missing ? "bg-ink-100 text-ink-600" : "bg-primary-100 text-primary-800"
+                        }`}
+                      >
+                        {invalid ? `${t.invalidValue} (${invalid})` : missing ? `${t.missingFields} ${missing}` : t.copyComplete}
+                      </span>
+                      <span className="ms-auto flex items-center gap-1">
                         <button
                           type="button"
-                          title={t.fillAll}
-                          aria-label={`${t.fillAll}: ${label}`}
-                          onClick={() => {
-                            const value = window.prompt(`${t.fillAllPrompt} ${label}`, rows[0]?.values[label] ?? "");
-                            if (value !== null) setRows((list) => list.map((r) => ({ ...r, values: { ...r.values, [label]: value } })));
-                          }}
-                          className="rounded p-0.5 text-primary-700 hover:bg-primary-50"
+                          onClick={(e) => (e.preventDefault(), setPreviewRow(i))}
+                          title={t.previewCopy}
+                          aria-label={`${t.previewCopy} ${i + 1}`}
+                          className="rounded-lg p-1.5 text-primary-700 hover:bg-primary-50"
                         >
-                          <Wand2 className="h-3.5 w-3.5" />
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={rows.length === 1}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setRows((list) => list.filter((_, k) => k !== i));
+                            setPreviewRow((p) => Math.max(0, p > i ? p - 1 : Math.min(p, rows.length - 2)));
+                          }}
+                          title={t.removeCopy}
+                          aria-label={`${t.removeCopy} ${i + 1}`}
+                          className="rounded-lg p-1.5 text-accent-800 hover:bg-accent-50 disabled:opacity-30"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </span>
-                    </th>
-                  ))}
-                  {perCopySteps.length === 0 && <th className="px-2 pb-2 text-start font-bold">{t.copyLabel}</th>}
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr key={i} className={i === previewRow ? "bg-primary-50/60" : ""}>
-                    <td className="px-2 py-1.5 text-xs font-bold text-ink-400">{i + 1}</td>
-                    {perCopySteps.map((c) => (
-                      <PerCopyCells
-                        key={c.stepId}
-                        contactLabel={t.contactLinked}
-                        linked={Boolean(row.signers[c.stepId]?.contactId)}
-                        value={row.signers[c.stepId] ?? { name: "", phone: "" }}
-                        labels={{ name: `${roleOf(c.stepId)} ${i + 1} — ${t.signerName}`, phone: `${roleOf(c.stepId)} ${i + 1} — ${t.signerPhone}` }}
-                        onChange={(v) => {
+                    </summary>
+                    <div className="grid gap-x-4 gap-y-3 border-t border-ink-100 px-4 pb-4 pt-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {perCopySteps.map((c) => {
+                        const signer = row.signers[c.stepId] ?? { name: "", phone: "" };
+                        const change = (v: { name: string; phone: string }) => {
                           const contact = contactByName(v.name);
-                          const signer = { ...v, contactId: contact?.id, phone: contact && !v.phone ? contact.phone ?? "" : v.phone };
-                          setRow(i, (r) => ({ ...r, signers: { ...r.signers, [c.stepId]: signer } }));
-                        }}
-                      />
-                    ))}
-                    {labels.map((label) => {
-                      const v = variableOf(label);
-                      const type = v?.type ?? "text";
-                      const value = row.values[label] ?? "";
-                      const check = checkValue(label, value);
-                      const shown = value.trim() && check.ok && type !== "text" ? displayValue(check.value, v, lang) : "";
-                      return (
-                        <td key={label} className="px-1 py-1.5 align-top">
-                          <input
-                            value={value}
-                            onChange={(e) => setRow(i, (r) => ({ ...r, values: { ...r.values, [label]: e.target.value } }))}
-                            onBlur={() => {
-                              if (value.trim() && check.ok && check.value !== value) setRow(i, (r) => ({ ...r, values: { ...r.values, [label]: check.value } }));
-                            }}
-                            placeholder={type === "date" ? t.dateHint : undefined}
-                            inputMode={type === "number" || type === "amount" ? "decimal" : undefined}
-                            dir={type === "text" ? undefined : "ltr"}
-                            aria-label={`${label} ${i + 1}`}
-                            aria-invalid={!check.ok}
-                            title={check.ok ? shown || undefined : t.invalidValue}
-                            className={`input min-w-[8rem] px-2 py-1.5 ${
-                              !check.ok ? "border-accent-500 bg-accent-50" : value.trim() ? "" : "border-accent-300"
-                            }`}
-                          />
-                          {type === "amount" && shown && <span className="mt-0.5 block max-w-[12rem] truncate text-[0.7rem] text-ink-500">{shown}</span>}
-                        </td>
-                      );
-                    })}
-                    {perCopySteps.length === 0 && (
-                      <td className="px-1 py-1.5">
-                        <input
-                          value={row.label}
-                          onChange={(e) => setRow(i, (r) => ({ ...r, label: e.target.value }))}
-                          aria-label={`${t.copyLabel} ${i + 1}`}
-                          className="input min-w-[8rem] px-2 py-1.5"
-                        />
-                      </td>
-                    )}
-                    <td className="whitespace-nowrap px-1 py-1.5">
-                      <button type="button" onClick={() => setPreviewRow(i)} title={t.previewCopy} aria-label={`${t.previewCopy} ${i + 1}`} className="rounded-lg p-1.5 text-primary-700 hover:bg-primary-50">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={rows.length === 1}
-                        onClick={() => {
-                          setRows((list) => list.filter((_, k) => k !== i));
-                          setPreviewRow((p) => Math.max(0, p > i ? p - 1 : Math.min(p, rows.length - 2)));
-                        }}
-                        title={t.removeCopy}
-                        aria-label={`${t.removeCopy} ${i + 1}`}
-                        className="rounded-lg p-1.5 text-accent-800 hover:bg-accent-50 disabled:opacity-30"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                          const next = { ...v, contactId: contact?.id, phone: contact && !v.phone ? contact.phone ?? "" : v.phone };
+                          setRow(i, (r) => ({ ...r, signers: { ...r.signers, [c.stepId]: next } }));
+                        };
+                        return (
+                          <div
+                            key={c.stepId}
+                            className="grid grid-cols-2 gap-2 rounded-lg p-2 sm:col-span-2 xl:col-span-3"
+                            style={{ background: `${colorOf(c.stepId)}0d`, boxShadow: `inset 3px 0 0 ${colorOf(c.stepId)}` }}
+                          >
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-bold" style={{ color: colorOf(c.stepId) }}>
+                                {roleOf(c.stepId)} — {t.signerName}
+                              </span>
+                              <input
+                                value={signer.name}
+                                list="esign-contacts"
+                                onChange={(e) => change({ ...signer, name: e.target.value })}
+                                className={`input py-2 ${signer.name.trim() ? "" : "border-accent-300"}`}
+                              />
+                              {signer.contactId && <span className="mt-0.5 block text-[0.7rem] font-bold text-primary-700">✓ {t.contactLinked}</span>}
+                            </label>
+                            <label className="block">
+                              <span className="mb-1 block text-xs font-bold" style={{ color: colorOf(c.stepId) }}>
+                                {roleOf(c.stepId)} — {t.signerPhone}
+                              </span>
+                              <input value={signer.phone} onChange={(e) => change({ ...signer, phone: e.target.value })} inputMode="tel" dir="ltr" className="input py-2" />
+                            </label>
+                          </div>
+                        );
+                      })}
+                      {perCopySteps.length === 0 && (
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-bold text-ink-600">{t.copyLabel}</span>
+                          <input value={row.label} onChange={(e) => setRow(i, (r) => ({ ...r, label: e.target.value }))} className="input py-2" />
+                        </label>
+                      )}
+                      {labels.map((label) => {
+                        const v = variableOf(label);
+                        const type = v?.type ?? "text";
+                        const value = row.values[label] ?? "";
+                        const check = checkValue(label, value);
+                        const shown = value.trim() && check.ok && type !== "text" ? displayValue(check.value, v, lang) : "";
+                        return (
+                          <div key={label}>
+                            <div className="mb-1 flex items-center justify-between gap-2">
+                              <label htmlFor={`v-${i}-${label}`} className="truncate text-xs font-bold text-ink-600">
+                                {label}
+                                {type !== "text" && (
+                                  <span className="ms-1 font-normal text-ink-400">
+                                    ({type === "date" ? t.dateHint : type === "amount" ? (ar ? "ريال" : "SAR") : t.typeNumber})
+                                  </span>
+                                )}
+                              </label>
+                              {rows.length > 1 && value.trim() && (
+                                <button
+                                  type="button"
+                                  title={t.applyToAll}
+                                  aria-label={`${t.applyToAll}: ${label}`}
+                                  onClick={() => setRows((list) => list.map((r) => ({ ...r, values: { ...r.values, [label]: value } })))}
+                                  className="inline-flex flex-shrink-0 items-center gap-1 rounded px-1 text-[0.7rem] font-bold text-primary-700 hover:bg-primary-50"
+                                >
+                                  <Wand2 className="h-3 w-3" /> {t.applyToAll}
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              id={`v-${i}-${label}`}
+                              value={value}
+                              onChange={(e) => setRow(i, (r) => ({ ...r, values: { ...r.values, [label]: e.target.value } }))}
+                              onBlur={() => {
+                                if (value.trim() && check.ok && check.value !== value) setRow(i, (r) => ({ ...r, values: { ...r.values, [label]: check.value } }));
+                              }}
+                              placeholder={type === "date" ? t.dateHint : undefined}
+                              inputMode={type === "number" || type === "amount" ? "decimal" : undefined}
+                              dir={type === "text" ? undefined : "ltr"}
+                              aria-label={`${label} ${i + 1}`}
+                              aria-invalid={!check.ok}
+                              className={`input py-2 ${!check.ok ? "border-accent-500 bg-accent-50" : value.trim() ? "" : "border-accent-300"}`}
+                            />
+                            {!check.ok ? (
+                              <span className="mt-0.5 block text-[0.7rem] font-bold text-accent-800">{t.invalidValue}</span>
+                            ) : (
+                              type === "amount" && shown && <span className="mt-0.5 block text-[0.7rem] text-ink-500">{shown}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
+          </ol>
           {invalidCount > 0 && (
             <p role="alert" className="mt-3 rounded-lg bg-accent-50 px-3 py-2 text-sm font-bold text-accent-800">
               {t.invalidCells}
@@ -728,45 +817,5 @@ export function NewPackage({
         {error && <p role="alert" className="text-sm font-bold text-accent-800">{error}</p>}
       </div>
     </div>
-  );
-}
-
-function PerCopyCells({
-  value,
-  labels,
-  linked,
-  contactLabel,
-  onChange,
-}: {
-  value: { name: string; phone: string };
-  labels: { name: string; phone: string };
-  /** The name is one of the saved signers (their saved signature is offered). */
-  linked: boolean;
-  contactLabel: string;
-  onChange: (v: { name: string; phone: string }) => void;
-}) {
-  return (
-    <>
-      <td className="px-1 py-1.5 align-top">
-        <input
-          value={value.name}
-          list="esign-contacts"
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          aria-label={labels.name}
-          className={`input min-w-[9rem] px-2 py-1.5 ${value.name.trim() ? "" : "border-accent-300"}`}
-        />
-        {linked && <span className="mt-0.5 block text-[0.7rem] font-bold text-primary-700">✓ {contactLabel}</span>}
-      </td>
-      <td className="px-1 py-1.5 align-top">
-        <input
-          value={value.phone}
-          onChange={(e) => onChange({ ...value, phone: e.target.value })}
-          aria-label={labels.phone}
-          inputMode="tel"
-          dir="ltr"
-          className="input min-w-[8rem] px-2 py-1.5"
-        />
-      </td>
-    </>
   );
 }

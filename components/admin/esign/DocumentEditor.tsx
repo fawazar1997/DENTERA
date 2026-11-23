@@ -445,21 +445,24 @@ export function DocumentEditor({
             />
             <div className="overflow-x-auto rounded-b-2xl bg-ink-100/70 p-3 sm:p-6">
               <div
-                className="mx-auto rounded-md bg-white bg-no-repeat px-4 py-10 shadow-md ring-1 ring-ink-200 sm:px-[68px]"
-                style={
-                  onOfficial
-                    ? {
-                        maxWidth: PAGE_W,
-                        minHeight: PAGE_H,
-                        // The letterhead behind the text, as on the page (its header at the top).
-                        backgroundImage: `url(${official!.url})`,
-                        backgroundSize: "100% auto",
-                        paddingTop: official!.top,
-                        paddingBottom: official!.bottom,
-                      }
-                    : { maxWidth: PAGE_W, minHeight: 900 }
-                }
+                className="relative mx-auto rounded-md bg-white px-4 py-10 shadow-md ring-1 ring-ink-200 sm:px-[68px]"
+                style={onOfficial ? { maxWidth: PAGE_W, minHeight: PAGE_H, paddingTop: official!.top, paddingBottom: 60 } : { maxWidth: PAGE_W, minHeight: 900 }}
               >
+                {onOfficial && (
+                  // Only the letterhead's header while writing (the full page shows in the preview and the PDF).
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-0 top-0 rounded-t-md bg-no-repeat"
+                    style={{
+                      aspectRatio: `${PAGE_W} / ${official!.top - 16}`,
+                      backgroundImage: `url(${official!.url})`,
+                      backgroundSize: "100% auto",
+                      backgroundPosition: "top",
+                      maskImage: "linear-gradient(to bottom, #000 70%, transparent)",
+                      WebkitMaskImage: "linear-gradient(to bottom, #000 70%, transparent)",
+                    }}
+                  />
+                )}
                 <div
                   className="esign-doc esign-editing"
                   dir={settings.dir}
