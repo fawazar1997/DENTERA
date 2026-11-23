@@ -8,6 +8,7 @@ import {
   Circle,
   CircleDot,
   Copy,
+  Download,
   ExternalLink,
   FilePlus2,
   FileUp,
@@ -66,6 +67,7 @@ import {
 } from "@/lib/esignActions";
 import { OfficialLetterheadUpload } from "@/components/admin/esign/OfficialLetterheadUpload";
 import { DocumentEditor } from "@/components/admin/esign/DocumentEditor";
+import { DownloadAll } from "@/components/admin/esign/DownloadAll";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { DeleteButton } from "@/components/admin/DeleteButton";
 import { LinkActions } from "@/components/admin/esign/LinkActions";
@@ -388,6 +390,16 @@ function PackageView({
             )}
           </div>
         </div>
+        {pkg.documents.some((d) => d.status === "completed") && (
+          <div className="mt-4 border-t border-ink-100 pt-4">
+            <DownloadAll
+              copies={pkg.documents.filter((d) => d.status === "completed").map((d) => ({ id: d.id, label: d.label }))}
+              total={pkg.documents.filter((d) => d.status !== "cancelled" && d.status !== "declined").length}
+              title={`${pkg.ref} - ${pkg.title}`}
+              locale={locale}
+            />
+          </div>
+        )}
         {pkg.status === "active" && (
           <details className="mt-4 border-t border-ink-100 pt-3">
             <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-bold text-primary-700">
@@ -484,6 +496,15 @@ function PackageView({
                 <a href={`/api/admin/esign/doc/${doc.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-ink-50 px-3 py-1.5 text-xs font-bold text-ink-700 hover:bg-ink-100">
                   <Eye className="h-3.5 w-3.5" /> {t.viewPdf}
                 </a>
+                {doc.status === "completed" && (
+                  <a
+                    href={`/api/admin/esign/doc/${doc.id}?download=1`}
+                    title={t.downloadCopyTitle}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-ink-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-ink-800"
+                  >
+                    <Download className="h-3.5 w-3.5" /> {t.downloadCopy}
+                  </a>
+                )}
                 {doc.signedLink && (
                   <a href={doc.signedLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-xs font-bold text-primary-800 hover:bg-primary-100">
                     <ExternalLink className="h-3.5 w-3.5" /> {t.openInDrive}

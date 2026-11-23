@@ -11,7 +11,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const found = await findCopy(params.id);
   if (!found?.template) return notFound();
   try {
-    return pdfResponse(await copyPdf(found.pkg, found.doc, found.template), `${found.doc.label}.pdf`);
+    const name = `${found.doc.label} - ${found.pkg.ref}.pdf`.replace(/[\\/:*?"<>|]+/g, "-");
+    const response = pdfResponse(await copyPdf(found.pkg, found.doc, found.template), name);
+    // ?download=1: saved as a file instead of opened.
+    if (request.nextUrl.searchParams.get("download") === "1") {
+      response.headers.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(name)}`);
+    }
+    return response;
   } catch {
     return notFound();
   }
