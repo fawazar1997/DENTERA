@@ -24,9 +24,13 @@ const MARKETING_SECTIONS = [
 /** Human resources: staff documents, e-signature and hiring (all of each). */
 const HR_SECTIONS = ["", "/documents", "/esign", "/careers"];
 
+/** Finance: the financial performance dashboard only. */
+const FINANCE_SECTIONS = ["", "/finance"];
+
 export function canUseSection(user: AdminUser | null, section: string): boolean {
   if (user === "admin") return true;
   if (user === "marketing") return MARKETING_SECTIONS.includes(section);
   if (user === "hr") return HR_SECTIONS.includes(section);
+  if (user === "finance") return FINANCE_SECTIONS.includes(section);
   return false;
 }

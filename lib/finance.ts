@@ -1,0 +1,190 @@
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { readPrivateFile, putPrivateFile } from "./privateBlob";
+import { aggregateMonth } from "./financeAgg";
+import { readReport, type ImportResult } from "./financeImport";
+import { buildDashboard, monthOf, riyadhDate, sameDayIn, shiftMonth, type Aggs, type MonthTotals } from "./financeMetrics";
+import {
+  DEFAULT_PARTNERS,
+  MODEL_TARGETS,
+  type FinLine,
+  type FinPayment,
+  type FinanceBranch,
+  type FinanceRun,
+  type FinanceSettings,
+  type FinanceStatus,
+  type Installments,
+  type MonthAgg,
+} from "./financeTypes";
+
+export * from "./financeTypes";
+
+// The financial dashboard's store (private files: in Blob online, under
+// data/private-files locally):
+//   finance/lines/<YYYY-MM>.json   the month's invoice lines and payments
+//   finance/days/<YYYY-MM>.json    its daily summary (what the dashboard reads)
+//   finance/months.json            revenue per month (targets, year to date)
+//   finance/installments.json      Invisalign installments, latest import
+//   finance/settings.json          targets, partners, specialties, share link
+//   finance/status.json            the robot's / uploads' last runs
+
+type MonthData = { lines: FinLine[]; payments: FinPayment[] };
+
+async function readJson<T>(path: string): Promise<T | null> {
+  const bytes = await readPrivateFile(path).catch(() => null);
+  if (!bytes) return null;
+  try {
+    return JSON.parse(Buffer.from(bytes).toString("utf-8")) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function writeJson(path: string, value: unknown): Promise<void> {
+  await putPrivateFile(path, new TextEncoder().encode(JSON.stringify(value)), "application/json");
+}
+
+export async function readFinanceSettings(): Promise<FinanceSettings> {
+  const saved = await readJson<Partial<FinanceSettings>>("finance/settings.json");
+  return {
+    yearTargets: { ...MODEL_TARGETS, ...(saved?.yearTargets ?? {}) },
+    monthTargets: saved?.monthTargets ?? {},
+    partners: saved?.partners ?? DEFAULT_PARTNERS,
+    doctorSpecialty: saved?.doctorSpecialty ?? {},
+    shareKey: saved?.shareKey,
+  };
+}
+
+export async function saveFinanceSettings(settings: FinanceSettings): Promise<void> {
+  await writeJson("finance/settings.json", settings);
+}
+
+export async function readFinanceStatus(): Promise<FinanceStatus> {
+  return (await readJson<FinanceStatus>("finance/status.json")) ?? { runs: [] };
+}
+
+export async function recordRun(run: FinanceRun): Promise<void> {
+  const status = await readFinanceStatus();
+  const runs = [run, ...status.runs].slice(0, 50);
+  await writeJson("finance/status.json", {
+    runs,
+    lastRunAt: run.at,
+    lastSuccessAt: run.ok ? run.at : status.lastSuccessAt,
+  } satisfies FinanceStatus);
+}
+
+export async function readMonthAgg(month: string): Promise<MonthAgg | undefined> {
+  return (await readJson<MonthAgg>(`finance/days/${month}.json`)) ?? undefined;
+}
+
+export async function readMonthTotals(): Promise<MonthTotals> {
+  return (await readJson<MonthTotals>("finance/months.json")) ?? {};
+}
+
+export async function readInstallments(): Promise<Installments | undefined> {
+  return (await readJson<Installments>("finance/installments.json")) ?? undefined;
+}
+
+/** Re-sums a month after its lines changed (or the settings that shape it). */
+async function rebuildMonth(month: string, data: MonthData, settings: FinanceSettings): Promise<void> {
+  const agg = aggregateMonth(month, data.lines, data.payments, settings);
+  await writeJson(`finance/days/${month}.json`, agg);
+  const totals = await readMonthTotals();
+  totals[month] =
+    Math.round(
+      Object.values(agg.days).reduce((s, day) => s + Object.values(day).reduce((t, b) => t + (b?.net ?? 0), 0), 0) * 100
+    ) / 100;
+  await writeJson("finance/months.json", totals);
+}
+
+/** Rebuilds every stored month (after the specialty settings change). */
+export async function rebuildAllMonths(): Promise<number> {
+  const settings = await readFinanceSettings();
+  const totals = await readMonthTotals();
+  let n = 0;
+  for (const month of Object.keys(totals)) {
+    const data = await readJson<MonthData>(`finance/lines/${month}.json`);
+    if (!data) continue;
+    await rebuildMonth(month, data, settings);
+    n++;
+  }
+  return n;
+}
+
+const inRange = (date: string, from: string, to: string) => date >= from && date <= to;
+
+/**
+ * Stores one report. The period and branches it covers replace what was
+ * stored for them (so re-sending the same day never counts it twice).
+ */
+export async function ingestReport(result: ImportResult): Promise<{ ok: boolean; kind: string; rows: number; months: string[] }> {
+  if (result.kind === "unknown") return { ok: false, kind: "unknown", rows: 0, months: [] };
+  if (result.kind === "installments") {
+    await writeJson("finance/installments.json", result.installments);
+    return { ok: true, kind: "installments", rows: result.rows, months: [] };
+  }
+  if (!result.from) return { ok: true, kind: result.kind, rows: 0, months: [] };
+  const settings = await readFinanceSettings();
+  const months: string[] = [];
+  for (let m = monthOf(result.from); m <= monthOf(result.to); m = shiftMonth(m, 1)) months.push(m);
+  for (const month of months) {
+    const data = (await readJson<MonthData>(`finance/lines/${month}.json`)) ?? { lines: [], payments: [] };
+    const covers = (item: { date: string; branch: FinanceBranch }) =>
+      inRange(item.date, result.from, result.to) && result.branches.includes(item.branch);
+    if (result.kind === "invoices") {
+      data.lines = data.lines.filter((l) => !covers(l)).concat(result.lines.filter((l) => l.date.startsWith(month)));
+    } else {
+      data.payments = data.payments.filter((p) => !covers(p)).concat(result.payments.filter((p) => p.date.startsWith(month)));
+    }
+    await writeJson(`finance/lines/${month}.json`, data);
+    await rebuildMonth(month, data, settings);
+  }
+  return { ok: true, kind: result.kind, rows: result.rows, months };
+}
+
+/** Reads and stores one uploaded report file. */
+export async function importReportFile(bytes: Uint8Array, fileName: string, branch?: FinanceBranch) {
+  const result = readReport(bytes, fileName, { branch, today: riyadhDate() });
+  return ingestReport(result);
+}
+
+/** Everything the dashboard needs for a day and branches. */
+export async function loadDashboard(date: string, branches: FinanceBranch[]) {
+  const month = monthOf(date);
+  const needed = new Set<string>([
+    month,
+    shiftMonth(month, -1),
+    shiftMonth(month, -2),
+    shiftMonth(month, -3),
+    monthOf(sameDayIn(date, -12)),
+  ]);
+  const [settings, history, installments, status, ...list] = await Promise.all([
+    readFinanceSettings(),
+    readMonthTotals(),
+    readInstallments(),
+    readFinanceStatus(),
+    ...[...needed].map((m) => readMonthAgg(m)),
+  ]);
+  const aggs: Aggs = {};
+  [...needed].forEach((m, i) => (aggs[m] = list[i] as MonthAgg | undefined));
+  return { dashboard: buildDashboard({ date, branches, aggs, settings, history, installments }), settings, status };
+}
+
+// --- Keys ---
+
+export function newShareKey(): string {
+  return randomBytes(24).toString("base64url");
+}
+
+export function sameKey(saved: string | undefined, key: string): boolean {
+  if (!saved || !key) return false;
+  const a = Buffer.from(saved);
+  const b = Buffer.from(key);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** The robot's key (FINANCE_INGEST_KEY, a sensitive Vercel variable). */
+export function ingestKeyOk(header: string | null): boolean {
+  const expected = process.env.FINANCE_INGEST_KEY || "";
+  const given = (header ?? "").replace(/^Bearer\s+/i, "").trim();
+  return expected.length >= 24 && sameKey(expected, given);
+}

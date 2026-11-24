@@ -14,6 +14,7 @@ export function LinkCard({
   openLabel,
   action,
   dict,
+  noLinkText,
 }: {
   title: string;
   hint: string;
@@ -23,6 +24,8 @@ export function LinkCard({
   openLabel: string;
   action: () => Promise<void>;
   dict: Dictionary;
+  /** The empty state's text (default: the shared one). */
+  noLinkText?: string;
 }) {
   return (
     <section className="card p-6">
@@ -35,7 +38,7 @@ export function LinkCard({
         {link ? (
           <CopyField value={link} copyLabel={dict.admin.copyLink} copiedLabel={dict.admin.copied} />
         ) : (
-          <p className="rounded-lg bg-ink-50 px-4 py-3 text-sm text-ink-500">{dict.admin.noLink}</p>
+          <p className="rounded-lg bg-ink-50 px-4 py-3 text-sm text-ink-500">{noLinkText ?? dict.admin.noLink}</p>
         )}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">

@@ -1,0 +1,13 @@
+{
+  "$comment": "How the robot reaches each PMS report. No secrets here (the username and password are GitHub secrets). Filled in from the PMS screens; until 'reports' has entries the robot reports 'not-configured'. In 'steps', {from} and {to} become the report's dates in 'dateFormat'.",
+  "baseUrl": "https://dentera.microchips-cloud.com/pms",
+  "dateFormat": "dd/MM/yyyy",
+  "login": {
+    "url": "https://dentera.microchips-cloud.com/pms",
+    "user": "input[type=text], input[name*=user i], input[id*=user i]",
+    "password": "input[type=password]",
+    "submit": "button[type=submit], input[type=submit]",
+    "after": ""
+  },
+  "reports": []
+}

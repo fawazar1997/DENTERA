@@ -285,6 +285,7 @@ export const dictionaries = {
       navGroupClinic: "Clinic information",
       navGroupAdminSystems: "Administrative systems",
       navGroupHr: "Human resources",
+      navGroupFinance: "Finance",
       hintBookings: "Appointment requests from the website: follow up and update each one's status.",
       hintSupervisor: "One private link for the supervisor, with an icon for each page they follow.",
       hintActivity: "Who changed what in the control panel, and when.",
@@ -295,6 +296,7 @@ export const dictionaries = {
       hintDocuments: "Staff documents by section: policies, guides, medical guides…",
       hintEsign: "Contracts and documents signed online, step by step, saved to Google Drive.",
       hintCareers: "Job applications from the website: screening, stages, analytics and exclusion.",
+      hintFinance: "Daily revenue, targets, collections, invoices and doctors, from the clinic system.",
       hintDoctors: "Add a doctor, or edit their photo, title, CV, branches and hours.",
       hintDepartments: "The clinic's departments, their icons and descriptions.",
       hintHome: "Order the home page sections and show or hide each one.",
@@ -483,6 +485,7 @@ export const dictionaries = {
       documents: "Documents",
       esign: "E-signature",
       careers: "Hiring",
+      finance: "Financial performance",
       pricesSubtitle:
         "The clinic's internal price list for staff. It's kept private (not on the website) and opened only through its private link.",
       pricesLinkHint:
@@ -928,6 +931,7 @@ export const dictionaries = {
       navGroupClinic: "معلومات العيادة",
       navGroupAdminSystems: "الأنظمة الإدارية",
       navGroupHr: "الموارد البشرية",
+      navGroupFinance: "المالية",
       hintBookings: "طلبات المواعيد من الموقع: متابعتها وتحديث حالة كل طلب.",
       hintSupervisor: "رابط واحد خاص بالمشرف، فيه أيقونة لكل صفحة يتابعها.",
       hintActivity: "من غيّر ماذا في لوحة التحكم، ومتى.",
@@ -938,6 +942,7 @@ export const dictionaries = {
       hintDocuments: "مستندات الموظفين حسب القسم: السياسات واللوائح، الأدلة، الأدلة الطبية…",
       hintEsign: "توقيع العقود والمستندات إلكترونيًا حسب الإجراء، وحفظها في Google Drive.",
       hintCareers: "طلبات التوظيف من الموقع: فرز ومراحل وتحليل واستبعاد.",
+      hintFinance: "الإيراد اليومي والمستهدف والتحصيل والفواتير والأطباء، من نظام العيادة.",
       hintDoctors: "إضافة طبيب، أو تعديل صورته ولقبه وسيرته وفروعه وأوقاته.",
       hintDepartments: "أقسام العيادة وأيقوناتها ونصوصها.",
       hintHome: "ترتيب أقسام الصفحة الرئيسية وإظهار أو إخفاء كل قسم.",
@@ -1120,6 +1125,7 @@ export const dictionaries = {
       documents: "المستندات",
       esign: "التوقيع الإلكتروني",
       careers: "التوظيف",
+      finance: "الأداء المالي",
       pricesSubtitle:
         "قائمة الأسعار الداخلية للموظفين. محفوظة بشكل خاص (لا تظهر في الموقع) وتُفتح فقط عبر رابطها الخاص.",
       pricesLinkHint:

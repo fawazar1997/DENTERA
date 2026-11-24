@@ -13,10 +13,10 @@ const DEPLOYED = Boolean(process.env.VERCEL);
  * Control panel accounts: the full admin, marketing (a few sections) and
  * human resources (the e-signature section).
  */
-export type AdminUser = "admin" | "marketing" | "hr";
+export type AdminUser = "admin" | "marketing" | "hr" | "finance";
 
 /** The accounts other than the admin, as written in their session tokens. */
-const OTHER_USERS: AdminUser[] = ["marketing", "hr"];
+const OTHER_USERS: AdminUser[] = ["marketing", "hr", "finance"];
 
 function credentialsFor(user: AdminUser): { username: string; password: string } | null {
   if (user === "admin") {
@@ -25,6 +25,11 @@ function credentialsFor(user: AdminUser): { username: string; password: string }
     return password ? { username, password } : null;
   }
   // The other accounts exist only once their password is set (no built-in fallback).
+  if (user === "finance") {
+    const username = (process.env.FINANCE_USERNAME || "finance").trim().toLowerCase();
+    const password = process.env.FINANCE_PASSWORD || "";
+    return password ? { username, password } : null;
+  }
   if (user === "hr") {
     const username = (process.env.HR_USERNAME || "hr").trim().toLowerCase();
     const password = process.env.HR_PASSWORD || "";

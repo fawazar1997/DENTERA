@@ -1,0 +1,57 @@
+# The finance robot: copies the clinic system's (PMS) reports to the
+# financial dashboard. Needs the repository secrets PMS_USER, PMS_PASSWORD
+# (a read-only PMS account) and FINANCE_INGEST_KEY (the same value as the
+# site's Vercel variable). Logs show step names only, never figures.
+name: PMS finance sync
+
+on:
+  schedule:
+    # Every hour, 9 am to midnight Riyadh (06–21 UTC): yesterday and today.
+    - cron: "17 6-21 * * *"
+    # 2:41 am Riyadh: the whole current month (late edits, returns, cancellations).
+    - cron: "41 23 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "today, month or backfill"
+        default: today
+        type: choice
+        options: [today, month, backfill]
+      months:
+        description: "Backfill: how many past months"
+        default: "13"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pms-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install the browser (in its own folder, not the site's packages)
+        run: |
+          mkdir -p "$RUNNER_TEMP/robot"
+          cp scripts/pms-robot.mjs scripts/pms-robot.config.json "$RUNNER_TEMP/robot/"
+          cd "$RUNNER_TEMP/robot"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.48.2 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+      - name: Run the robot
+        env:
+          PMS_USER: ${{ secrets.PMS_USER }}
+          PMS_PASSWORD: ${{ secrets.PMS_PASSWORD }}
+          FINANCE_INGEST_KEY: ${{ secrets.FINANCE_INGEST_KEY }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://dentera.com.sa' }}
+          MODE: ${{ inputs.mode || (github.event.schedule == '41 23 * * *' && 'month') || 'today' }}
+          MONTHS: ${{ inputs.months || '13' }}
+        working-directory: ${{ runner.temp }}/robot
+        run: node pms-robot.mjs

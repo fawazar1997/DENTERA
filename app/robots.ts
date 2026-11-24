@@ -23,6 +23,8 @@ export default function robots(): MetadataRoute.Robots {
         "/en/supervisor/",
         "/systems/",
         "/en/systems/",
+        "/finance/",
+        "/en/finance/",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

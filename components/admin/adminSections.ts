@@ -5,6 +5,7 @@ import {
   Building2,
   CalendarCheck,
   Files,
+  LineChart,
   FolderOpen,
   Handshake,
   History,
@@ -69,6 +70,10 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
       { path: "/documents", label: "documents", hint: "hintDocuments", icon: Files },
       { path: "/esign", label: "esign", hint: "hintEsign", icon: PenLine },
     ],
+  },
+  {
+    label: "navGroupFinance",
+    sections: [{ path: "/finance", label: "finance", hint: "hintFinance", icon: LineChart }],
   },
   {
     label: "navGroupHr",
