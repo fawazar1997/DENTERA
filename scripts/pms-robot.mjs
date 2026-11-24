@@ -207,7 +207,9 @@ async function describe(page, title, navigation = false) {
           .filter(vis)
           .map((el) => ({ text: el.textContent || el.getAttribute("title") || el.getAttribute("alt") || "", id: el.id, cls: el.className?.toString?.() ?? "" }))
           .filter((b) => b.text.trim() || b.id);
-        const heads = [...document.querySelectorAll("table")].map((t) => [...t.querySelectorAll("th")].map((th) => th.textContent)).filter((h) => h.length);
+        const heads = [...document.querySelectorAll("table")]
+          .map((t) => [...t.querySelectorAll("th")].map((th) => th.textContent).concat(`(${t.querySelectorAll("tbody tr").length} rows)`))
+          .filter((h) => h.length > 1);
         const menu = [...document.querySelectorAll("a, li, span")]
           .filter((el) => vis(el) && el.children.length === 0 && /report|financ|sales|تقرير|تقارير|مالي|مبيعات|collection|payment|install|تحصيل|سداد|أقساط/i.test(el.textContent || ""))
           .map((el) => el.textContent);
@@ -254,12 +256,43 @@ async function ensureSignedIn(page) {
 }
 
 /**
+ * The next download from this page or any tab it opens (some PMS exports
+ * open a new tab that then downloads the file).
+ */
+function anyDownload(page, timeout) {
+  const context = page.context();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("no download"));
+    }, timeout);
+    const watched = new Set();
+    const onDownload = (d) => {
+      cleanup();
+      resolve(d);
+    };
+    const watch = (p) => {
+      if (watched.has(p)) return;
+      watched.add(p);
+      p.on("download", onDownload);
+    };
+    const cleanup = () => {
+      clearTimeout(timer);
+      context.off("page", watch);
+      for (const p of watched) p.off("download", onDownload);
+    };
+    context.pages().forEach(watch);
+    context.on("page", watch);
+  });
+}
+
+/**
  * Runs a report's steps (filters, dates, apply) and presses its export
  * button; returns the downloaded file's path.
  */
 async function exportReport(page, rep, vars, dir, tag) {
   for (const step of rep.steps ?? []) await runStep(page, step, vars);
-  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 120_000 }), clickText(page, rep.export)]);
+  const [download] = await Promise.all([anyDownload(page, 180_000), clickText(page, rep.export)]);
   const ext = (download.suggestedFilename().match(/\.\w+$/) ?? [".xls"])[0];
   const file = join(dir, `${rep.name}-${tag}${ext}`);
   await download.saveAs(file);
@@ -374,6 +407,8 @@ async function discover() {
           await probe(report, rep, dir);
         } catch (error) {
           log(`probe ${rep.name} (${safe(error?.message, 400)})`, false);
+          const tabs = report.context().pages().length;
+          await describe(latest(report), `${rep.name} — after the export attempt (${tabs} tab${tabs > 1 ? "s" : ""} open)`);
         } finally {
           await rm(dir, { recursive: true, force: true });
         }
