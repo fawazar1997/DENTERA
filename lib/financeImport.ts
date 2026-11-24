@@ -19,21 +19,25 @@ const HEADERS: Record<Field, string[]> = {
   branch: ["branchname", "branch", "الفرع", "clinic", "العيادة"],
   doctor: ["doctorname", "doctor", "الطبيب", "اسمالطبيب", "dr"],
   patient: ["patientfileno", "fileno", "patientno", "رقمالملف", "patientid", "الملف"],
-  patientName: ["patientname", "patient", "اسمالمريض", "المريض"],
-  nationalId: ["nationalid", "idno", "idnumber", "iqama", "iqamano", "identity", "رقمالهوية", "الهوية", "رقمالإقامة"],
-  gross: ["gross", "grossamount", "price", "amountbeforediscount", "totalbeforediscount", "subtotal", "الإجماليقبلالخصم", "السعر"],
+  patientName: ["patientname", "patientfullname", "patient", "اسمالمريض", "المريض"],
+  nationalId: ["nationalid", "patientidnumber", "idno", "idnumber", "iqama", "iqamano", "identity", "رقمالهوية", "الهوية", "رقمالإقامة"],
+  gross: ["gross", "grossamount", "amountbeforediscount", "totalbeforediscount", "subtotal", "الإجماليقبلالخصم", "السعر"],
   discount: ["discount", "discountamount", "الخصم", "قيمةالخصم"],
   net: ["net", "netamount", "nettotal", "الصافي", "صافي", "afterdiscount"],
   total: ["total", "totalamount", "الإجمالي", "المجموع"],
   vat: ["vat", "vatamount", "tax", "taxamount", "الضريبة", "ضريبة"],
-  type: ["invtype", "invoicetype", "type", "paymenttype", "نوعالفاتورة", "النوع"],
+  type: ["invtype", "invoicetype", "cashorinsurance", "type", "paymenttype", "نوعالفاتورة", "النوع"],
   status: ["status", "invstatus", "invoicestatus", "الحالة", "iscancelled", "cancelled"],
-  service: ["servicename", "service", "category", "servicecategory", "treatment", "procedure", "الخدمة", "التصنيف", "الإجراء"],
+  service: ["servicename", "servicenameen", "service", "category", "servicecategory", "treatment", "procedure", "الخدمة", "التصنيف", "الإجراء"],
   method: ["paymentmethod", "method", "paymode", "paymentmode", "طريقةالدفع", "نوعالدفع", "وسيلةالدفع"],
   amount: ["amount", "paidamount", "paid", "المبلغ", "المدفوع", "value", "القيمة"],
   dueDate: ["duedate", "installmentdate", "تاريخالاستحقاق", "الاستحقاق"],
   installment: ["installmentamount", "installment", "قيمةالقسط", "القسط"],
   remaining: ["remaining", "remainingamount", "balance", "المتبقي", "الرصيد"],
+  // The PMS detailed sales report: unit price × quantity, and the service group.
+  unitPrice: ["soldprice", "unitprice", "price", "السعر"],
+  qty: ["qtysold", "qty", "quantity", "الكمية"],
+  serviceGroup: ["servicegroupname", "servicegroup", "مجموعةالخدمة"],
 };
 
 /** Payment methods as wide columns (some collection reports have one column per method). */
@@ -81,8 +85,14 @@ function header(rows: string[][]): { at: number; cols: Record<Field, number>; he
     const head = rows[at].map((h) => key(h));
     const cols: Record<Field, number> = {};
     for (const [field, names] of Object.entries(HEADERS)) {
-      const i = head.findIndex((h) => h && names.includes(h));
-      if (i >= 0) cols[field] = i;
+      // The names are in order of preference («BranchName» before «Clinic»).
+      for (const name of names) {
+        const i = head.indexOf(name);
+        if (i >= 0) {
+          cols[field] = i;
+          break;
+        }
+      }
     }
     // One column per payment method counts too (wide collection reports).
     const methods = rows[at].filter((h) => METHOD_COLUMNS.some(([, re]) => re.test(norm(h)))).length;
@@ -188,11 +198,18 @@ export function readReport(bytes: Uint8Array, fileName: string, options: { branc
         skipped++;
         continue;
       }
-      const discount = Math.abs(money(get(r, "discount")));
       const vat = "vat" in cols ? money(get(r, "vat")) : 0;
       // Net after discount without VAT: «Net» when given; else «Total» less its VAT.
       let net = "net" in cols ? money(get(r, "net")) : money(get(r, "total")) - vat;
-      const gross = "gross" in cols ? money(get(r, "gross")) : net + discount;
+      // Before discount: «Gross» when given, else unit price × quantity (the
+      // PMS's «SoldPrice» × «QtySold»), else net + discount.
+      const qty = "qty" in cols ? money(get(r, "qty")) || 1 : 1;
+      const listed = "unitPrice" in cols ? money(get(r, "unitPrice")) * qty : 0;
+      let gross = "gross" in cols ? money(get(r, "gross")) : listed;
+      let discount = Math.abs(money(get(r, "discount")));
+      if (!gross) gross = net + discount;
+      else if ("unitPrice" in cols && !("gross" in cols)) discount = Math.max(0, Math.round((Math.abs(gross) - Math.abs(net)) * 100) / 100);
+      if (net < 0 && gross > 0) gross = -gross;
       const typeText = `${get(r, "type")} ${get(r, "status")}`;
       let kind: InvoiceKind = "invoice";
       if (/credit ?note|إشعار ?دائن|اشعار ?دائن/i.test(typeText)) kind = "creditNote";
@@ -201,10 +218,17 @@ export function readReport(bytes: Uint8Array, fileName: string, options: { branc
       if (kind === "return" || kind === "creditNote") net = -Math.abs(net);
       const cancelled = /cancel|void|ملغ|إلغاء|الغاء|^true$|^1$/i.test(get(r, "status"));
       const id = get(r, "nationalId");
+      const group = get(r, "serviceGroup");
+      // The dental lab's work is its own «branch» on the dashboard.
+      const branch: FinanceBranch = /dental ?lab|معمل|مختبر/i.test(group)
+        ? "lab"
+        : "branch" in cols
+          ? branchOf(get(r, "branch"), fallbackBranch)
+          : fallbackBranch;
       lines.push({
-        inv: `${"branch" in cols ? branchOf(get(r, "branch"), fallbackBranch) : fallbackBranch}-${inv}`,
+        inv: `${branch === "lab" ? ("branch" in cols ? branchOf(get(r, "branch"), fallbackBranch) : fallbackBranch) : branch}-${inv}`,
         date,
-        branch: "branch" in cols ? branchOf(get(r, "branch"), fallbackBranch) : fallbackBranch,
+        branch,
         doctor: get(r, "doctor").replace(/\s*-\s*Khamis$/i, "") || "—",
         patient: get(r, "patient") || get(r, "patientName"),
         hasId: "nationalId" in cols ? /\d{6,}/.test(westernDigits(id)) : null,
@@ -213,7 +237,7 @@ export function readReport(bytes: Uint8Array, fileName: string, options: { branc
         net,
         kind,
         cancelled: cancelled || undefined,
-        service: get(r, "service") || undefined,
+        service: [group, get(r, "service")].filter(Boolean).join(" · ") || undefined,
       });
     }
     return { kind: "invoices", lines, ...span(lines), rows: lines.length, skipped };

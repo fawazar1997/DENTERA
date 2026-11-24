@@ -379,7 +379,8 @@ async function main() {
     return;
   }
   // Only reports whose export button is known (the rest are still being set up).
-  const reports = (config.reports ?? []).filter((r) => r.export);
+  // «enabled: false»: still being set up (discover tries it, scheduled runs skip it).
+  const reports = (config.reports ?? []).filter((r) => r.export && r.enabled !== false);
   if (!reports.length) {
     log("skipped: reports not configured yet");
     return;

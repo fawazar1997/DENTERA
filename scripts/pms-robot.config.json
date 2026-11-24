@@ -64,10 +64,11 @@
           "clickText": "Apply Filters (SP)"
         },
         {
-          "wait": 8000
+          "wait": 15000
         }
       ],
-      "export": "Excel"
+      "export": "Excel (Big Table)",
+      "enabled": false
     }
   ]
 }
