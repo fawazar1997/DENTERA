@@ -321,9 +321,16 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
                       <Avatar name={p.doctor} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-bold text-ink-900">{p.doctor}</p>
-                        <p className="text-xs text-ink-500">
-                          {t.share} {fmt.pct(p.share)}
-                        </p>
+                        {p.found ? (
+                          <p className="text-xs text-ink-500">
+                            {t.share} {fmt.pct(p.share)}
+                          </p>
+                        ) : (
+                          <p className="flex items-center gap-1 text-xs font-bold text-red-800">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            {t.partnerNotFound}
+                          </p>
+                        )}
                       </div>
                       <div className="text-end">
                         <p className="text-sm font-extrabold text-ink-950">

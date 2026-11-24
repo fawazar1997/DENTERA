@@ -135,7 +135,55 @@ export const MODEL_TARGETS: Record<string, number> = {
 /** The model's 2026 budget, the alternative to 2026F. */
 export const MODEL_BUDGET_2026 = 64924056;
 
-export const DEFAULT_PARTNERS = ["Prof. Ibrahim AlShahrani"];
+/**
+ * The partner doctors, in the order shown. Each line: the name to show, then
+ * «=» and the words that find the doctor in the PMS (any spelling: «Wadaei»,
+ * «Wadai», «Mohammad», «Muhammad»… all match; a doctor's names in both
+ * branches add up).
+ */
+export const DEFAULT_PARTNERS = [
+  "إبراهيم الشهراني = Ibrahim Shahrani",
+  "عبدالعزيز أبو ملحة = Abdulaziz Abumilha",
+  "عبدالعزيز الشهراني = Abdulaziz Shahrani",
+  "غدير الوادعي = Ghadeer Wadaei",
+  "محمد الوادعي = Mohammed Wadaei",
+  "ناصر الأحمري = Nasser Ahmari",
+  "محمد مقبول = Mohammed Maqbool",
+  "فيصل عبود = Faisal Abboud",
+  "مانع الأحمري = Manea Ahmari",
+];
+/** The single partner set before the list above (replaced by it when still saved). */
+export const OLD_DEFAULT_PARTNERS = ["Prof. Ibrahim AlShahrani"];
+
+/** Letters only, lower case, common transliteration variants made one. */
+export function nameKey(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/^(prof|dr)\.?\s*/i, "")
+    .replace(/[^a-z]/g, "")
+    .replace(/mu?ha?mm?a[dm]|mohamed|mohammad|muhammad|mohamad/g, "mohammed")
+    .replace(/abdul|abdel|abdal/g, "abdul")
+    .replace(/(wada?a?i|wadaei|wadie|wadai)/g, "wadaei")
+    .replace(/nase?r/g, "nasser")
+    .replace(/(abb?o+u?d)/g, "abboud")
+    .replace(/(maq|mak)bo?u?l/g, "maqbool")
+    .replace(/abu ?m[ie]l[h]?a+h?/g, "abumilha")
+    .replace(/mane[ae]?a?/g, "manea")
+    .replace(/ghadi?e?e?r/g, "ghadeer")
+    .replace(/aziz+/g, "aziz");
+}
+
+/** A partner line: the name shown and the words to look for. */
+export function partnerOf(line: string): { label: string; keys: string[] } {
+  const [label, words] = line.includes("=") ? line.split("=").map((x) => x.trim()) : [line.trim(), line.trim()];
+  return { label: label || words, keys: (words || label).split(/\s+/).map(nameKey).filter(Boolean) };
+}
+
+/** Whether a PMS doctor name is this partner (every word found). */
+export function isPartner(keys: string[], doctor: string): boolean {
+  const name = nameKey(doctor);
+  return keys.length > 0 && keys.every((k) => name.includes(k));
+}
 
 export function emptyBranchDay(): BranchDay {
   return {

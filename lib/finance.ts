@@ -5,6 +5,7 @@ import { readReport, type ImportResult } from "./financeImport";
 import { buildDashboard, monthOf, riyadhDate, sameDayIn, shiftMonth, type Aggs, type MonthTotals } from "./financeMetrics";
 import {
   DEFAULT_PARTNERS,
+  OLD_DEFAULT_PARTNERS,
   MODEL_TARGETS,
   type FinLine,
   type FinPayment,
@@ -50,7 +51,8 @@ export async function readFinanceSettings(): Promise<FinanceSettings> {
   return {
     yearTargets: { ...MODEL_TARGETS, ...(saved?.yearTargets ?? {}) },
     monthTargets: saved?.monthTargets ?? {},
-    partners: saved?.partners ?? DEFAULT_PARTNERS,
+    // The first default (one partner) is replaced by the full list.
+    partners: !saved?.partners || JSON.stringify(saved.partners) === JSON.stringify(OLD_DEFAULT_PARTNERS) ? DEFAULT_PARTNERS : saved.partners,
     doctorSpecialty: saved?.doctorSpecialty ?? {},
     shareKey: saved?.shareKey,
   };

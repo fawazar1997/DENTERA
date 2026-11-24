@@ -174,7 +174,7 @@ async function SettingsTab({
         <label className="block">
           <span className="font-bold text-ink-900">{t.partners}</span>
           <span className="mt-1 block text-sm text-ink-500">{t.partnersHint}</span>
-          <textarea name="partners" rows={3} dir="ltr" defaultValue={settings.partners.join("\n")} className="input mt-2" />
+          <textarea name="partners" rows={10} dir="auto" defaultValue={settings.partners.join("\n")} className="input mt-2" />
         </label>
         <label className="block">
           <span className="font-bold text-ink-900">{t.specialtyMap}</span>

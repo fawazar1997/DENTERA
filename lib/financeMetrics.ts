@@ -6,6 +6,8 @@
 import { addInto } from "./financeAgg";
 import {
   MODEL_TARGETS,
+  isPartner,
+  partnerOf,
   emptyBranchDay,
   type BranchDay,
   type FinanceBranch,
@@ -171,7 +173,8 @@ export type Dashboard = {
   doctorsToday: { previousDate: string | null; rows: DoctorRow[] };
   top10: DoctorRow[];
   falling: (DoctorRow & { average: number })[];
-  partners: (DoctorRow & { share: number })[];
+  /** found: false when no PMS doctor name matched (a spelling to fix in Settings). */
+  partners: (DoctorRow & { share: number; found: boolean })[];
   top5Share: number;
 };
 
@@ -273,11 +276,26 @@ export function buildDashboard(input: {
     .filter((r) => r.average >= 5000 && r.net < r.average * 0.8)
     .sort((a, b) => (a.change ?? 0) - (b.change ?? 0));
 
-  const partners = settings.partners
-    .map((name) => {
-      const now = mtd.byDoctor[name] ?? { net: 0, patients: 0, invoices: 0 };
-      return { ...doctorRow(name, now, lastMonth.byDoctor[name]?.net ?? 0), share: now.net / sumNet };
-    });
+  // A partner's names (both branches, any spelling) add up.
+  const partners = settings.partners.map((line) => {
+    const { label, keys } = partnerOf(line);
+    const now = { net: 0, patients: 0, invoices: 0 };
+    let found = false;
+    for (const [doctor, d] of Object.entries(mtd.byDoctor)) {
+      if (!isPartner(keys, doctor)) continue;
+      found = true;
+      now.net += d.net;
+      now.patients += d.patients;
+      now.invoices += d.invoices;
+    }
+    let before = 0;
+    for (const [doctor, d] of Object.entries(lastMonth.byDoctor)) {
+      if (!isPartner(keys, doctor)) continue;
+      found = true;
+      before += d.net;
+    }
+    return { ...doctorRow(label, now, before), share: now.net / sumNet, found };
+  });
   const top5 = mtdRows.slice(0, 5).reduce((s, r) => s + r.net, 0);
 
   const collections = { ...today.payments, total: Object.values(today.payments).reduce((s, v) => s + v, 0) };
