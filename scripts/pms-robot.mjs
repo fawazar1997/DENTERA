@@ -374,10 +374,31 @@ async function probe(page, rep, dir) {
     return;
   }
   const y = format(addDays(riyadh(), -1), config.dateFormat);
-  const file = await exportReport(page, rep, { from: y, to: y }, dir, "probe");
-  log(`export ${rep.name}`);
-  await inspect(file);
-  await rm(file, { force: true });
+  // Each way of exporting (the report's own, then its «alternatives»), for each branch.
+  const ways = [rep, ...(rep.alternatives ?? []).map((alt) => ({ ...rep, ...alt }))];
+  for (const branch of rep.branches ?? [null]) {
+    let done = false;
+    for (const [n, way] of ways.entries()) {
+      const tag = `${rep.name}${branch ? ` ${branch}` : ""} (way ${n + 1}: ${way.export})`;
+      try {
+        if (n > 0 || branch !== (rep.branches ?? [null])[0]) {
+          await closeOthers(page);
+          await openMenu(page, rep.menu);
+        }
+        const file = await exportReport(page, way, { from: y, to: y, branch }, dir, `probe-${n}`);
+        log(`export ${tag}`);
+        await inspect(file);
+        await rm(file, { force: true });
+        done = true;
+        break;
+      } catch (error) {
+        log(`export ${tag} (${safe(error?.message, 200)})`, false);
+        const tabs = page.context().pages().length;
+        await describe(latest(page), `${tag} — after the attempt (${tabs} tab${tabs > 1 ? "s" : ""} open)`);
+      }
+    }
+    if (!done) log(`probe ${rep.name}${branch ? ` ${branch}` : ""}: no way worked`, false);
+  }
 }
 
 async function discover() {

@@ -59,10 +59,55 @@
         {
           "fill": "#toDate-txt",
           "value": "{to}"
+        },
+        {
+          "select": "#branch-select",
+          "value": "{branch}"
+        },
+        {
+          "wait": 500
         }
       ],
       "export": "Apply Filters (Excel)",
-      "enabled": false
+      "enabled": false,
+      "branches": [
+        "Abha",
+        "Khamis"
+      ],
+      "alternatives": [
+        {
+          "steps": [
+            {
+              "clickText": "Filters"
+            },
+            {
+              "wait": 1000
+            },
+            {
+              "fill": "#fromDate-txt",
+              "value": "{from}"
+            },
+            {
+              "fill": "#toDate-txt",
+              "value": "{to}"
+            },
+            {
+              "select": "#branch-select",
+              "value": "{branch}"
+            },
+            {
+              "wait": 500
+            },
+            {
+              "clickText": "Apply Filters (SP)"
+            },
+            {
+              "wait": 20000
+            }
+          ],
+          "export": "Excel"
+        }
+      ]
     }
   ]
 }
