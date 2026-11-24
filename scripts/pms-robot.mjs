@@ -601,7 +601,8 @@ async function runStep(page, step, vars) {
     await page.locator(".datepicker, .ui-datepicker, .daterangepicker").evaluateAll((els) => els.forEach((d) => (d.style.display = "none"))).catch(() => undefined);
     if (MODE === "discover") console.log(`  ${step.fill} = ${safe(await el.inputValue().catch(() => ""))}`);
   }
-  if (step.select) await page.locator(step.select).first().selectOption({ label: value(step.value) });
+  // An empty choice (e.g. no branch: the whole clinic) leaves the list as it is.
+  if (step.select && value(step.value) !== "") await page.locator(step.select).first().selectOption({ label: value(step.value) });
   if (step.click) {
     const el = page.locator(step.click).first();
     if (isForbidden((await el.textContent().catch(() => "")) ?? "")) throw new Error("refused");

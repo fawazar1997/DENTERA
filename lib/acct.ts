@@ -161,3 +161,15 @@ export async function saveChart(accounts: Account[]) {
   await writeJson("acct/chart.json", { accounts, importedAt: new Date().toISOString() } satisfies Chart);
   return (await readChart())?.accounts.length ?? 0;
 }
+
+// --- Account mapping (Settings) ---
+
+export const readMapping = async () => (await readJson<Record<string, string>>("acct/mapping.json")) ?? {};
+export const saveMapping = (mapping: Record<string, string>) => writeJson("acct/mapping.json", mapping);
+
+/** Every stored trial balance of a year, by month. */
+export async function readTbYear(year: string): Promise<Record<string, TbMonth | null>> {
+  const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
+  const files = await Promise.all(months.map((m) => readTbMonth(m)));
+  return Object.fromEntries(months.map((m, i) => [m, files[i]]));
+}
