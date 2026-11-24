@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  Ban,
   Banknote,
   CalendarDays,
   Clock,
@@ -14,14 +13,13 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  UserX,
   Users,
   Wallet,
 } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Dashboard, DoctorRow } from "@/lib/financeMetrics";
-import type { FinanceBranch, FinanceStatus, FlagRef, PayMethod } from "@/lib/financeTypes";
+import type { FinanceBranch, FinanceStatus, PayMethod } from "@/lib/financeTypes";
 import { BRANCH_NAMES, METHOD_NAMES, SPECIALTY_NAMES, financeText, forDay } from "@/lib/financeText";
 import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { TrendChart, REVENUE_COLOR } from "./TrendChart";
@@ -227,49 +225,6 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
                   money={money}
                   pct={pct}
                 />
-              </Card>
-            </div>
-          </Section>
-
-          {/* 3. Invoices */}
-          <Section title={t.invoicesSection}>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <Card title={t.newToday} icon={Receipt}>
-                <p className="text-2xl font-extrabold text-ink-950">{n0(d.invoices.new)}</p>
-                <ul className="mt-3 divide-y divide-ink-100 text-sm">
-                  <Row label={t.credit} count={d.invoices.credit.count} amount={money(d.invoices.credit.amount)} n0={n0} />
-                  <Row label={t.returns} count={d.invoices.returns.count} amount={money(d.invoices.returns.amount)} n0={n0} />
-                  <Row label={t.creditNotes} count={d.invoices.creditNotes.count} amount={money(d.invoices.creditNotes.amount)} n0={n0} />
-                </ul>
-              </Card>
-              <Card title={t.installments} icon={CalendarDays}>
-                {d.installments ? (
-                  <ul className="divide-y divide-ink-100 text-sm">
-                    <Row label={t.dueToday} count={d.installments.dueToday.count} amount={money(d.installments.dueToday.amount)} n0={n0} />
-                    <Row
-                      label={`${t.overdue} (${n0(d.installments.overdue.patients)} ${t.patientsCount})`}
-                      count={d.installments.overdue.count}
-                      amount={money(d.installments.overdue.amount)}
-                      n0={n0}
-                      warn={d.installments.overdue.count > 0}
-                    />
-                    <li className="flex items-center justify-between gap-3 py-2.5">
-                      <span className="text-ink-600">
-                        {t.remaining} ({n0(d.installments.remaining.patients)} {t.patientsCount})
-                      </span>
-                      <b className="text-ink-900">{money(d.installments.remaining.amount)}</b>
-                    </li>
-                  </ul>
-                ) : (
-                  <p className="text-sm text-ink-500">{t.noInstallments}</p>
-                )}
-              </Card>
-              <Card title={t.quality} icon={AlertTriangle}>
-                <div className="space-y-2">
-                  <Flags icon={Percent} label={t.highDiscount} list={d.quality.today.highDiscount} month={d.quality.mtd.highDiscount} t={t} n0={n0} shared={shared} />
-                  <Flags icon={UserX} label={t.noId} list={d.quality.today.noId} month={d.quality.mtd.noId} t={t} n0={n0} shared={shared} />
-                  <Flags icon={Ban} label={t.cancelled} list={d.quality.today.cancelled} month={d.quality.mtd.cancelled} t={t} n0={n0} shared={shared} />
-                </div>
               </Card>
             </div>
           </Section>
@@ -505,67 +460,6 @@ function Bars({ rows, money, pct }: { rows: { label: string; value: number; shar
         </li>
       ))}
     </ul>
-  );
-}
-
-function Row({ label, count, amount, n0, warn }: { label: string; count: number; amount: string; n0: (v: number) => string; warn?: boolean }) {
-  return (
-    <li className="flex items-center justify-between gap-3 py-2.5">
-      <span className={`flex items-center gap-1.5 ${warn ? "font-bold text-red-800" : "text-ink-600"}`}>
-        {warn && <AlertTriangle className="h-4 w-4" />}
-        {label}
-      </span>
-      <span>
-        <b className="text-ink-900">{n0(count)}</b> <span className="text-xs text-ink-500">· {amount}</span>
-      </span>
-    </li>
-  );
-}
-
-function Flags({
-  icon: I,
-  label,
-  list,
-  month,
-  t,
-  n0,
-  shared,
-}: {
-  icon: Icon;
-  label: string;
-  list: FlagRef[];
-  month: number;
-  t: ReturnType<typeof financeText>;
-  n0: (v: number) => string;
-  shared?: boolean;
-}) {
-  return (
-    <details className="rounded-lg border border-ink-100">
-      <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm">
-        <I className={`h-4 w-4 ${list.length ? "text-red-800" : "text-ink-400"}`} />
-        <span className="flex-1 text-ink-700">{label}</span>
-        <span className="text-xs text-ink-500">
-          {t.todayCount} <b className={list.length ? "text-red-800" : "text-ink-900"}>{n0(list.length)}</b> · {t.mtdCount} <b className="text-ink-900">{n0(month)}</b>
-        </span>
-      </summary>
-      <div className="max-h-60 overflow-auto border-t border-ink-100 px-1 pb-1">
-        {list.length ? (
-          <Table head={[t.inv, t.doctor, ...(shared ? [] : [t.patientFile]), t.net, t.discountPct]}>
-            {list.slice(0, 100).map((f) => (
-              <tr key={f.inv}>
-                <Td>{f.inv.replace(/^(abha|khamis|lab)-/, "")}</Td>
-                <Td>{f.doctor}</Td>
-                {!shared && <Td>{f.patient}</Td>}
-                <Td num>{n0(f.net)}</Td>
-                <Td num>{n0(f.discountPct)}%</Td>
-              </tr>
-            ))}
-          </Table>
-        ) : (
-          <p className="px-3 py-2 text-xs text-ink-500">{t.noneToday}</p>
-        )}
-      </div>
-    </details>
   );
 }
 
