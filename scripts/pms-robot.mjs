@@ -103,16 +103,51 @@ async function clickText(page, text) {
 }
 
 /** A menu path, e.g. ["Reports", "Financial Reports", "Detailed Sales reports"]. */
+/** The newest tab (a report may open in its own tab). */
+const latest = (page) => page.context().pages().at(-1) ?? page;
+
+async function closeOthers(page) {
+  for (const p of page.context().pages()) if (p !== page) await p.close().catch(() => undefined);
+}
+
+async function textVisible(page, text) {
+  for (const frame of page.frames()) {
+    const el = frame.getByText(text, { exact: true });
+    const n = await el.count().catch(() => 0);
+    for (let i = 0; i < n; i++) if (await el.nth(i).isVisible().catch(() => false)) return true;
+  }
+  return false;
+}
+
+/** Closes a welcome or tour window that covers the page. */
+async function dismissDialogs(page) {
+  for (const text of config.dismiss ?? []) {
+    if (await textVisible(page, text)) await clickText(page, text).catch(() => undefined);
+  }
+}
+
 async function openMenu(page, path) {
+  const walk = async () => {
+    for (let i = 0; i < path.length; i++) {
+      // A submenu left open: its next item is already showing (clicking
+      // the parent again would close it).
+      if (i < path.length - 1 && (await textVisible(page, path[i + 1]))) continue;
+      await clickText(page, path[i]);
+    }
+  };
+  await dismissDialogs(page);
   try {
-    await clickText(page, path[0]);
+    await walk();
   } catch {
-    // No menu on this page: back to the start (signing in again if asked).
+    // Lost on this page: back to the start (signing in again if asked).
     await page.goto(config.baseUrl, { waitUntil: "networkidle" });
     await ensureSignedIn(page);
-    await clickText(page, path[0]);
+    await dismissDialogs(page);
+    await walk();
   }
-  for (const text of path.slice(1)) await clickText(page, text);
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForTimeout(2000);
+  await dismissDialogs(page);
 }
 
 // --- Discover: the shape of each report page, never its data ---
@@ -223,11 +258,13 @@ async function discover() {
         await ensureSignedIn(page);
         if (rep.menu) await openMenu(page, rep.menu);
         log(`open ${rep.name}`);
-        await describe(page, rep.name);
+        const report = latest(page);
+        await describe(report, report === page ? rep.name : `${rep.name} (opened in a new tab)`);
       } catch (error) {
         log(`open ${rep.name} (${safe(error?.message)})`, false);
-        await describe(page, `${rep.name} — where it stopped`);
+        await describe(latest(page), `${rep.name} — where it stopped`);
       }
+      await closeOthers(page);
     }
   } finally {
     await browser.close();
@@ -295,8 +332,10 @@ async function main() {
             const v = { ...vars, branch };
             await ensureSignedIn(page);
             if (rep.menu) await openMenu(page, rep.menu);
-            for (const step of rep.steps ?? []) await runStep(page, step, v);
-            const [download] = await Promise.all([page.waitForEvent("download", { timeout: 120_000 }), page.locator(rep.export).first().click()]);
+            const report = latest(page);
+            for (const step of rep.steps ?? []) await runStep(report, step, v);
+            const [download] = await Promise.all([report.waitForEvent("download", { timeout: 120_000 }), report.locator(rep.export).first().click()]);
+            await closeOthers(page);
             const file = join(dir, `${rep.name}-${branch ?? "all"}-${from}${(download.suggestedFilename().match(/\.\w+$/) ?? [".xlsx"])[0]}`);
             await download.saveAs(file);
             if (!(await send(file, branch ?? rep.branch))) throw new Error("ingest");

@@ -9,16 +9,13 @@
     "submit": "#login-btn",
     "after": ""
   },
+  "dismiss": ["OK, continue"],
   "reports": [
-    {
-      "name": "sales",
-      "menu": ["Reports", "Financial Reports", "Sales reports"],
-      "steps": []
-    },
-    {
-      "name": "detailed-sales",
-      "menu": ["Reports", "Financial Reports", "Detailed Sales reports"],
-      "steps": []
-    }
+    { "name": "detailed-sales", "menu": ["Reports", "Financial Reports", "Detailed Sales Report"], "steps": [] },
+    { "name": "sales", "menu": ["Reports", "Financial Reports", "Sales Report"], "steps": [] },
+    { "name": "daily-collection", "menu": ["Reports", "Financial Reports", "Daily Collection"], "steps": [] },
+    { "name": "receipts", "menu": ["Reports", "Financial Reports", "Receipts Report"], "steps": [] },
+    { "name": "deleted-invoices", "menu": ["Reports", "Financial Reports", "Deleted Invoices Report"], "steps": [] },
+    { "name": "pending-payments", "menu": ["Reports", "Financial Reports", "Pending Payments - Patients"], "steps": [] }
   ]
 }
