@@ -4,9 +4,9 @@
   "dateFormat": "dd/MM/yyyy",
   "login": {
     "url": "https://dentera.microchips-cloud.com/pms/",
-    "user": "input[type=text], input[type=email], input[name*=user i], input[id*=user i]",
-    "password": "input[type=password]",
-    "submit": "button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Sign in'), button:has-text('دخول')",
+    "user": "#username-txt",
+    "password": "#password-txt",
+    "submit": "#login-btn",
     "after": ""
   },
   "reports": [

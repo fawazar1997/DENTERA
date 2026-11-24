@@ -104,7 +104,15 @@ async function clickText(page, text) {
 
 /** A menu path, e.g. ["Reports", "Financial Reports", "Detailed Sales reports"]. */
 async function openMenu(page, path) {
-  for (const text of path) await clickText(page, text);
+  try {
+    await clickText(page, path[0]);
+  } catch {
+    // No menu on this page: back to the start (signing in again if asked).
+    await page.goto(config.baseUrl, { waitUntil: "networkidle" });
+    await ensureSignedIn(page);
+    await clickText(page, path[0]);
+  }
+  for (const text of path.slice(1)) await clickText(page, text);
 }
 
 // --- Discover: the shape of each report page, never its data ---
@@ -117,12 +125,12 @@ const safe = (text) =>
     .replace(/[0-9٠-٩]{3,}/g, "#")
     .slice(0, 60);
 
-async function describe(page, title) {
+async function describe(page, title, navigation = false) {
   console.log(`\n=== ${title} ===`);
   console.log(`path: ${safe(new URL(page.url()).pathname)}`);
   for (const frame of page.frames()) {
     const info = await frame
-      .evaluate(() => {
+      .evaluate((navigation) => {
         const vis = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
         const labelOf = (el) => {
           if (el.id) {
@@ -153,8 +161,14 @@ async function describe(page, title) {
         const menu = [...document.querySelectorAll("a, li, span")]
           .filter((el) => vis(el) && el.children.length === 0 && /report|financ|sales|تقرير|تقارير|مالي|مبيعات|collection|payment|install|تحصيل|سداد|أقساط/i.test(el.textContent || ""))
           .map((el) => el.textContent);
-        return { fields, selects, buttons, heads, menu };
-      })
+        // After sign-in: every link of the navigation (module names, no data).
+        const nav = navigation
+          ? [...document.querySelectorAll("nav a, aside a, .sidebar a, .menu a, [role=menuitem], ul li > a, ul li > span")]
+              .filter((el) => vis(el) && (el.textContent || "").trim())
+              .map((el) => el.textContent)
+          : [];
+        return { fields, selects, buttons, heads, menu: menu.concat(nav) };
+      }, navigation)
       .catch(() => null);
     if (!info) continue;
     const where = frame === page.mainFrame() ? "page" : `frame ${safe(frame.name() || new URL(frame.url() || "about:blank").pathname)}`;
@@ -165,7 +179,7 @@ async function describe(page, title) {
     for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map(safe).join(" | ")}]` : ""}`);
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
     for (const h of info.heads.slice(0, 5)) console.log(`table columns: ${h.map(safe).join(" | ")}`);
-    const menu = [...new Set(info.menu.map(safe))].slice(0, 40);
+    const menu = [...new Set(info.menu.map(safe))].filter(Boolean).slice(0, 80);
     if (menu.length) console.log(`menu items: ${menu.join(" | ")}`);
   }
 }
@@ -175,11 +189,18 @@ async function login(page) {
   await page.locator(config.login.user).first().fill(process.env.PMS_USER);
   await page.locator(config.login.password).first().fill(process.env.PMS_PASSWORD);
   await page.locator(config.login.submit).first().click();
+  // The sign-in is done in the page (no new address): wait for the form to go.
+  await page.locator(config.login.password).first().waitFor({ state: "hidden", timeout: 45_000 });
   if (config.login.after) await page.locator(config.login.after).first().waitFor();
-  else await page.waitForLoadState("networkidle");
-  await page.waitForTimeout(2000);
-  // Still on a password form: the sign-in did not go through.
-  if (await page.locator("input[type=password]").first().isVisible().catch(() => false)) throw new Error("login");
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForTimeout(4000);
+  // Back on the password form: the sign-in did not go through.
+  if (await page.locator(config.login.password).first().isVisible().catch(() => false)) throw new Error("login");
+}
+
+/** Signed in still? Else sign in again (the PMS may drop the session on reload). */
+async function ensureSignedIn(page) {
+  if (await page.locator(config.login.password).first().isVisible().catch(() => false)) await login(page);
 }
 
 async function discover() {
@@ -196,11 +217,10 @@ async function discover() {
       process.exitCode = 1;
       return;
     }
-    const home = page.url();
-    await describe(page, "after login");
+    await describe(page, "after login", true);
     for (const rep of config.reports ?? []) {
       try {
-        await page.goto(home, { waitUntil: "networkidle" });
+        await ensureSignedIn(page);
         if (rep.menu) await openMenu(page, rep.menu);
         log(`open ${rep.name}`);
         await describe(page, rep.name);
@@ -264,7 +284,6 @@ async function main() {
       return;
     }
 
-    const home = page.url();
     for (const [from, to] of ranges()) {
       const vars = { from: format(from, config.dateFormat), to: format(to, config.dateFormat) };
       for (const rep of reports) {
@@ -274,7 +293,7 @@ async function main() {
         try {
           for (const branch of rep.branches ?? [null]) {
             const v = { ...vars, branch };
-            await page.goto(home, { waitUntil: "networkidle" });
+            await ensureSignedIn(page);
             if (rep.menu) await openMenu(page, rep.menu);
             for (const step of rep.steps ?? []) await runStep(page, step, v);
             const [download] = await Promise.all([page.waitForEvent("download", { timeout: 120_000 }), page.locator(rep.export).first().click()]);
