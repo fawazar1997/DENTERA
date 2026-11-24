@@ -29,6 +29,8 @@ const TEXT = {
     variance: "الفرق عن الموازنة",
     lastYear: "2025",
     fromModel: "من النموذج المالي",
+    actual2025: "فعلي (ميزان 2025)",
+    mixed2025: "فعلي + النموذج المالي",
     partial: "شهر غير مكتمل",
     missing: "لم يُسجَّل بعد",
     revenue: "الإيرادات",
@@ -43,7 +45,7 @@ const TEXT = {
     unmappedHint: "اربطها من الإعدادات ← ربط الحسابات، فلا يُستبعد شيء.",
     unbalanced: "المدين لا يساوي الدائن في ميزان شهر",
     unbalancedHint: "يُعرض الفرق كما هو دون أي قيد تسوية.",
-    modelNote: "أرقام الموازنة و2025 من النموذج المالي، موزعة بالتساوي على الأشهر بحسب الفترة المغطاة.",
+    modelNote: "الموازنة من النموذج المالي موزعة بالتساوي على الأشهر؛ 2025 من ميزان المراجعة الفعلي للفترة نفسها، ومن النموذج للأشهر غير المتوفرة.",
     lines: {
       revenue: "الإيرادات",
       commissions: "عمولات الأطباء والموظفين",
@@ -78,6 +80,8 @@ const TEXT = {
     variance: "Vs budget",
     lastYear: "2025",
     fromModel: "From the financial model",
+    actual2025: "Actual (2025 trial balance)",
+    mixed2025: "Actual + financial model",
     partial: "Month not complete",
     missing: "Not recorded yet",
     revenue: "Revenue",
@@ -92,7 +96,7 @@ const TEXT = {
     unmappedHint: "Map them in Settings → Account mapping so nothing is left out.",
     unbalanced: "Debits do not equal credits in the trial balance of",
     unbalancedHint: "The difference is shown as it is, never adjusted.",
-    modelNote: "Budget and 2025 figures are from the financial model, spread evenly over the months for the period covered.",
+    modelNote: "Budget from the financial model, spread evenly over the months; 2025 from the actual trial balance for the same period, the model where a month is missing.",
     lines: {
       revenue: "Revenue",
       commissions: "Doctors & staff commissions",
@@ -223,7 +227,9 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                     <th className="whitespace-nowrap border-b border-ink-100 px-2 py-2.5 text-end font-bold">{t.variance}</th>
                     <th className="whitespace-nowrap border-b border-ink-100 border-e px-2 py-2.5 text-end font-bold">
                       {t.lastYear}
-                      <span className="block text-[10px] font-medium text-ink-400">{t.fromModel}</span>
+                      <span className="block text-[10px] font-medium text-ink-400">
+                        {pnl.lastYearSource === "actual" ? t.actual2025 : pnl.lastYearSource === "mixed" ? t.mixed2025 : t.fromModel}
+                      </span>
                     </th>
                     {pnl.months.map((m) => (
                       <th key={m.month} className="whitespace-nowrap border-b border-ink-100 px-2 py-2.5 text-end font-bold">

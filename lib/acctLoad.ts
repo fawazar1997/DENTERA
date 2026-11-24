@@ -29,8 +29,9 @@ async function pmsRevenue(year: string, branch: AcctBranch): Promise<Record<stri
 
 export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctBasis, upTo: string) {
   const year = upTo.slice(0, 4);
-  const [tb, chartFile, mapping, statements, unposted, settings] = await Promise.all([
+  const [tb, prevTb, chartFile, mapping, statements, unposted, settings] = await Promise.all([
     readTbYear(year),
+    tab === "financing" || tab === "alerts" ? readTbYear(String(Number(year) - 1)) : Promise.resolve({}),
     readChart(),
     readMapping(),
     tab === "cash" || tab === "arap" || tab === "financing" ? readStatements(year) : Promise.resolve([]),
@@ -41,7 +42,7 @@ export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctB
   const chart = new Map(chartList.map((a) => [a.code, a]));
   const map = mapping as Mapping;
   const file = latestTb(tb, branch, basis);
-  const pnl = (b: AcctBasis) => buildPnl({ year, branch, basis: b, tb, chart: chartList, mapping: map, upTo });
+  const pnl = (b: AcctBasis) => buildPnl({ year, branch, basis: b, tb, prevTb, chart: chartList, mapping: map, upTo });
   switch (tab) {
     case "balance":
       return { tab, data: balanceSheet(file, chart, map) } as const;

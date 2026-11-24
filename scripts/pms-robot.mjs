@@ -232,7 +232,13 @@ async function describe(page, title, navigation = false, strict = /accounting/.t
     console.log(`-- ${where}`);
     for (const f of info.fields)
       console.log(`field ${f.tag}[type=${f.type}] name=${safe(f.name)} id=${safe(f.id)} placeholder=${safe(f.placeholder)} label=${safe(f.label)}${f.button ? ` value=${safe(f.button)}` : ""}`);
-    for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
+    // Accounting pages: a list's options are printed only when every one is a
+    // safe word (branches, years, views); a list of people or accounts shows its count.
+    const SAFE_OPTION = /^(select.*|all.*|abha|khamis|main|posted.*|non-posted.*|.*view|summary.*|detailed.*|monthly.*|cost center.*|direct|indirect|#|\d{4}( \(selected\))?|\d+ - [a-z' &]+|group accounts|detail accounts|accounts with activity|eligible parent accounts|hidden accounts|needs review|25|50)$/i;
+    for (const s of info.selects) {
+      const show = s.options.length && (!strict || s.options.every((x) => SAFE_OPTION.test(String(x).trim())));
+      console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${show ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
+    }
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
     for (const h of info.heads.slice(0, 12))
       console.log(`table columns: ${(strict ? h.slice(0, 30).map((x, i) => (i === h.length - 1 || isTitle(x) ? safe(x) : "·")) : h.map((x) => safe(x))).join(" | ")}`);
@@ -600,7 +606,7 @@ async function discoverAccounting(browser) {
 }
 
 async function runStep(page, step, vars) {
-  const value = (text) => String(text ?? "").replace("{from}", vars.from).replace("{to}", vars.to).replace("{branch}", vars.branch ?? "").replace("{account}", vars.account ?? "");
+  const value = (text) => String(text ?? "").replace("{from}", vars.from).replace("{to}", vars.to).replace("{branch}", vars.branch ?? "").replace("{account}", vars.account ?? "").replace("{year}", vars.year ?? "");
   if (step.menu) await openMenu(page, step.menu);
   if (step.clickText) await clickText(page, value(step.clickText));
   if (step.goto) await page.goto(value(step.goto), { waitUntil: "networkidle" });
@@ -790,6 +796,15 @@ function acctMonths() {
   const today = riyadh();
   const y = addDays(today, -1);
   const upTo = (start) => (start.slice(0, 7) === y.slice(0, 7) ? y : monthEnd(start));
+  if (MODE === "accounting-2025") {
+    // Last year, every month (for the comparison with the same period).
+    const out = [];
+    for (let m = 1; m <= 12; m++) {
+      const start = `${Number(y.slice(0, 4)) - 1}-${String(m).padStart(2, "0")}-01`;
+      out.push([start, monthEnd(start)]);
+    }
+    return out;
+  }
   if (MODE === "backfill" || MODE === "accounting-backfill") {
     // Every month of the financial year so far (from 1 January).
     const out = [];
@@ -844,7 +859,7 @@ async function syncAccounting(browser, dir) {
     await page.goto(new URL(rep.url, acct.login.url).href, { waitUntil: "networkidle" });
   };
   const yesterday = addDays(riyadh(), -1);
-  for (const rep of reports.filter((r) => r.kind === "statement" || r.kind === "unposted")) {
+  for (const rep of reports.filter((r) => MODE !== "accounting-2025" && (r.kind === "statement" || r.kind === "unposted"))) {
     const from = `${yesterday.slice(0, 4)}-01-01`;
     const vars = { from: format(from, pattern), to: format(yesterday, pattern), branch: "" };
     if (rep.kind === "unposted") {
@@ -892,14 +907,16 @@ async function syncAccounting(browser, dir) {
       }
     }
   }
-  for (const rep of reports.filter((r) => r.kind !== "statement" && r.kind !== "unposted")) {
+  for (const rep of reports.filter((r) => r.kind !== "statement" && r.kind !== "unposted" && (MODE !== "accounting-2025" || r.kind === "tb"))) {
     const periods = rep.kind === "tb" ? acctMonths() : [[null, null]];
     for (const [from, to] of periods) {
       for (const branch of rep.branches ?? [null]) {
         const name = `${rep.name}${branch ? ` ${branch}` : ""}${from ? ` ${from.slice(0, 7)}` : ""}`;
         try {
           await open(rep);
-          const vars = { from: from ? format(from, pattern) : "", to: to ? format(to, pattern) : "", branch };
+          const vars = { from: from ? format(from, pattern) : "", to: to ? format(to, pattern) : "", branch, year: (from ?? yesterday).slice(0, 4) };
+          // The financial year the dates belong to (a view choice, like the date filters).
+          if (from) await setYear(page, vars.year);
           const file = await exportReport(latest(page), rep, vars, dir, `${rep.name}-${branch ?? "all"}-${from ?? "now"}`);
           await closeOthers(page);
           const csv = await toCsv(file, rep);
@@ -924,8 +941,23 @@ async function syncAccounting(browser, dir) {
       }
     }
   }
+  // Leave the year list on the current year.
+  await setYear(page, yesterday.slice(0, 4)).catch(() => undefined);
   await context.close();
   return { failed, sent };
+}
+
+/** Chooses the financial year in the accounting system's year list (a view setting only). */
+async function setYear(page, year) {
+  const sel = page.locator("#globalFinancialYears-select").first();
+  if (!(await sel.count())) return;
+  const current = await sel.evaluate((s) => s.options[s.selectedIndex]?.text.trim() ?? "");
+  if (current.startsWith(year)) return;
+  const value = await sel.evaluate((s, y) => [...s.options].find((o) => o.text.trim().startsWith(y))?.value ?? null, year);
+  if (value === null) throw new Error(`year ${year} not in the list`);
+  await sel.selectOption(value);
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForTimeout(2000);
 }
 
 await main();

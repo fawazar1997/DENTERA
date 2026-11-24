@@ -31,6 +31,8 @@ export type Pnl = {
   ytd: PnlValues;
   budget: PnlValues;
   lastYear: PnlValues;
+  /** Where «last year» comes from: the 2025 trial balances (actual), the financial model, or both. */
+  lastYearSource: "actual" | "model" | "mixed";
   /** Accounts with movement that are on no line (code, name, amount). */
   unmapped: { code: string; name: string; amount: number }[];
   importedAt?: string;
@@ -85,7 +87,11 @@ export function buildPnl(args: {
   mapping: Mapping;
   /** The last day with data (yesterday, Riyadh). */
   upTo: string;
+  /** Last year's stored trial balances by month (actual comparison when present). */
+  prevTb?: Record<string, TbMonth | null>;
 }): Pnl {
+  let actualMonths = 0;
+  let modelMonths = 0;
   const chart = new Map(args.chart.map((a) => [a.code, a]));
   const lastMonth = args.upTo.slice(0, 4) === args.year ? args.upTo.slice(0, 7) : `${args.year}-12`;
   const months: PnlMonth[] = [];
@@ -108,9 +114,16 @@ export function buildPnl(args: {
     const cr = file.rows.reduce((s, r) => s + r.cr, 0);
     months.push({ month, missing: false, partial: coverage < 1, from: file.from, to: file.to, values, balanced: Math.abs(dr - cr) < 0.5, coverage });
     for (const [line, v] of Object.entries(values)) ytd[line as PnlLine] = round2((ytd[line as PnlLine] ?? 0) + (v ?? 0));
+    const prevMonth = `${Number(args.year) - 1}${month.slice(4)}`;
+    const prevFile = tbFor(args.prevTb?.[prevMonth], args.branch, args.basis);
+    const prevValues = prevFile ? pnlOf(prevFile.rows, args.mapping, chart).values : null;
+    if (prevValues) actualMonths++;
+    else modelMonths++;
     for (const row of MODEL_PNL) {
       budget[row.line] = round2((budget[row.line] ?? 0) + (row.y2026 / 12) * coverage);
-      lastYear[row.line] = round2((lastYear[row.line] ?? 0) + (row.y2025 / 12) * coverage);
+      // The same period last year: its actual month when stored, else the model's share.
+      const ly = prevValues ? (prevValues[row.line] ?? 0) * coverage : (row.y2025 / 12) * coverage;
+      lastYear[row.line] = round2((lastYear[row.line] ?? 0) + ly);
     }
     for (const u of um) {
       const s = unmapped.get(u.code);
@@ -118,7 +131,8 @@ export function buildPnl(args: {
     }
     if (!importedAt || file.importedAt > importedAt) importedAt = file.importedAt;
   }
-  return { year: args.year, branch: args.branch, basis: args.basis, months, ytd, budget, lastYear, unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)), importedAt };
+  const lastYearSource = actualMonths && modelMonths ? "mixed" : actualMonths ? "actual" : "model";
+  return { year: args.year, branch: args.branch, basis: args.basis, months, ytd, budget, lastYear, lastYearSource, unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)), importedAt };
 }
 
 /** Lines and subtotals in statement order, for the table. */
@@ -152,6 +166,6 @@ export function rowValue(values: PnlValues, row: (typeof PNL_ROWS)[number]): num
 /** The income statement as the dashboard shows it, from what is stored. */
 export async function loadPnl(year: string, branch: AcctBranch, basis: AcctBasis, upTo: string): Promise<Pnl> {
   const { readTbYear, readChart, readMapping } = await import("./acct");
-  const [tb, chart, mapping] = await Promise.all([readTbYear(year), readChart(), readMapping()]);
-  return buildPnl({ year, branch, basis, tb, chart: chart?.accounts ?? [], mapping: mapping as Mapping, upTo });
+  const [tb, prevTb, chart, mapping] = await Promise.all([readTbYear(year), readTbYear(String(Number(year) - 1)), readChart(), readMapping()]);
+  return buildPnl({ year, branch, basis, tb, prevTb, chart: chart?.accounts ?? [], mapping: mapping as Mapping, upTo });
 }
