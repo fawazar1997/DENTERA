@@ -196,7 +196,7 @@ async function describe(page, title, navigation = false) {
           }));
         const selects = [...document.querySelectorAll("select")]
           .filter(vis)
-          .map((el) => ({ name: el.name, id: el.id, label: labelOf(el), count: el.options.length, options: el.options.length <= 8 ? [...el.options].map((o) => o.text) : [] }));
+          .map((el) => ({ name: el.name, id: el.id, label: labelOf(el), count: el.options.length, options: el.options.length <= 12 ? [...el.options].map((o) => o.text) : [] }));
         const buttons = [...document.querySelectorAll("button, a.btn, [role=button], input[type=image]")]
           .filter(vis)
           .map((el) => ({ text: el.textContent || el.getAttribute("title") || el.getAttribute("alt") || "", id: el.id, cls: el.className?.toString?.() ?? "" }))

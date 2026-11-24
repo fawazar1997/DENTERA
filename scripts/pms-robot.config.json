@@ -129,7 +129,7 @@
     }
   ],
   "accounting": {
-    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete or edit (scripts/robot-safety.mjs). 'explore' lists the links under those top menu items (discover only).",
+    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete or edit (scripts/robot-safety.mjs). 'url' opens a report page directly; 'explore' lists the links under those top menu items (discover only).",
     "login": {
       "url": "https://dentera.microchips-cloud.com/accounting/Home/Login",
       "user": "input[type=text]:visible, input[type=email]:visible, input[name*=user i], input[id*=user i]",
@@ -137,10 +137,52 @@
       "submit": "button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Sign in'), button:has-text('دخول'), button:has-text('تسجيل الدخول')",
       "after": ""
     },
-    "reports": [],
-    "explore": [
-      "Reports",
-      "Accounting"
-    ]
+    "reports": [
+      {
+        "name": "trial-balance",
+        "url": "/accounting/TrailBalanceFull/Index"
+      },
+      {
+        "name": "trial-balance-cost-centers",
+        "url": "/accounting/TrailBalanceByCostCenters/Index"
+      },
+      {
+        "name": "income-statement",
+        "url": "/accounting/IncomeStatement/Index"
+      },
+      {
+        "name": "balance-sheet",
+        "url": "/accounting/BalanceSheet/Index"
+      },
+      {
+        "name": "account-statement",
+        "url": "/accounting/AccountStatement/Index"
+      },
+      {
+        "name": "customers-trial-balance",
+        "url": "/accounting/CustomersTrailBalance/Index"
+      },
+      {
+        "name": "suppliers-trial-balance",
+        "url": "/accounting/SuppliersTrailBalance/Index"
+      },
+      {
+        "name": "suppliers-aging",
+        "url": "/accounting/SuppliersAgingReport/Index"
+      },
+      {
+        "name": "unposted",
+        "url": "/accounting/GeneralReports/UnPostedTransactionsReport"
+      },
+      {
+        "name": "cash-flow",
+        "url": "/accounting/CashFlowReport/Index"
+      },
+      {
+        "name": "chart-of-accounts",
+        "url": "/accounting/ChartOfAccounts/Index"
+      }
+    ],
+    "explore": []
   }
 }
