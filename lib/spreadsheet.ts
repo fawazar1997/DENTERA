@@ -21,48 +21,62 @@ function decodeXml(text: string): string {
  */
 export function readFirstSheet(file: Uint8Array): Record<string, string>[] {
   const zip = unzipSync(file, {
-    filter: (f) =>
-      f.name === "xl/sharedStrings.xml" ||
-      f.name === "xl/workbook.xml" ||
-      f.name === "xl/_rels/workbook.xml.rels" ||
-      /^xl\/worksheets\/sheet\d+\.xml$/.test(f.name),
+    filter: (f) => /^\/?xl\/(sharedstrings\.xml|workbook\.xml|_rels\/workbook\.xml\.rels|worksheets\/[^/]+\.xml)$/i.test(f.name),
   });
-  const text = (name: string) => (zip[name] ? strFromU8(zip[name]) : "");
+  // File names compared without case or a leading slash; XML tags without
+  // their namespace prefix (some systems write <x:row>, <x:c>…).
+  const files = new Map(Object.entries(zip).map(([name, bytes]) => [name.replace(/^\//, "").toLowerCase(), bytes]));
+  const text = (name: string) => {
+    const bytes = files.get(name.replace(/^\//, "").toLowerCase());
+    return bytes ? strFromU8(bytes).replace(/<(\/?)[A-Za-z_][\w.-]*:(?=[A-Za-z_])/g, "<$1") : "";
+  };
 
-  const shared = [...text("xl/sharedStrings.xml").matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) =>
-    decodeXml(m[1])
+  const shared = [...text("xl/sharedStrings.xml").matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map((m) =>
+    decodeXml(m[1].replace(/<rPh\b[\s\S]*?<\/rPh>/g, ""))
   );
   // The first sheet in the workbook's order (not necessarily sheet1.xml).
   const firstId = text("xl/workbook.xml").match(/<sheet\b[^>]*\br:id="([^"]+)"/)?.[1];
+  const rels = text("xl/_rels/workbook.xml.rels");
   const target = firstId
-    ? text("xl/_rels/workbook.xml.rels").match(
-        new RegExp(`<Relationship\\b[^>]*Id="${firstId}"[^>]*Target="([^"]+)"`)
-      )?.[1] ??
-      text("xl/_rels/workbook.xml.rels").match(
-        new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${firstId}"`)
-      )?.[1]
+    ? rels.match(new RegExp(`<Relationship\\b[^>]*Id="${firstId}"[^>]*Target="([^"]+)"`))?.[1] ??
+      rels.match(new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${firstId}"`))?.[1]
     : undefined;
   const sheetName = target ? `xl/${target.replace(/^\/?xl\//, "").replace(/^\//, "")}` : "";
-  const sheet = text(sheetName) || text("xl/worksheets/sheet1.xml");
+  const anySheet = [...files.keys()].filter((n) => n.startsWith("xl/worksheets/")).sort()[0] ?? "";
+  const sheet = (sheetName && text(sheetName)) || text("xl/worksheets/sheet1.xml") || (anySheet && text(anySheet));
   if (!sheet) throw new Error("no-sheet");
 
   return [...sheet.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)].map((row) => {
     const cells: Record<string, string> = {};
+    let next = 0; // cells written without a reference follow the previous one
     for (const c of row[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
-      const col = c[1].match(/\br="([A-Z]+)\d+"/)?.[1];
-      if (!col) continue;
+      const ref = c[1].match(/\br="([A-Z]+)\d*"/)?.[1];
+      const col = ref ?? columnLetters(next);
+      next = columnIndex(col) + 1;
       const type = c[1].match(/\bt="(\w+)"/)?.[1];
       const body = c[2] ?? "";
-      const raw = body.match(/<v>([\s\S]*?)<\/v>/)?.[1];
+      const raw = body.match(/<v\b[^>]*>([\s\S]*?)<\/v>/)?.[1];
       let value = "";
       if (type === "s" && raw !== undefined) value = shared[Number(raw)] ?? "";
-      else if (type === "inlineStr") value = decodeXml(body.match(/<is>([\s\S]*?)<\/is>/)?.[1] ?? "");
+      else if (type === "inlineStr") value = decodeXml(body.match(/<is\b[^>]*>([\s\S]*?)<\/is>/)?.[1] ?? "");
       else if (raw !== undefined) value = decodeXml(raw);
       value = value.replace(/\s+/g, " ").trim();
       if (value) cells[col] = value;
     }
     return cells;
   });
+}
+
+/** A 0-based index to column letters (0 → A, 27 → AB). */
+function columnLetters(index: number): string {
+  let n = index + 1;
+  let out = "";
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    out = String.fromCharCode(65 + r) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+  return out;
 }
 
 /** Column letters to a 0-based index (A → 0, AB → 27). */

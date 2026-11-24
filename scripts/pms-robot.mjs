@@ -15,7 +15,7 @@
 // page's shape (fields, buttons, column headers; digits masked), so the
 // export steps can be set up without anyone sending screenshots or files.
 
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -264,6 +264,32 @@ async function exportReport(page, rep, vars, dir, tag) {
   return file;
 }
 
+/**
+ * The report as CSV (the site reads CSV most reliably): dates as
+ * YYYY-MM-DD HH:MM, numbers as written. Falls back to the file itself.
+ */
+async function toCsv(file) {
+  try {
+    const XLSX = (await import("xlsx")).default;
+    const book = XLSX.read(await readFile(file), { type: "buffer", cellDates: true });
+    const sheet = book.Sheets[book.SheetNames[0]];
+    const pad = (n) => String(n).padStart(2, "0");
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" }).map((r) =>
+      r.map((v) =>
+        v instanceof Date
+          ? `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())} ${pad(v.getHours())}:${pad(v.getMinutes())}`
+          : String(v ?? "")
+      )
+    );
+    const quote = (c) => (/[",\n\r]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
+    const out = file.replace(/\.\w+$/, "") + ".csv";
+    await writeFile(out, "\ufeff" + rows.map((r) => r.map(quote).join(",")).join("\n"));
+    return out;
+  } catch {
+    return file;
+  }
+}
+
 /** A downloaded report's shape: type, size, rows and column names (no values). */
 async function inspect(file) {
   const bytes = await readFile(file);
@@ -421,7 +447,7 @@ async function main() {
             if (rep.menu) await openMenu(page, rep.menu);
             const file = await exportReport(latest(page), rep, v, dir, `${branch ?? "all"}-${from}`);
             await closeOthers(page);
-            if (!(await send(file, branch ?? rep.branch))) throw new Error("ingest");
+            if (!(await send(await toCsv(file), branch ?? rep.branch))) throw new Error("ingest");
             sent++;
           }
           log(name);
