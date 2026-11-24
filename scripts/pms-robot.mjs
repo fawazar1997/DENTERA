@@ -331,7 +331,7 @@ function anyDownload(page, timeout) {
  */
 async function exportReport(page, rep, vars, dir, tag) {
   for (const step of rep.steps ?? []) await runStep(page, step, vars);
-  const [download] = await Promise.all([anyDownload(page, 180_000), clickText(page, rep.export)]);
+  const [download] = await Promise.all([anyDownload(page, rep.timeout ?? 180_000), clickText(page, rep.export)]);
   const ext = (download.suggestedFilename().match(/\.\w+$/) ?? [".xls"])[0];
   const file = join(dir, `${rep.name}-${tag}${ext}`);
   await download.saveAs(file);
@@ -550,7 +550,7 @@ async function discoverAccounting(browser) {
       if (rep.export) {
         const dir = await mkdtemp(join(tmpdir(), "probe-"));
         try {
-          await probe(report, { dateFormat: acct.dateFormat, strict: true, ...rep }, dir);
+          await probe(report, { dateFormat: acct.dateFormat, strict: true, timeout: 60_000, ...rep }, dir);
         } finally {
           await rm(dir, { recursive: true, force: true });
         }

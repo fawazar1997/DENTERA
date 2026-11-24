@@ -202,6 +202,10 @@
             "value": "{to}"
           },
           {
+            "select": "#filterbranches-select",
+            "value": "{branch}"
+          },
+          {
             "check": "#notPosted-checkbox",
             "value": true
           },
@@ -216,7 +220,52 @@
             "wait": 8000
           }
         ],
+        "export": "Excel",
+        "branches": [
+          "Abha",
+          "Khamis"
+        ]
+      },
+      {
+        "name": "account-statement",
+        "url": "/accounting/AccountStatement/Index",
+        "range": "month",
+        "steps": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          },
+          {
+            "fill": "#fromDate-txt",
+            "value": "{from}"
+          },
+          {
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "check": "#notPosted-checkbox",
+            "value": true
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
+          }
+        ],
         "export": "Excel"
+      },
+      {
+        "name": "journal-entries",
+        "url": "/accounting/JournalEntries/Index",
+        "look": [
+          {
+            "wait": 2000
+          }
+        ]
       },
       {
         "name": "income-statement",
