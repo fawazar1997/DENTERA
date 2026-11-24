@@ -1,5 +1,5 @@
 {
-  "$comment": "How the robot reaches each PMS report. No secrets here (the username and password are GitHub secrets). 'menu' is the path clicked in the PMS menu; a report runs on schedule only once its 'export' button is set. In 'steps', {from} and {to} become the report's dates in 'dateFormat'.",
+  "$comment": "How the robot reaches each PMS report. No secrets here (the username and password are GitHub secrets). 'menu' is the path clicked in the PMS menu, 'steps' fill the report's filters ({from} and {to} become dates in 'dateFormat'), 'export' is the button whose click downloads the file.",
   "baseUrl": "https://dentera.microchips-cloud.com/pms/",
   "dateFormat": "dd/MM/yyyy",
   "login": {
@@ -11,11 +11,66 @@
   },
   "dismiss": ["OK, continue"],
   "reports": [
-    { "name": "detailed-sales", "menu": ["Reports", "Financial Reports", "Detailed Sales Report"], "steps": [] },
-    { "name": "sales", "menu": ["Reports", "Financial Reports", "Sales Report"], "steps": [] },
-    { "name": "daily-collection", "menu": ["Reports", "Financial Reports", "Daily Collection"], "steps": [] },
-    { "name": "receipts", "menu": ["Reports", "Financial Reports", "Receipts Report"], "steps": [] },
-    { "name": "deleted-invoices", "menu": ["Reports", "Financial Reports", "Deleted Invoices Report"], "steps": [] },
-    { "name": "pending-payments", "menu": ["Reports", "Financial Reports", "Pending Payments - Patients"], "steps": [] }
+    {
+      "name": "detailed-sales",
+      "menu": ["Reports", "Financial Reports", "Detailed Sales Report"],
+      "steps": [
+        { "clickText": "Filters" },
+        { "wait": 1000 },
+        { "fill": "#fromDate-txt", "value": "{from}" },
+        { "fill": "#toDate-txt", "value": "{to}" }
+      ],
+      "export": "Excel (SP)"
+    },
+    {
+      "name": "sales",
+      "menu": ["Reports", "Financial Reports", "Sales Report"],
+      "steps": [
+        { "clickText": "Filters" },
+        { "wait": 1000 },
+        { "fill": "#fromDate-txt", "value": "{from}" },
+        { "fill": "#toDate-txt", "value": "{to}" }
+      ],
+      "export": "Apply Filters (Excel)"
+    },
+    {
+      "name": "daily-collection",
+      "menu": ["Reports", "Financial Reports", "Daily Collection"],
+      "steps": [
+        { "clickText": "Filters" },
+        { "wait": 1000 },
+        { "fill": "#fromDate-txt", "value": "{from}" },
+        { "fill": "#toDate-txt", "value": "{to}" },
+        { "clickText": "Apply Filters" },
+        { "wait": 6000 }
+      ],
+      "export": "Excel"
+    },
+    {
+      "name": "receipts",
+      "menu": ["Reports", "Financial Reports", "Receipts Report"],
+      "steps": [
+        { "clickText": "Filters" },
+        { "wait": 1000 },
+        { "fill": "#fromDate-txt", "value": "{from}" },
+        { "fill": "#toDate-txt", "value": "{to}" },
+        { "clickText": "Apply Filters" },
+        { "wait": 6000 }
+      ],
+      "export": "Excel"
+    },
+    {
+      "name": "deleted-invoices",
+      "menu": ["Reports", "Financial Reports", "Deleted Invoices Report"],
+      "steps": [
+        { "clickText": "Filters" },
+        { "wait": 1000 },
+        { "fill": "#fromDate-txt", "value": "{from}" },
+        { "fill": "#toDate-txt", "value": "{to}" },
+        { "clickText": "Apply Filters" },
+        { "wait": 6000 }
+      ],
+      "export": "Excel"
+    }
   ]
 }

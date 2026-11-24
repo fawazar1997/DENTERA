@@ -48,7 +48,7 @@ jobs:
           cp scripts/pms-robot.mjs scripts/pms-robot.config.json "$RUNNER_TEMP/robot/"
           cd "$RUNNER_TEMP/robot"
           npm init -y > /dev/null
-          npm install --no-audit --no-fund playwright@1.48.2 > /dev/null
+          npm install --no-audit --no-fund playwright@1.48.2 xlsx@0.18.5 > /dev/null
           npx playwright install --with-deps chromium > /dev/null
       - name: Run the robot
         env:

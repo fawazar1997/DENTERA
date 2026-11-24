@@ -93,8 +93,9 @@ async function send(path, branch) {
 const FORBIDDEN = /post|zatca|cancel|delete|remove|save|approve|refund|send|ترحيل|إلغاء|الغاء|حذف|حفظ|إرسال|اعتماد/i;
 
 /** Clicks the first visible element whose text is exactly `text` (the page, then its frames). */
-async function clickText(page, text) {
-  if (FORBIDDEN.test(text)) throw new Error(`refused: ${text}`);
+async function clickText(page, text, menu = false) {
+  // Menu items are named in the config (e.g. «Deleted Invoices Report»), not buttons.
+  if (!menu && FORBIDDEN.test(text)) throw new Error(`refused: ${text}`);
   for (const frame of [page.mainFrame(), ...page.frames().filter((f) => f !== page.mainFrame())]) {
     const el = frame.getByText(text, { exact: true });
     const n = await el.count();
@@ -140,7 +141,7 @@ async function openMenu(page, path) {
       // A submenu left open: its next item is already showing (clicking
       // the parent again would close it).
       if (i < path.length - 1 && (await textVisible(page, path[i + 1]))) continue;
-      await clickText(page, path[i]);
+      await clickText(page, path[i], true);
     }
   };
   await dismissDialogs(page);
@@ -247,50 +248,52 @@ async function ensureSignedIn(page) {
 }
 
 /**
- * Tries a report for yesterday: opens its filters, fills the date fields,
- * runs it and presses Excel. Prints only what it found and the download's
- * type and size; the file is deleted unread.
+ * Runs a report's steps (filters, dates, apply) and presses its export
+ * button; returns the downloaded file's path.
  */
+async function exportReport(page, rep, vars, dir, tag) {
+  for (const step of rep.steps ?? []) await runStep(page, step, vars);
+  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 120_000 }), clickText(page, rep.export)]);
+  const ext = (download.suggestedFilename().match(/\.\w+$/) ?? [".xls"])[0];
+  const file = join(dir, `${rep.name}-${tag}${ext}`);
+  await download.saveAs(file);
+  return file;
+}
+
+/** A downloaded report's shape: type, size, rows and column names (no values). */
+async function inspect(file) {
+  const bytes = await readFile(file);
+  const head = bytes.subarray(0, 8);
+  const kind = head[0] === 0x50 && head[1] === 0x4b ? "xlsx" : head[0] === 0xd0 && head[1] === 0xcf ? "xls (binary)" : /^\s*</.test(bytes.subarray(0, 200).toString("utf-8")) ? "html table" : "other";
+  let rows = "?";
+  let columns = [];
+  try {
+    const XLSX = (await import("xlsx")).default;
+    const book = XLSX.read(bytes, { type: "buffer" });
+    const sheet = book.Sheets[book.SheetNames[0]];
+    const table = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
+    rows = String(table.length);
+    // The header: the first row with at least 3 cells that are words, not numbers.
+    const header = table.find((r) => r.filter((c) => String(c).trim() && !/^[\d.,\s/:-]+$/.test(String(c))).length >= 3);
+    columns = (header ?? []).map(safe).filter(Boolean);
+  } catch {
+    // Not readable here; the site's own reader decides.
+  }
+  console.log(`file: ${kind}, ${Math.max(1, Math.round(bytes.length / 1024))} KB, rows ${rows}`);
+  if (columns.length) console.log(`file columns: ${columns.join(" | ")}`);
+}
+
+/** Exports a report for yesterday and prints the file's shape; the file is deleted. */
 async function probe(page, rep, dir) {
-  if (await textVisible(page, "Filters")) {
-    await clickText(page, "Filters");
-    await page.waitForTimeout(1500);
-    await describe(page, `${rep.name} — filters open`);
+  if (!rep.export) {
+    log(`probe ${rep.name}: no export set`, false);
+    return;
   }
   const y = format(addDays(riyadh(), -1), config.dateFormat);
-  const dates = page.locator("input[placeholder='dd/MM/yyyy']:visible, input[id*=date i]:visible:not([type=search])");
-  const n = await dates.count();
-  for (let i = 0; i < n; i++) {
-    await dates.nth(i).fill(y).catch(() => undefined);
-    await dates.nth(i).press("Escape").catch(() => undefined);
-  }
-  console.log(`dates filled: ${n}`);
-  let ran = "";
-  for (const text of ["Run Report", "Search", "Show", "View", "Apply", "Filter", "Show Report", "بحث", "عرض"]) {
-    if (await textVisible(page, text)) {
-      await clickText(page, text);
-      ran = text;
-      break;
-    }
-  }
-  console.log(`run button: ${ran || "none"}`);
-  await page.waitForLoadState("networkidle").catch(() => undefined);
-  await page.waitForTimeout(4000);
-  await describe(page, `${rep.name} — after run`);
-  for (const text of ["Excel", "Excel (Big Table)"]) {
-    if (!(await textVisible(page, text))) continue;
-    try {
-      const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60_000 }), clickText(page, text)]);
-      const file = join(dir, `probe-${rep.name}`);
-      await download.saveAs(file);
-      const size = (await readFile(file)).length;
-      await rm(file, { force: true });
-      console.log(`download via "${text}": ${(download.suggestedFilename().match(/\.\w+$/) ?? ["(no extension)"])[0]}, ${Math.round(size / 1024)} KB`);
-      return;
-    } catch {
-      console.log(`download via "${text}": none`);
-    }
-  }
+  const file = await exportReport(page, rep, { from: y, to: y }, dir, "probe");
+  log(`export ${rep.name}`);
+  await inspect(file);
+  await rm(file, { force: true });
 }
 
 async function discover() {
@@ -339,7 +342,13 @@ async function runStep(page, step, vars) {
   if (step.menu) await openMenu(page, step.menu);
   if (step.clickText) await clickText(page, value(step.clickText));
   if (step.goto) await page.goto(value(step.goto), { waitUntil: "networkidle" });
-  if (step.fill) await page.locator(step.fill).first().fill(value(step.value));
+  if (step.fill) {
+    const el = page.locator(step.fill).first();
+    await el.fill(value(step.value));
+    await el.dispatchEvent("change").catch(() => undefined);
+    await el.press("Escape").catch(() => undefined);
+    if (MODE === "discover") console.log(`  ${step.fill} = ${safe(await el.inputValue().catch(() => ""))}`);
+  }
   if (step.select) await page.locator(step.select).first().selectOption({ label: value(step.value) });
   if (step.click) {
     const el = page.locator(step.click).first();
@@ -399,12 +408,8 @@ async function main() {
             const v = { ...vars, branch };
             await ensureSignedIn(page);
             if (rep.menu) await openMenu(page, rep.menu);
-            const report = latest(page);
-            for (const step of rep.steps ?? []) await runStep(report, step, v);
-            const [download] = await Promise.all([report.waitForEvent("download", { timeout: 120_000 }), report.locator(rep.export).first().click()]);
+            const file = await exportReport(latest(page), rep, v, dir, `${branch ?? "all"}-${from}`);
             await closeOthers(page);
-            const file = join(dir, `${rep.name}-${branch ?? "all"}-${from}${(download.suggestedFilename().match(/\.\w+$/) ?? [".xlsx"])[0]}`);
-            await download.saveAs(file);
             if (!(await send(file, branch ?? rep.branch))) throw new Error("ingest");
             sent++;
           }
