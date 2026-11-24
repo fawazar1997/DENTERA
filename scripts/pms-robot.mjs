@@ -788,7 +788,7 @@ async function syncAccounting(browser, dir) {
             rep.kind === "tb"
               ? answer.rows > 0 && answer.read?.rows === answer.stored?.rows && near(answer.read?.dr, answer.stored?.dr) && near(answer.read?.cr, answer.stored?.cr)
               : answer.rows > 0 && answer.rows === answer.stored;
-          const balanced = rep.kind === "tb" ? (near(answer.read?.dr, answer.read?.cr) ? ", debits = credits" : ", debits ≠ credits (shown on the dashboard, not adjusted)") : "";
+          const balanced = rep.kind === "tb" ? (Math.abs((answer.read?.dr ?? 0) - (answer.read?.cr ?? 0)) < 0.5 ? ", debits = credits" : ", debits ≠ credits (shown on the dashboard, not adjusted)") : "";
           console.log(`check ${name}: rows ${answer.rows ?? "?"} read; stored ${same ? "match" : "MISMATCH"}${balanced}`);
           if (!same) throw new Error("check mismatch");
           sent++;
