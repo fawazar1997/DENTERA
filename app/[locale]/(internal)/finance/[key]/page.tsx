@@ -36,7 +36,7 @@ export default async function FinanceSharePage({
   const text = searchParams.date;
   const date = text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : addDays(riyadhDate(), -1);
   const branch = FINANCE_BRANCHES.includes(searchParams.branch as FinanceBranch) ? (searchParams.branch as FinanceBranch) : "";
-  const { dashboard, status } = await loadDashboard(date, branch ? [branch] : FINANCE_BRANCHES);
+  const { dashboard, status } = await loadDashboard(date, branch ? [branch] : FINANCE_BRANCHES, locale);
 
   return (
     <main className="container-x py-8">

@@ -281,8 +281,10 @@ export function buildDashboard(input: {
     const { label, keys } = partnerOf(line);
     const now = { net: 0, patients: 0, invoices: 0 };
     let found = false;
+    // The official name (exact), else the English words of an older «name = words» line.
+    const isThis = (doctor: string) => doctor === line.trim() || doctor === label || isPartner(keys, doctor);
     for (const [doctor, d] of Object.entries(mtd.byDoctor)) {
-      if (!isPartner(keys, doctor)) continue;
+      if (!isThis(doctor)) continue;
       found = true;
       now.net += d.net;
       now.patients += d.patients;
@@ -290,7 +292,7 @@ export function buildDashboard(input: {
     }
     let before = 0;
     for (const [doctor, d] of Object.entries(lastMonth.byDoctor)) {
-      if (!isPartner(keys, doctor)) continue;
+      if (!isThis(doctor)) continue;
       found = true;
       before += d.net;
     }

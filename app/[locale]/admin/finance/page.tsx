@@ -4,7 +4,8 @@ import { CheckCircle2, Link2, Upload, XCircle } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { requireAdminPage } from "@/lib/adminSession";
-import { FINANCE_BRANCHES, loadDashboard, readFinanceSettings, readFinanceStatus, type FinanceBranch } from "@/lib/finance";
+import { FINANCE_BRANCHES, loadDashboard, officialView, readFinanceSettings, readFinanceStatus, type FinanceBranch } from "@/lib/finance";
+import { getDoctors } from "@/lib/db";
 import { addDays, buildDashboard, riyadhDate } from "@/lib/financeMetrics";
 import { demoData } from "@/lib/financeDemo";
 import { BRANCH_NAMES, financeText } from "@/lib/financeText";
@@ -15,6 +16,8 @@ import {
   uploadFinanceReportsAction,
 } from "@/lib/financeActions";
 import { FinanceView } from "@/components/finance/FinanceView";
+import { PartnerPicker } from "@/components/finance/PartnerPicker";
+import { partnerDoctors } from "@/lib/financeNames";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { LinkCard } from "@/components/admin/LinkCard";
@@ -79,9 +82,10 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
   if (demo) {
     const [settings, status] = await Promise.all([readFinanceSettings(), readFinanceStatus()]);
     const data = demoData(date);
-    view = { dashboard: buildDashboard({ date, branches, settings, ...data }), status };
+    const official = officialView(data.aggs, settings, await getDoctors().catch(() => []), locale);
+    view = { dashboard: buildDashboard({ date, branches, ...data, aggs: official.aggs, settings: official.settings }), status };
   } else {
-    view = await loadDashboard(date, branches);
+    view = await loadDashboard(date, branches, locale);
   }
 
   const q = (demoOn: boolean) => {
@@ -118,7 +122,7 @@ async function SettingsTab({
   dict: ReturnType<typeof getDictionary>;
 }) {
   const t = financeText(locale);
-  const [settings, status] = await Promise.all([readFinanceSettings(), readFinanceStatus()]);
+  const [settings, status, doctors] = await Promise.all([readFinanceSettings(), readFinanceStatus(), getDoctors().catch(() => [])]);
   const numberLocale = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
   const when = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", {
     dateStyle: "medium",
@@ -171,11 +175,17 @@ async function SettingsTab({
             className="input mt-2 font-mono"
           />
         </label>
-        <label className="block">
+        <div>
           <span className="font-bold text-ink-900">{t.partners}</span>
           <span className="mt-1 block text-sm text-ink-500">{t.partnersHint}</span>
-          <textarea name="partners" rows={10} dir="auto" defaultValue={settings.partners.join("\n")} className="input mt-2" />
-        </label>
+          <PartnerPicker
+            doctors={doctors
+              .map((d) => ({ id: d.id, name: locale === "ar" ? d.nameAr : d.nameEn, other: locale === "ar" ? d.nameEn : d.nameAr }))
+              .sort((a, b) => a.name.localeCompare(b.name, locale))}
+            initial={partnerDoctors(settings.partners, doctors).map(({ entry, doctor }) => doctor?.id ?? entry)}
+            labels={{ choose: t.choosePartners, search: t.searchDoctors, none: t.noDoctorMatch, notFound: t.notOfficial, moveUp: t.moveUp, remove: t.remove }}
+          />
+        </div>
         <label className="block">
           <span className="font-bold text-ink-900">{t.specialtyMap}</span>
           <span className="mt-1 block text-sm text-ink-500">{t.specialtyMapHint}</span>

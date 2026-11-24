@@ -608,10 +608,12 @@ function TrendStats({ trend, fmt, t }: { trend: Dashboard["trend"]; fmt: Fmt; t:
 const initials = (name: string) =>
   name
     .replace(/^(prof|dr)\.?\s*/i, "")
+    .replace(/^\s*(أ\.?\s?د\.?|د\.)\s*/, "")
+    .replace(/(^|\s)(ال|آل)\s+/g, " ")
     .split(/[\s.]+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
+    .map((w) => w.replace(/^ال(?=..)/, "")[0]?.toUpperCase())
     .join("");
 
 function Avatar({ name, rank }: { name: string; rank?: number }) {

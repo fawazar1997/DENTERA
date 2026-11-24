@@ -1,4 +1,8 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
+import { getDoctors } from "./db";
+import { partnerDoctors, shownName, withOfficialNames } from "./financeNames";
+import type { Doctor } from "./types";
+import type { Locale } from "./i18n";
 import { readPrivateFile, putPrivateFile } from "./privateBlob";
 import { aggregateMonth } from "./financeAgg";
 import { readReport, type ImportResult } from "./financeImport";
@@ -52,7 +56,10 @@ export async function readFinanceSettings(): Promise<FinanceSettings> {
     yearTargets: { ...MODEL_TARGETS, ...(saved?.yearTargets ?? {}) },
     monthTargets: saved?.monthTargets ?? {},
     // The first default (one partner) is replaced by the full list.
-    partners: !saved?.partners || JSON.stringify(saved.partners) === JSON.stringify(OLD_DEFAULT_PARTNERS) ? DEFAULT_PARTNERS : saved.partners,
+    partners:
+      !saved?.partners || OLD_DEFAULT_PARTNERS.some((old) => JSON.stringify(old) === JSON.stringify(saved.partners))
+        ? DEFAULT_PARTNERS
+        : saved.partners,
     doctorSpecialty: saved?.doctorSpecialty ?? {},
     shareKey: saved?.shareKey,
   };
@@ -179,8 +186,17 @@ export async function importReportFile(bytes: Uint8Array, fileName: string, bran
   return ingestReport(result);
 }
 
+/**
+ * The dashboard's doctors under their official names (Control Panel →
+ * Doctors), and the partners as the official doctors they are.
+ */
+export function officialView(aggs: Aggs, settings: FinanceSettings, doctors: Doctor[], locale: Locale): { aggs: Aggs; settings: FinanceSettings } {
+  const partners = partnerDoctors(settings.partners, doctors).map(({ entry, doctor }) => (doctor ? shownName(doctor, locale) : entry));
+  return { aggs: withOfficialNames(aggs, doctors, locale), settings: { ...settings, partners } };
+}
+
 /** Everything the dashboard needs for a day and branches. */
-export async function loadDashboard(date: string, branches: FinanceBranch[]) {
+export async function loadDashboard(date: string, branches: FinanceBranch[], locale: Locale = "ar") {
   const month = monthOf(date);
   const needed = new Set<string>([
     month,
@@ -196,9 +212,11 @@ export async function loadDashboard(date: string, branches: FinanceBranch[]) {
     readFinanceStatus(),
     ...[...needed].map((m) => readMonthAgg(m)),
   ]);
-  const aggs: Aggs = {};
-  [...needed].forEach((m, i) => (aggs[m] = list[i] as MonthAgg | undefined));
-  return { dashboard: buildDashboard({ date, branches, aggs, settings, history, installments }), settings, status };
+  const stored: Aggs = {};
+  [...needed].forEach((m, i) => (stored[m] = list[i] as MonthAgg | undefined));
+  const doctors = await getDoctors().catch(() => []);
+  const view = officialView(stored, settings, doctors, locale);
+  return { dashboard: buildDashboard({ date, branches, aggs: view.aggs, settings: view.settings, history, installments }), settings, status };
 }
 
 // --- Keys ---

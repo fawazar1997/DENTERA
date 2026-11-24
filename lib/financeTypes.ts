@@ -136,24 +136,36 @@ export const MODEL_TARGETS: Record<string, number> = {
 export const MODEL_BUDGET_2026 = 64924056;
 
 /**
- * The partner doctors, in the order shown. Each line: the name to show, then
- * «=» and the words that find the doctor in the PMS (any spelling: «Wadaei»,
- * «Wadai», «Mohammad», «Muhammad»… all match; a doctor's names in both
- * branches add up).
+ * The partner doctors, in the order shown: official doctors (Control Panel →
+ * Doctors) chosen in Settings and stored by id. These defaults are their
+ * names as written, matched to the official doctors.
  */
 export const DEFAULT_PARTNERS = [
-  "إبراهيم الشهراني = Ibrahim Shahrani",
-  "عبدالعزيز أبو ملحة = Abdulaziz Abumilha",
-  "عبدالعزيز الشهراني = Abdulaziz Shahrani",
-  "غدير الوادعي = Ghadeer Wadaei",
-  "محمد الوادعي = Mohammed Wadaei",
-  "ناصر الأحمري = Nasser Ahmari",
-  "محمد مقبول = Mohammed Maqbool",
-  "فيصل عبود = Faisal Abboud",
-  "مانع الأحمري = Manea Ahmari",
+  "إبراهيم الشهراني",
+  "عبد العزيز ابو ملحة",
+  "عبد العزيز الشهراني",
+  "غدير الوادعي",
+  "محمد الوادعي",
+  "ناصر الاحمري",
+  "محمد مقبول",
+  "فيصل عبود",
+  "مانع الاحمري",
 ];
-/** The single partner set before the list above (replaced by it when still saved). */
-export const OLD_DEFAULT_PARTNERS = ["Prof. Ibrahim AlShahrani"];
+/** Earlier default lists (replaced by the one above while still saved unchanged). */
+export const OLD_DEFAULT_PARTNERS = [
+  ["Prof. Ibrahim AlShahrani"],
+  [
+    "إبراهيم الشهراني = Ibrahim Shahrani",
+    "عبدالعزيز أبو ملحة = Abdulaziz Abumilha",
+    "عبدالعزيز الشهراني = Abdulaziz Shahrani",
+    "غدير الوادعي = Ghadeer Wadaei",
+    "محمد الوادعي = Mohammed Wadaei",
+    "ناصر الأحمري = Nasser Ahmari",
+    "محمد مقبول = Mohammed Maqbool",
+    "فيصل عبود = Faisal Abboud",
+    "مانع الأحمري = Manea Ahmari",
+  ],
+];
 
 /** Letters only, lower case, common transliteration variants made one. */
 export function nameKey(text: string): string {

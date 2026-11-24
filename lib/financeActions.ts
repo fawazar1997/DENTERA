@@ -101,11 +101,8 @@ export async function saveFinanceSettingsAction(formData: FormData) {
     if (/^\d{4}-\d{2}$/.test(month) && Number.isFinite(n) && n > 0) monthTargets[month] = Math.round(n);
   }
 
-  const partners = str(formData, "partners")
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 30);
+  // The chosen official doctors' ids, in the order shown.
+  const partners = [...new Set(formData.getAll("partners").map((v) => String(v).trim()).filter(Boolean))].slice(0, 40);
 
   const doctorSpecialty: Record<string, Specialty> = {};
   for (const [doctor, value] of pairs(str(formData, "doctorSpecialty"))) {
