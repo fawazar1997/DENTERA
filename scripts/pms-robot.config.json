@@ -129,7 +129,7 @@
     }
   ],
   "accounting": {
-    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete or edit (scripts/robot-safety.mjs). 'url' opens a report page directly; 'explore' lists the links under those top menu items (discover only). 'look' (discover only) opens the filters window to list its fields.",
+    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete, edit or «New Account» (scripts/robot-safety.mjs). 'url' opens a report page directly; 'range' is the period (month or year to date, else the day before); 'steps' fill its Filters window and «Run Report»; 'export' is the download button; 'look' (discover only) shows a page without downloading.",
     "login": {
       "url": "https://dentera.microchips-cloud.com/accounting/Home/Login",
       "user": "input[type=text]:visible, input[type=email]:visible, input[name*=user i], input[id*=user i]",
@@ -141,120 +141,290 @@
       {
         "name": "trial-balance",
         "url": "/accounting/TrailBalanceFull/Index",
-        "look": [
+        "range": "month",
+        "steps": [
           {
             "clickText": "Filters"
           },
           {
             "wait": 1500
+          },
+          {
+            "fill": "#fromDate-txt",
+            "value": "{from}"
+          },
+          {
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "select": "#filterbranches-select",
+            "value": "{branch}"
+          },
+          {
+            "check": "#notPosted-checkbox",
+            "value": false
+          },
+          {
+            "check": "#showLastAccountsOnly-checkbox",
+            "value": true
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
           }
+        ],
+        "export": "Excel",
+        "branches": [
+          "Abha",
+          "Khamis"
         ]
       },
       {
-        "name": "trial-balance-cost-centers",
-        "url": "/accounting/TrailBalanceByCostCenters/Index",
-        "look": [
+        "name": "trial-balance-with-unposted",
+        "url": "/accounting/TrailBalanceFull/Index",
+        "range": "month",
+        "steps": [
           {
             "clickText": "Filters"
           },
           {
             "wait": 1500
+          },
+          {
+            "fill": "#fromDate-txt",
+            "value": "{from}"
+          },
+          {
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "check": "#notPosted-checkbox",
+            "value": true
+          },
+          {
+            "check": "#showLastAccountsOnly-checkbox",
+            "value": true
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
           }
-        ]
+        ],
+        "export": "Excel"
       },
       {
         "name": "income-statement",
         "url": "/accounting/IncomeStatement/Index",
-        "look": [
+        "range": "year",
+        "steps": [
           {
             "clickText": "Filters"
           },
           {
             "wait": 1500
-          }
-        ]
-      },
-      {
-        "name": "balance-sheet",
-        "url": "/accounting/BalanceSheet/Index",
-        "look": [
-          {
-            "clickText": "Filters"
           },
           {
-            "wait": 1500
-          }
-        ]
-      },
-      {
-        "name": "account-statement",
-        "url": "/accounting/AccountStatement/Index",
-        "look": [
-          {
-            "clickText": "Filters"
+            "fill": "#fromDate-txt",
+            "value": "{from}"
           },
           {
-            "wait": 1500
-          }
-        ]
-      },
-      {
-        "name": "customers-trial-balance",
-        "url": "/accounting/CustomersTrailBalance/Index",
-        "look": [
-          {
-            "clickText": "Filters"
+            "fill": "#toDate-txt",
+            "value": "{to}"
           },
           {
-            "wait": 1500
-          }
-        ]
-      },
-      {
-        "name": "suppliers-trial-balance",
-        "url": "/accounting/SuppliersTrailBalance/Index",
-        "look": [
-          {
-            "clickText": "Filters"
+            "select": "#reportFormat-select",
+            "value": "Monthly Detailed"
           },
           {
-            "wait": 1500
-          }
-        ]
-      },
-      {
-        "name": "suppliers-aging",
-        "url": "/accounting/SuppliersAgingReport/Index",
-        "look": [
-          {
-            "clickText": "Filters"
+            "select": "#postStatus-select",
+            "value": "Posted only"
           },
           {
-            "wait": 1500
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
           }
-        ]
+        ],
+        "export": "Excel"
       },
       {
         "name": "unposted",
-        "url": "/accounting/GeneralReports/UnPostedTransactionsReport"
-      },
-      {
-        "name": "cash-flow",
-        "url": "/accounting/CashFlowReport/Index",
+        "url": "/accounting/GeneralReports/UnPostedTransactionsReport",
+        "range": "year",
         "look": [
           {
-            "clickText": "Filters"
+            "fill": "#fromDate-txt",
+            "value": "{from}"
           },
           {
-            "wait": 1500
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "clickText": "Load Report"
+          },
+          {
+            "wait": 8000
           }
         ]
       },
       {
         "name": "chart-of-accounts",
-        "url": "/accounting/ChartOfAccounts/Index"
+        "url": "/accounting/ChartOfAccounts/Index",
+        "steps": [
+          {
+            "wait": 1500
+          }
+        ],
+        "export": "Excel"
+      },
+      {
+        "name": "balance-sheet",
+        "url": "/accounting/BalanceSheet/Index",
+        "steps": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          },
+          {
+            "fill": "#asOfDate-txt",
+            "value": "{to}"
+          },
+          {
+            "select": "#viewType-select",
+            "value": "Table View"
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
+          }
+        ],
+        "export": "Excel"
+      },
+      {
+        "name": "customers-trial-balance",
+        "url": "/accounting/CustomersTrailBalance/Index",
+        "range": "year",
+        "steps": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          },
+          {
+            "fill": "#fromDate-txt",
+            "value": "{from}"
+          },
+          {
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
+          }
+        ],
+        "export": "Excel"
+      },
+      {
+        "name": "suppliers-trial-balance",
+        "url": "/accounting/SuppliersTrailBalance/Index",
+        "range": "year",
+        "steps": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          },
+          {
+            "fill": "#fromDate-txt",
+            "value": "{from}"
+          },
+          {
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
+          }
+        ],
+        "export": "Excel"
+      },
+      {
+        "name": "suppliers-aging",
+        "url": "/accounting/SuppliersAgingReport/Index",
+        "steps": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          },
+          {
+            "fill": "#upToDate-txt",
+            "value": "{to}"
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
+          }
+        ],
+        "export": "Excel"
+      },
+      {
+        "name": "cash-flow",
+        "url": "/accounting/CashFlowReport/Index",
+        "range": "year",
+        "steps": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          },
+          {
+            "fill": "#fromDate-txt",
+            "value": "{from}"
+          },
+          {
+            "fill": "#toDate-txt",
+            "value": "{to}"
+          },
+          {
+            "select": "#method-select",
+            "value": "Direct"
+          },
+          {
+            "clickText": "Run Report"
+          },
+          {
+            "wait": 8000
+          }
+        ],
+        "export": "Excel"
       }
     ],
-    "explore": []
+    "explore": [],
+    "dateFormat": "dd/MM/yyyy"
   }
 }

@@ -389,7 +389,7 @@ async function toCsv(file, rep = {}) {
 }
 
 /** A downloaded report's shape: type, size, rows and column names (no values). */
-async function inspect(file) {
+async function inspect(file, strict = false) {
   const bytes = await readFile(file);
   const head = bytes.subarray(0, 8);
   const kind = head[0] === 0x50 && head[1] === 0x4b ? "xlsx" : head[0] === 0xd0 && head[1] === 0xcf ? "xls (binary)" : /^\s*</.test(bytes.subarray(0, 200).toString("utf-8")) ? "html table" : "other";
@@ -402,8 +402,14 @@ async function inspect(file) {
     const table = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
     rows = String(table.length);
     // The header: the first row with at least 3 cells that are words, not numbers.
-    const header = table.find((r) => r.filter((c) => String(c).trim() && !/^[\d.,\s/:-]+$/.test(String(c))).length >= 3);
+    // Accounting files can list customers and suppliers by name: there only
+    // a row of column titles (debit, credit, balance…) is printed.
+    const titles = /debit|credit|balance|account|code|level|opening|closing|total|month|date|reference|مدين|دائن|رصيد|حساب|رمز|مستوى|افتتاحي|ختامي|إجمالي|اجمالي|شهر|تاريخ/i;
+    const header = strict
+      ? table.find((r) => r.filter((c) => titles.test(String(c))).length >= 2)
+      : table.find((r) => r.filter((c) => String(c).trim() && !/^[\d.,\s/:-]+$/.test(String(c))).length >= 3);
     columns = (header ?? []).map((x) => safe(x)).filter(Boolean);
+    if (strict && !header) columns = [`(no title row found; ${Math.max(0, ...table.slice(0, 20).map((r) => r.length))} columns)`];
   } catch {
     // Not readable here; the site's own reader decides.
   }
@@ -417,7 +423,11 @@ async function probe(page, rep, dir) {
     log(`probe ${rep.name}: no export set`, false);
     return;
   }
-  const y = format(addDays(riyadh(), -1), config.dateFormat);
+  const pattern = rep.dateFormat ?? config.dateFormat;
+  const day = addDays(riyadh(), -1);
+  const y = format(day, pattern);
+  // A report over a period: from the 1st of the month or of the year.
+  const from = rep.range === "year" ? format(`${day.slice(0, 4)}-01-01`, pattern) : rep.range === "month" ? format(monthStart(day), pattern) : y;
   // Each way of exporting (the report's own, then its «alternatives»), for each branch.
   const ways = [rep, ...(rep.alternatives ?? []).map((alt) => ({ ...rep, ...alt }))];
   for (const branch of rep.branches ?? [null]) {
@@ -427,11 +437,12 @@ async function probe(page, rep, dir) {
       try {
         if (n > 0 || branch !== (rep.branches ?? [null])[0]) {
           await closeOthers(page);
-          await openMenu(page, rep.menu);
+          if (rep.url) await page.goto(new URL(rep.url, config.accounting.login.url).href, { waitUntil: "networkidle" });
+          else await openMenu(page, rep.menu);
         }
-        const file = await exportReport(page, way, { from: y, to: y, branch }, dir, `probe-${n}`);
+        const file = await exportReport(page, way, { from, to: y, branch }, dir, `probe-${n}`);
         log(`export ${tag}`);
-        await inspect(file);
+        await inspect(file, rep.strict);
         await rm(file, { force: true });
         done = true;
         break;
@@ -530,13 +541,16 @@ async function discoverAccounting(browser) {
       await describe(report, `accounting — ${rep.name}`);
       // Discover only: open the report's filters window and show its fields.
       if (!rep.export && rep.look?.length) {
-        for (const step of rep.look) await runStep(report, step, { from: "", to: "", branch: "" });
+        const pattern = rep.dateFormat ?? acct.dateFormat ?? config.dateFormat;
+        const day = addDays(riyadh(), -1);
+        const from = rep.range === "year" ? `${day.slice(0, 4)}-01-01` : rep.range === "month" ? monthStart(day) : day;
+        for (const step of rep.look) await runStep(report, step, { from: format(from, pattern), to: format(day, pattern), branch: "" });
         await describe(latest(page), `accounting — ${rep.name} — filters`);
       }
       if (rep.export) {
         const dir = await mkdtemp(join(tmpdir(), "probe-"));
         try {
-          await probe(report, rep, dir);
+          await probe(report, { dateFormat: acct.dateFormat, strict: true, ...rep }, dir);
         } finally {
           await rm(dir, { recursive: true, force: true });
         }
@@ -554,8 +568,15 @@ async function runStep(page, step, vars) {
   if (step.menu) await openMenu(page, step.menu);
   if (step.clickText) await clickText(page, value(step.clickText));
   if (step.goto) await page.goto(value(step.goto), { waitUntil: "networkidle" });
+  if (step.check) {
+    // A view option (e.g. «Include Not Posted Entries»), ticked or cleared.
+    const el = page.locator(step.check).first();
+    if (step.value === false) await el.uncheck({ force: true });
+    else await el.check({ force: true });
+  }
   if (step.fill) {
     const el = page.locator(step.fill).first();
+    if (MODE === "discover") console.log(`  ${step.fill} was ${safe(await el.inputValue().catch(() => ""))}`);
     await el.fill(value(step.value));
     // Tell the page the value changed, then leave the field so its date
     // picker closes (Escape would close the whole filters window).
