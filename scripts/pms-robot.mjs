@@ -82,7 +82,10 @@ async function send(path, branch) {
   form.append("file", new Blob([await readFile(path)]), basename(path));
   if (branch) form.append("branch", branch);
   const res = await fetch(`${SITE}/api/finance/ingest`, { method: "POST", headers: { Authorization: `Bearer ${KEY}` }, body: form });
-  return res.ok;
+  if (res.ok) return true;
+  // The site answers with an error code only (never figures).
+  const body = await res.json().catch(() => ({}));
+  throw new Error(`site ${res.status} ${body?.error ?? ""}`.trim());
 }
 
 /**
@@ -422,9 +425,9 @@ async function main() {
             sent++;
           }
           log(name);
-        } catch {
+        } catch (error) {
           failed++;
-          log(name, false);
+          log(`${name} (${safe(error?.message, 200)})`, false);
         }
       }
     }
