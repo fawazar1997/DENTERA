@@ -85,8 +85,16 @@ async function send(path, branch) {
   return res.ok;
 }
 
+/**
+ * Buttons the robot must never press: it only reads reports. (The daily
+ * collection page has «Post to Accounting», «Cancel Day Post» and «Report
+ * to Zatca» next to its Excel button.)
+ */
+const FORBIDDEN = /post|zatca|cancel|delete|remove|save|approve|refund|send|ترحيل|إلغاء|الغاء|حذف|حفظ|إرسال|اعتماد/i;
+
 /** Clicks the first visible element whose text is exactly `text` (the page, then its frames). */
 async function clickText(page, text) {
+  if (FORBIDDEN.test(text)) throw new Error(`refused: ${text}`);
   for (const frame of [page.mainFrame(), ...page.frames().filter((f) => f !== page.mainFrame())]) {
     const el = frame.getByText(text, { exact: true });
     const n = await el.count();
@@ -238,6 +246,53 @@ async function ensureSignedIn(page) {
   if (await page.locator(config.login.password).first().isVisible().catch(() => false)) await login(page);
 }
 
+/**
+ * Tries a report for yesterday: opens its filters, fills the date fields,
+ * runs it and presses Excel. Prints only what it found and the download's
+ * type and size; the file is deleted unread.
+ */
+async function probe(page, rep, dir) {
+  if (await textVisible(page, "Filters")) {
+    await clickText(page, "Filters");
+    await page.waitForTimeout(1500);
+    await describe(page, `${rep.name} — filters open`);
+  }
+  const y = format(addDays(riyadh(), -1), config.dateFormat);
+  const dates = page.locator("input[placeholder='dd/MM/yyyy']:visible, input[id*=date i]:visible:not([type=search])");
+  const n = await dates.count();
+  for (let i = 0; i < n; i++) {
+    await dates.nth(i).fill(y).catch(() => undefined);
+    await dates.nth(i).press("Escape").catch(() => undefined);
+  }
+  console.log(`dates filled: ${n}`);
+  let ran = "";
+  for (const text of ["Run Report", "Search", "Show", "View", "Apply", "Filter", "Show Report", "بحث", "عرض"]) {
+    if (await textVisible(page, text)) {
+      await clickText(page, text);
+      ran = text;
+      break;
+    }
+  }
+  console.log(`run button: ${ran || "none"}`);
+  await page.waitForLoadState("networkidle").catch(() => undefined);
+  await page.waitForTimeout(4000);
+  await describe(page, `${rep.name} — after run`);
+  for (const text of ["Excel", "Excel (Big Table)"]) {
+    if (!(await textVisible(page, text))) continue;
+    try {
+      const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60_000 }), clickText(page, text)]);
+      const file = join(dir, `probe-${rep.name}`);
+      await download.saveAs(file);
+      const size = (await readFile(file)).length;
+      await rm(file, { force: true });
+      console.log(`download via "${text}": ${(download.suggestedFilename().match(/\.\w+$/) ?? ["(no extension)"])[0]}, ${Math.round(size / 1024)} KB`);
+      return;
+    } catch {
+      console.log(`download via "${text}": none`);
+    }
+  }
+}
+
 async function discover() {
   const browser = await chromium.launch();
   try {
@@ -260,6 +315,14 @@ async function discover() {
         log(`open ${rep.name}`);
         const report = latest(page);
         await describe(report, report === page ? rep.name : `${rep.name} (opened in a new tab)`);
+        const dir = await mkdtemp(join(tmpdir(), "probe-"));
+        try {
+          await probe(report, rep, dir);
+        } catch (error) {
+          log(`probe ${rep.name} (${safe(error?.message)})`, false);
+        } finally {
+          await rm(dir, { recursive: true, force: true });
+        }
       } catch (error) {
         log(`open ${rep.name} (${safe(error?.message)})`, false);
         await describe(latest(page), `${rep.name} — where it stopped`);
@@ -278,7 +341,11 @@ async function runStep(page, step, vars) {
   if (step.goto) await page.goto(value(step.goto), { waitUntil: "networkidle" });
   if (step.fill) await page.locator(step.fill).first().fill(value(step.value));
   if (step.select) await page.locator(step.select).first().selectOption({ label: value(step.value) });
-  if (step.click) await page.locator(step.click).first().click();
+  if (step.click) {
+    const el = page.locator(step.click).first();
+    if (FORBIDDEN.test((await el.textContent().catch(() => "")) ?? "")) throw new Error("refused");
+    await el.click();
+  }
   if (step.wait) await page.waitForTimeout(Math.min(30_000, Number(step.wait)));
   if (step.waitFor) await page.locator(step.waitFor).first().waitFor({ timeout: 60_000 });
 }
