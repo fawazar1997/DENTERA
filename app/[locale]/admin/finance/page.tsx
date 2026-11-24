@@ -5,7 +5,7 @@ import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { requireAdminPage } from "@/lib/adminSession";
 import { FINANCE_BRANCHES, loadDashboard, readFinanceSettings, readFinanceStatus, type FinanceBranch } from "@/lib/finance";
-import { buildDashboard, riyadhDate } from "@/lib/financeMetrics";
+import { addDays, buildDashboard, riyadhDate } from "@/lib/financeMetrics";
 import { demoData } from "@/lib/financeDemo";
 import { BRANCH_NAMES, financeText } from "@/lib/financeText";
 import {
@@ -70,7 +70,7 @@ const dateOr = (text: string | undefined, fallback: string) =>
   text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : fallback;
 
 async function DashboardTab({ locale, searchParams, base }: { locale: Locale; searchParams: Record<string, string | undefined>; base: string }) {
-  const date = dateOr(searchParams.date, riyadhDate());
+  const date = dateOr(searchParams.date, addDays(riyadhDate(), -1));
   const branch = FINANCE_BRANCHES.includes(searchParams.branch as FinanceBranch) ? (searchParams.branch as FinanceBranch) : "";
   const branches = branch ? [branch] : FINANCE_BRANCHES;
   const demo = searchParams.demo === "1";

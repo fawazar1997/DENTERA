@@ -22,8 +22,10 @@ import type { ComponentType, ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { Dashboard, DoctorRow } from "@/lib/financeMetrics";
 import type { FinanceBranch, FinanceStatus, FlagRef, PayMethod } from "@/lib/financeTypes";
-import { BRANCH_NAMES, METHOD_NAMES, SPECIALTY_NAMES, financeText } from "@/lib/financeText";
+import { BRANCH_NAMES, METHOD_NAMES, SPECIALTY_NAMES, financeText, forDay } from "@/lib/financeText";
+import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { TrendChart, REVENUE_COLOR } from "./TrendChart";
+import { AutoSubmitForm } from "./AutoSubmitForm";
 
 // The financial dashboard itself (light theme): used by Control Panel →
 // الأداء المالي and by the private view link. Server-rendered; only the
@@ -46,7 +48,8 @@ export type FinanceViewProps = {
 };
 
 export function FinanceView({ dashboard: d, locale, branch, status, demo, formAction, demoLinks, shared }: FinanceViewProps) {
-  const t = financeText(locale);
+  const todayDate = riyadhDate();
+  const t = forDay(financeText(locale), locale, d.date, todayDate, addDays(todayDate, -1));
   const numberLocale = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
   const n0 = (v: number) => Math.round(v).toLocaleString(numberLocale);
   const money = (v: number) => `${n0(v)} ${t.sar}`;
@@ -65,7 +68,7 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
   return (
     <div className="space-y-6">
       {/* Filters and freshness */}
-      <form method="get" action={formAction} className="card flex flex-wrap items-end gap-3 p-4">
+      <AutoSubmitForm action={formAction} className="card flex flex-wrap items-end gap-3 p-4">
         <label className="flex flex-col gap-1 text-xs font-bold text-ink-600">
           {t.date}
           <input type="date" name="date" defaultValue={d.date} className="input w-auto" />
@@ -82,14 +85,16 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
           </select>
         </label>
         {demo && <input type="hidden" name="demo" value="1" />}
-        <button type="submit" className="btn-primary">
-          {t.show}
-        </button>
+        <noscript>
+          <button type="submit" className="btn-primary">
+            {t.show}
+          </button>
+        </noscript>
         <p className="ms-auto flex items-center gap-1.5 text-sm text-ink-500">
           <Clock className="h-4 w-4" />
           {t.lastUpdate}: {lastOk ? when.format(lastOk) : t.never}
         </p>
-      </form>
+      </AutoSubmitForm>
 
       {stale && (
         <p role="alert" className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-800">

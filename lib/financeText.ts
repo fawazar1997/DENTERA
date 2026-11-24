@@ -7,7 +7,7 @@ import type { FinanceBranch, PayMethod, Specialty } from "./financeTypes";
 const ar = {
   title: "الأداء المالي",
   subtitle: "إيرادات العيادة وتحصيلها وأداء الأطباء، من نظام العيادة تلقائيًا.",
-  date: "اليوم",
+  date: "التاريخ",
   branch: "الفرع",
   allBranches: "كل الفروع",
   show: "عرض",
@@ -134,7 +134,7 @@ const ar = {
 const en: typeof ar = {
   title: "Financial performance",
   subtitle: "The clinic's revenue, collections and doctors' performance, straight from the clinic system.",
-  date: "Day",
+  date: "Date",
   branch: "Branch",
   allBranches: "All branches",
   show: "Show",
@@ -270,3 +270,33 @@ export const METHOD_NAMES: Record<Locale, Record<PayMethod, string>> = {
   ar: { cash: "نقدًا", card: "شبكة", transfer: "تحويل", tabby: "تابي", tamara: "تمارا", other: "أخرى" },
   en: { cash: "Cash", card: "Card", transfer: "Transfer", tabby: "Tabby", tamara: "Tamara", other: "Other" },
 };
+
+/**
+ * The labels that name the chosen day: «اليوم», «أمس» or the date itself
+ * (the dashboard opens on yesterday).
+ */
+export function forDay(t: FinanceText, locale: Locale, date: string, today: string, yesterday: string): FinanceText {
+  const dmy = date.split("-").reverse().join("-");
+  if (locale === "ar") {
+    const word = date === today ? "اليوم" : date === yesterday ? "أمس" : `يوم ${dmy}`;
+    return {
+      ...t,
+      todayRevenue: `إيراد ${word}`,
+      collections: `التحصيل ${word}`,
+      newToday: `فواتير ${word}`,
+      doctorsToday: `الأطباء ${word} مقارنة باليوم السابق`,
+      todayCount: date === today ? "اليوم" : date === yesterday ? "أمس" : dmy,
+      noneToday: `لا شيء ${word}`,
+    };
+  }
+  const word = date === today ? "today" : date === yesterday ? "yesterday" : `on ${dmy}`;
+  return {
+    ...t,
+    todayRevenue: `Revenue ${word}`,
+    collections: `Collected ${word}`,
+    newToday: `New invoices ${word}`,
+    doctorsToday: `Doctors ${word} vs the previous day`,
+    todayCount: date === today ? "Today" : date === yesterday ? "Yesterday" : dmy,
+    noneToday: `None ${word}`,
+  };
+}

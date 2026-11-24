@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Eye } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { FINANCE_BRANCHES, loadDashboard, readFinanceSettings, sameKey, type FinanceBranch } from "@/lib/finance";
-import { riyadhDate } from "@/lib/financeMetrics";
+import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { financeText } from "@/lib/financeText";
 import { FinanceView } from "@/components/finance/FinanceView";
 import { Logo } from "@/components/Logo";
@@ -34,7 +34,7 @@ export default async function FinanceSharePage({
 
   const t = financeText(locale);
   const text = searchParams.date;
-  const date = text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : riyadhDate();
+  const date = text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : addDays(riyadhDate(), -1);
   const branch = FINANCE_BRANCHES.includes(searchParams.branch as FinanceBranch) ? (searchParams.branch as FinanceBranch) : "";
   const { dashboard, status } = await loadDashboard(date, branch ? [branch] : FINANCE_BRANCHES);
 
