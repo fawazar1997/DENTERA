@@ -169,7 +169,7 @@ const safe = (text, max = 60) =>
     .replace(/[0-9٠-٩]{3,}/g, "#")
     .slice(0, max);
 
-async function describe(page, title, navigation = false) {
+async function describe(page, title, navigation = false, strict = /accounting/.test(title)) {
   console.log(`\n=== ${title} ===`);
   console.log(`path: ${safe(new URL(page.url()).pathname)}`);
   for (const frame of page.frames()) {
@@ -234,7 +234,8 @@ async function describe(page, title, navigation = false) {
       console.log(`field ${f.tag}[type=${f.type}] name=${safe(f.name)} id=${safe(f.id)} placeholder=${safe(f.placeholder)} label=${safe(f.label)}${f.button ? ` value=${safe(f.button)}` : ""}`);
     for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
-    for (const h of info.heads.slice(0, 12)) console.log(`table columns: ${h.map((x) => safe(x)).join(" | ")}`);
+    for (const h of info.heads.slice(0, 12))
+      console.log(`table columns: ${(strict ? h.slice(0, 30).map((x, i) => (i === h.length - 1 || isTitle(x) ? safe(x) : "·")) : h.map((x) => safe(x))).join(" | ")}`);
     const menu = [...new Set(info.menu.map((x) => safe(x)))].filter(Boolean).slice(0, 160);
     if (menu.length) console.log(`menu items: ${menu.join(" | ")}`);
   }
@@ -398,6 +399,17 @@ async function toCsv(file, rep = {}) {
   }
 }
 
+/**
+ * A column title of an accounting report (Debit, Credit, Balance, Account
+ * No, Date…): short, words only, from a fixed list. Anything else (customer,
+ * supplier or account names, amounts) is never printed for accounting.
+ */
+const TITLE_WORDS = /^(account|accounts|no\.?|number|name|code|id|level|opening|closing|final|balance|balances|transactions|movement|debit|credit|total|totals|date|reference|ref\.?|description|notes|source|status|module|branch|type|nature|parent|month|amount|journal|entry|#|year|specific|payment|method|transaction|count|section|customer|supplier|group|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|مدين|دائن|رصيد|الرصيد|حساب|الحساب|رقم|اسم|تاريخ|التاريخ|البيان|المبلغ|افتتاحي|الافتتاحي|ختامي|الختامي|الحركة|إجمالي|الإجمالي|الفرع|الحالة|القيد)$/i;
+const isTitle = (cell) => {
+  const words = String(cell ?? "").replace(/[()\-_/:.,]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.length <= 4 && words.every((w) => TITLE_WORDS.test(w));
+};
+
 /** A downloaded report's shape: type, size, rows and column names (no values). */
 async function inspect(file, strict = false) {
   const bytes = await readFile(file);
@@ -414,14 +426,16 @@ async function inspect(file, strict = false) {
     // The header: the first row with at least 3 cells that are words, not numbers.
     // Accounting files can list customers and suppliers by name: there only
     // a row of column titles (debit, credit, balance…) is printed.
-    const titles = /debit|credit|balance|account|code|level|opening|closing|total|month|date|reference|مدين|دائن|رصيد|حساب|رمز|مستوى|افتتاحي|ختامي|إجمالي|اجمالي|شهر|تاريخ/i;
     const header = strict
-      ? table.find((r) => r.filter((c) => titles.test(String(c))).length >= 2)
+      ? table.find((r) => r.filter((c) => isTitle(c)).length >= 2)
       : table.find((r) => r.filter((c) => String(c).trim() && !/^[\d.,\s/:-]+$/.test(String(c))).length >= 3);
-    columns = (header ?? []).map((x) => safe(x)).filter(Boolean);
+    // Accounting: only cells that are column titles are printed (names,
+    // amounts and anything else show as «·»), at most 30.
+    const shown = (row) => (strict ? row.slice(0, 30).map((c) => (isTitle(c) ? safe(c) : "·")) : row.map((x) => safe(x)).filter(Boolean));
+    columns = shown(header ?? []);
     // A second title row under it (e.g. Debit | Credit under each group).
     const next = header ? table[table.indexOf(header) + 1] : null;
-    if (strict && next && next.filter((c) => titles.test(String(c))).length >= 2) columns.push(`|| under: ${next.map((x) => safe(x) || "·").join(" | ")}`);
+    if (strict && next && next.filter((c) => isTitle(c)).length >= 2) columns.push(`|| under: ${shown(next).join(" | ")}`);
     if (strict && !header) columns = [`(no title row found; ${Math.max(0, ...table.slice(0, 20).map((r) => r.length))} columns)`];
   } catch {
     // Not readable here; the site's own reader decides.

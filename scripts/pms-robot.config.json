@@ -342,97 +342,6 @@
         "kind": "chart"
       },
       {
-        "name": "balance-sheet",
-        "url": "/accounting/BalanceSheet/Index",
-        "steps": [
-          {
-            "clickText": "Filters"
-          },
-          {
-            "wait": 1500
-          },
-          {
-            "fill": "#asOfDate-txt",
-            "value": "{to}"
-          },
-          {
-            "select": "#viewType-select",
-            "value": "Table View"
-          },
-          {
-            "clickText": "Run Report"
-          },
-          {
-            "wait": 15000
-          }
-        ],
-        "export": "Excel"
-      },
-      {
-        "name": "customers-trial-balance",
-        "url": "/accounting/CustomersTrailBalance/Index",
-        "range": "year",
-        "steps": [
-          {
-            "clickText": "Filters"
-          },
-          {
-            "wait": 1500
-          },
-          {
-            "fill": "#fromDate-txt",
-            "value": "{from}"
-          },
-          {
-            "fill": "#toDate-txt",
-            "value": "{to}"
-          },
-          {
-            "select": "#accounts-select",
-            "value": "Receivables Customers"
-          },
-          {
-            "clickText": "Run Report"
-          },
-          {
-            "wait": 8000
-          }
-        ],
-        "export": "Excel"
-      },
-      {
-        "name": "suppliers-trial-balance",
-        "url": "/accounting/SuppliersTrailBalance/Index",
-        "range": "year",
-        "steps": [
-          {
-            "clickText": "Filters"
-          },
-          {
-            "wait": 1500
-          },
-          {
-            "fill": "#fromDate-txt",
-            "value": "{from}"
-          },
-          {
-            "fill": "#toDate-txt",
-            "value": "{to}"
-          },
-          {
-            "select": "#accounts-select",
-            "value": "Local Suppliers"
-          },
-          {
-            "clickText": "Run Report"
-          },
-          {
-            "wait": 8000
-          }
-        ],
-        "export": "Excel"
-      },
-      {
         "name": "suppliers-aging",
         "url": "/accounting/SuppliersAgingReport/Index",
         "steps": [
@@ -445,38 +354,6 @@
           {
             "fill": "#upToDate-txt",
             "value": "{to}"
-          },
-          {
-            "clickText": "Run Report"
-          },
-          {
-            "wait": 8000
-          }
-        ],
-        "export": "Excel"
-      },
-      {
-        "name": "cash-flow",
-        "url": "/accounting/CashFlowReport/Index",
-        "range": "year",
-        "steps": [
-          {
-            "clickText": "Filters"
-          },
-          {
-            "wait": 1500
-          },
-          {
-            "fill": "#fromDate-txt",
-            "value": "{from}"
-          },
-          {
-            "fill": "#toDate-txt",
-            "value": "{to}"
-          },
-          {
-            "select": "#method-select",
-            "value": "Direct"
           },
           {
             "clickText": "Run Report"
