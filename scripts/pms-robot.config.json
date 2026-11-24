@@ -1,13 +1,24 @@
 {
-  "$comment": "How the robot reaches each PMS report. No secrets here (the username and password are GitHub secrets). Filled in from the PMS screens; until 'reports' has entries the robot reports 'not-configured'. In 'steps', {from} and {to} become the report's dates in 'dateFormat'.",
-  "baseUrl": "https://dentera.microchips-cloud.com/pms",
+  "$comment": "How the robot reaches each PMS report. No secrets here (the username and password are GitHub secrets). 'menu' is the path clicked in the PMS menu; a report runs on schedule only once its 'export' button is set. In 'steps', {from} and {to} become the report's dates in 'dateFormat'.",
+  "baseUrl": "https://dentera.microchips-cloud.com/pms/",
   "dateFormat": "dd/MM/yyyy",
   "login": {
-    "url": "https://dentera.microchips-cloud.com/pms",
-    "user": "input[type=text], input[name*=user i], input[id*=user i]",
+    "url": "https://dentera.microchips-cloud.com/pms/",
+    "user": "input[type=text], input[type=email], input[name*=user i], input[id*=user i]",
     "password": "input[type=password]",
-    "submit": "button[type=submit], input[type=submit]",
+    "submit": "button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Sign in'), button:has-text('دخول')",
     "after": ""
   },
-  "reports": []
+  "reports": [
+    {
+      "name": "sales",
+      "menu": ["Reports", "Financial Reports", "Sales reports"],
+      "steps": []
+    },
+    {
+      "name": "detailed-sales",
+      "menu": ["Reports", "Financial Reports", "Detailed Sales reports"],
+      "steps": []
+    }
+  ]
 }
