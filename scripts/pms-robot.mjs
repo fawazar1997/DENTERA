@@ -230,6 +230,43 @@ async function describe(page, title, navigation = false) {
   }
 }
 
+/**
+ * Every link of the page's menus (names and page paths only, never data),
+ * hidden submenu items included, so a report's address can be used directly.
+ */
+async function listLinks(page, title, visibleOnly = false) {
+  console.log(`\n=== ${title} ===`);
+  const links = await page
+    .evaluate((visibleOnly) => {
+      const vis = (el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+      return [...document.querySelectorAll("a[href]")]
+        .filter((a) => !visibleOnly || vis(a))
+        .map((a) => {
+          let path = "";
+          try {
+            const u = new URL(a.href, location.href);
+            path = u.origin === location.origin ? u.pathname : "(other site)";
+          } catch {}
+          if (/^javascript:|#$/.test(a.getAttribute("href") || "")) path = "";
+          // The submenu the link sits in (its parent item's own text).
+          const parent = a.closest("ul")?.closest("li")?.querySelector(":scope > a, :scope > span");
+          return { text: (a.textContent || a.title || "").trim(), path, parent: parent && parent !== a ? (parent.textContent || "").trim() : "" };
+        })
+        .filter((l) => l.text || l.path);
+    }, visibleOnly)
+    .catch(() => []);
+  const seen = new Set();
+  let n = 0;
+  for (const l of links) {
+    const line = `${safe(l.parent, 40) ? safe(l.parent, 40) + " > " : ""}${safe(l.text)}${l.path ? ` -> ${safe(l.path, 90)}` : ""}`;
+    if (seen.has(line)) continue;
+    seen.add(line);
+    if (++n > 400) break;
+    console.log(`link ${line}`);
+  }
+  console.log(`(${seen.size} links)`);
+}
+
 /** The systems the robot signs in to: the clinic system (PMS) and Microchips Accounting. */
 function systemOf(name) {
   if (name === "acct") return { cfg: config.accounting?.login, user: process.env.ACCT_USER, pass: process.env.ACCT_PASSWORD };
@@ -472,9 +509,21 @@ async function discoverAccounting(browser) {
     return;
   }
   await describe(page, "accounting — after login", true);
+  await listLinks(page, "accounting — every menu link");
+  for (const top of acct.explore ?? []) {
+    try {
+      await dismissDialogs(page);
+      await clickText(page, top, true);
+      await page.waitForTimeout(1500);
+      await listLinks(page, `accounting — menu «${top}» opened`, true);
+    } catch (error) {
+      log(`accounting menu ${top} (${safe(error?.message, 200)})`, false);
+    }
+  }
   for (const rep of acct.reports ?? []) {
     try {
       await ensureSignedIn(page, "acct");
+      if (rep.url) await page.goto(new URL(rep.url, acct.login.url).href, { waitUntil: "networkidle" });
       if (rep.menu) await openMenu(page, rep.menu, "acct");
       log(`open ${rep.name}`);
       const report = latest(page);
