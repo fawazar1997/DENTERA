@@ -343,7 +343,8 @@ const ar = {
   // Saved signers: signatures from the panel
   sigUpload: "رفع صورة التوقيع",
   sigReplace: "استبدال صورة التوقيع",
-  sigUploadHint: "صورة واضحة للتوقيع على ورق أبيض (PNG أو JPG حتى 5 ميجابايت). تُزال الخلفية تلقائيًا، ويظهر للموقّع جاهزًا فيوقّع بضغطة من رابطه.",
+  sigUploadHint: "صورة واضحة للتوقيع على ورق أبيض (PNG أو JPG حتى 5 ميجابايت). تُزال الخلفية تلقائيًا ويبقى التوقيع بلونه الأصلي، ويظهر للموقّع جاهزًا فيوقّع بضغطة من رابطه.",
+  sigBlack: "تحويل التوقيع إلى اللون الأسود",
   sigError: "تعذّر قراءة صورة التوقيع. استخدم صورة واضحة على خلفية فاتحة (PNG أو JPG حتى 5 ميجابايت).",
   sigSaved: "تم حفظ التوقيع.",
   sigByPanel: "مرفوع من اللوحة",
@@ -721,7 +722,8 @@ const en: EsignText = {
   // Saved signers: signatures from the panel
   sigUpload: "Upload signature image",
   sigReplace: "Replace signature image",
-  sigUploadHint: "A clear photo or scan of the signature on white paper (PNG or JPG up to 5 MB). The background is removed automatically; the signer sees it ready and signs in one tap from their link.",
+  sigUploadHint: "A clear photo or scan of the signature on white paper (PNG or JPG up to 5 MB). The background is removed automatically and the signature keeps its own colour; the signer sees it ready and signs in one tap from their link.",
+  sigBlack: "Make the signature black",
   sigError: "Couldn't read the signature image. Use a clear image on a light background (PNG or JPG up to 5 MB).",
   sigSaved: "Signature saved.",
   sigByPanel: "Uploaded from the panel",

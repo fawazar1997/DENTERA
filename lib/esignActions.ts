@@ -206,33 +206,58 @@ export async function deleteContactSignatureAction(form: FormData) {
 }
 
 /**
- * A signature photo or scan as a clean PNG: the paper made transparent (ink
- * darkness becomes opacity), the ink black, the margins trimmed. Null if
- * the image can't be read or has no ink.
+ * A signature photo or scan as a clean PNG: the paper made transparent (how
+ * dark each dot is becomes how solid it is), the margins trimmed. The ink
+ * keeps its own colour (blue stays blue), or turns black when `black`.
+ * Null if the image can't be read or has no ink.
  */
-async function signatureFromImage(file: File): Promise<Uint8Array | null> {
+async function signatureFromImage(file: File, black = false): Promise<Uint8Array | null> {
   try {
     const sharp = (await import("sharp")).default;
     const input = Buffer.from(await file.arrayBuffer());
-    const grey = await sharp(input)
+    const { data, info } = await sharp(input)
       .rotate()
       .flatten({ background: "#ffffff" })
       .resize({ width: 1400, height: 700, fit: "inside", withoutEnlargement: true })
-      .greyscale()
-      .normalise()
+      .removeAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
-    const { width, height } = grey.info;
-    const rgba = Buffer.alloc(width * height * 4);
+    const { width, height } = info;
+    const n = width * height;
+    // Brightness of each dot, stretched so the paper is white and the ink darkest (like «normalise»).
+    const lum = new Float32Array(n);
+    const histogram = new Uint32Array(256);
+    for (let i = 0; i < n; i++) {
+      const l = 0.299 * data[i * 3] + 0.587 * data[i * 3 + 1] + 0.114 * data[i * 3 + 2];
+      lum[i] = l;
+      histogram[Math.round(l)]++;
+    }
+    const percentile = (p: number) => {
+      let sum = 0;
+      for (let v = 0; v < 256; v++) if ((sum += histogram[v]) >= n * p) return v;
+      return 255;
+    };
+    const low = percentile(0.005);
+    const high = Math.max(low + 1, percentile(0.995));
+    const rgba = Buffer.alloc(n * 4);
     let ink = 0;
-    for (let i = 0; i < width * height; i++) {
-      const v = grey.data[i];
+    for (let i = 0; i < n; i++) {
+      const v = Math.min(255, Math.max(0, ((lum[i] - low) / (high - low)) * 255));
       // Paper (light) → clear; ink (dark) → solid, with a soft edge.
       const alpha = v >= 215 ? 0 : v <= 110 ? 255 : Math.round(((215 - v) / 105) * 255);
       if (alpha > 128) ink++;
-      rgba[i * 4] = 17;
-      rgba[i * 4 + 1] = 24;
-      rgba[i * 4 + 2] = 39;
+      if (black) {
+        rgba[i * 4] = 12;
+        rgba[i * 4 + 1] = 12;
+        rgba[i * 4 + 2] = 14;
+      } else {
+        // The ink's own colour, without the paper that showed through a light stroke.
+        const a = Math.max(alpha / 255, 0.35);
+        for (let c = 0; c < 3; c++) {
+          const seen = data[i * 3 + c];
+          rgba[i * 4 + c] = Math.round(Math.min(255, Math.max(0, (seen - (1 - a) * 255) / a)));
+        }
+      }
       rgba[i * 4 + 3] = alpha;
     }
     if (ink < 50) return null;
@@ -262,7 +287,7 @@ export async function addEsignContactAction(form: FormData) {
   const file = form.get("signature");
   if (file instanceof File && file.size) {
     const upload = signatureFile(form);
-    const png = upload ? await signatureFromImage(upload) : null;
+    const png = upload ? await signatureFromImage(upload, form.get("black") === "on") : null;
     if (!png) back(form, "tab=settings&error=signature");
     await putPrivateFile(contactSignaturePath(contact.id), png!, "image/png");
     contact.signatureSavedAt = new Date().toISOString();
@@ -300,7 +325,7 @@ export async function uploadContactSignatureAction(form: FormData) {
   const contact = contacts.find((c) => c.id === id);
   const upload = signatureFile(form);
   if (!contact || !upload) back(form, "tab=settings&error=signature");
-  const png = await signatureFromImage(upload!);
+  const png = await signatureFromImage(upload!, form.get("black") === "on");
   if (!png) back(form, "tab=settings&error=signature");
   await putPrivateFile(contactSignaturePath(id), png!, "image/png");
   await changeEsign((file) => ({

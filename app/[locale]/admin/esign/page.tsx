@@ -902,6 +902,10 @@ function SettingsTab({
                         aria-label={`${t.sigUpload}: ${c.name}`}
                         className="max-w-full text-sm file:me-3 file:rounded-full file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-primary-700"
                       />
+                      <label className="flex items-center gap-2 text-sm text-ink-700">
+                        <input type="checkbox" name="black" className="h-4 w-4 accent-primary-600" />
+                        {t.sigBlack}
+                      </label>
                       <SubmitButton label={t.sigUpload} savedLabel={t.saved} />
                     </form>
                   </details>
@@ -938,6 +942,10 @@ function SettingsTab({
               accept="image/png,image/jpeg,image/webp"
               className="max-w-full text-sm file:me-3 file:rounded-full file:border-0 file:bg-primary-50 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-primary-700"
             />
+            <span className="mt-2 flex items-center gap-2 text-sm text-ink-700">
+              <input type="checkbox" name="black" className="h-4 w-4 accent-primary-600" />
+              {t.sigBlack}
+            </span>
           </label>
           <div className="sm:col-span-3">
             <SubmitButton label={t.addContact} savedLabel={t.saved} />
