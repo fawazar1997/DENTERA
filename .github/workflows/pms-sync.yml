@@ -6,8 +6,13 @@ name: PMS finance sync
 
 on:
   schedule:
-    # Every day at 1 am Riyadh (22:00 UTC the evening before): the day before.
-    - cron: "0 22 * * *"
+    # Twice a day, off the hour (GitHub may delay or drop runs set exactly on
+    # the hour): 1:17 am Riyadh (22:17 UTC the evening before) and 10:07 am
+    # Riyadh (07:07 UTC), each importing the day before. The morning run also
+    # catches up if the night one was dropped; a resend replaces the same
+    # day, so nothing is counted twice.
+    - cron: "17 22 * * *"
+    - cron: "7 7 * * *"
   # While the robot is being set up: a change to its steps on the working
   # branch runs «discover» (prints the report pages' fields, never data).
   push:
