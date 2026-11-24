@@ -101,7 +101,8 @@ async function clickText(page, text, menu = false) {
     const n = await el.count();
     for (let i = 0; i < n; i++) {
       if (await el.nth(i).isVisible()) {
-        await el.nth(i).click();
+        // Something on top (a date picker, an animation): press it anyway.
+        await el.nth(i).click({ timeout: 10_000 }).catch(() => el.nth(i).click({ force: true }));
         await page.waitForLoadState("networkidle").catch(() => undefined);
         await page.waitForTimeout(1500);
         return true;
@@ -162,12 +163,12 @@ async function openMenu(page, path) {
 // --- Discover: the shape of each report page, never its data ---
 
 /** Digits runs (dates, amounts, IDs) are masked, long texts cut. */
-const safe = (text) =>
+const safe = (text, max = 60) =>
   String(text ?? "")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[0-9٠-٩]{3,}/g, "#")
-    .slice(0, 60);
+    .slice(0, max);
 
 async function describe(page, title, navigation = false) {
   console.log(`\n=== ${title} ===`);
@@ -322,7 +323,7 @@ async function discover() {
         try {
           await probe(report, rep, dir);
         } catch (error) {
-          log(`probe ${rep.name} (${safe(error?.message)})`, false);
+          log(`probe ${rep.name} (${safe(error?.message, 400)})`, false);
         } finally {
           await rm(dir, { recursive: true, force: true });
         }
@@ -345,8 +346,14 @@ async function runStep(page, step, vars) {
   if (step.fill) {
     const el = page.locator(step.fill).first();
     await el.fill(value(step.value));
-    await el.dispatchEvent("change").catch(() => undefined);
-    await el.press("Escape").catch(() => undefined);
+    // Tell the page the value changed, then leave the field so its date
+    // picker closes (Escape would close the whole filters window).
+    await el.evaluate((e) => {
+      e.dispatchEvent(new Event("input", { bubbles: true }));
+      e.dispatchEvent(new Event("change", { bubbles: true }));
+      e.blur();
+    }).catch(() => undefined);
+    await page.locator(".datepicker, .ui-datepicker, .daterangepicker").evaluateAll((els) => els.forEach((d) => (d.style.display = "none"))).catch(() => undefined);
     if (MODE === "discover") console.log(`  ${step.fill} = ${safe(await el.inputValue().catch(() => ""))}`);
   }
   if (step.select) await page.locator(step.select).first().selectOption({ label: value(step.value) });

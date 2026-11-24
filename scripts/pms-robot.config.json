@@ -9,68 +9,59 @@
     "submit": "#login-btn",
     "after": ""
   },
-  "dismiss": ["OK, continue"],
+  "dismiss": [
+    "OK, continue"
+  ],
   "reports": [
     {
       "name": "detailed-sales",
-      "menu": ["Reports", "Financial Reports", "Detailed Sales Report"],
+      "menu": [
+        "Reports",
+        "Financial Reports",
+        "Detailed Sales Report"
+      ],
       "steps": [
-        { "clickText": "Filters" },
-        { "wait": 1000 },
-        { "fill": "#fromDate-txt", "value": "{from}" },
-        { "fill": "#toDate-txt", "value": "{to}" }
+        {
+          "clickText": "Filters"
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
+        }
       ],
       "export": "Excel (SP)"
     },
     {
       "name": "sales",
-      "menu": ["Reports", "Financial Reports", "Sales Report"],
+      "menu": [
+        "Reports",
+        "Financial Reports",
+        "Sales Report"
+      ],
       "steps": [
-        { "clickText": "Filters" },
-        { "wait": 1000 },
-        { "fill": "#fromDate-txt", "value": "{from}" },
-        { "fill": "#toDate-txt", "value": "{to}" }
+        {
+          "clickText": "Filters"
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
+        }
       ],
       "export": "Apply Filters (Excel)"
-    },
-    {
-      "name": "daily-collection",
-      "menu": ["Reports", "Financial Reports", "Daily Collection"],
-      "steps": [
-        { "clickText": "Filters" },
-        { "wait": 1000 },
-        { "fill": "#fromDate-txt", "value": "{from}" },
-        { "fill": "#toDate-txt", "value": "{to}" },
-        { "clickText": "Apply Filters" },
-        { "wait": 6000 }
-      ],
-      "export": "Excel"
-    },
-    {
-      "name": "receipts",
-      "menu": ["Reports", "Financial Reports", "Receipts Report"],
-      "steps": [
-        { "clickText": "Filters" },
-        { "wait": 1000 },
-        { "fill": "#fromDate-txt", "value": "{from}" },
-        { "fill": "#toDate-txt", "value": "{to}" },
-        { "clickText": "Apply Filters" },
-        { "wait": 6000 }
-      ],
-      "export": "Excel"
-    },
-    {
-      "name": "deleted-invoices",
-      "menu": ["Reports", "Financial Reports", "Deleted Invoices Report"],
-      "steps": [
-        { "clickText": "Filters" },
-        { "wait": 1000 },
-        { "fill": "#fromDate-txt", "value": "{from}" },
-        { "fill": "#toDate-txt", "value": "{to}" },
-        { "clickText": "Apply Filters" },
-        { "wait": 6000 }
-      ],
-      "export": "Excel"
     }
   ]
 }
