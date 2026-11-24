@@ -84,7 +84,7 @@ async function send(path, branch) {
   form.append("file", new Blob([await readFile(path)]), basename(path));
   if (branch) form.append("branch", branch);
   const res = await fetch(`${SITE}/api/finance/ingest`, { method: "POST", headers: { Authorization: `Bearer ${KEY}` }, body: form });
-  if (res.ok) return true;
+  if (res.ok) return (await res.json().catch(() => ({}))) ?? {};
   // The site answers with an error code only (never figures).
   const body = await res.json().catch(() => ({}));
   throw new Error(`site ${res.status} ${body?.error ?? ""}`.trim());
@@ -266,9 +266,14 @@ async function exportReport(page, rep, vars, dir, tag) {
   return file;
 }
 
+/** The detailed sales columns the dashboard uses (nothing else leaves the PMS). */
+const KEEP = ["invdate", "invseqno", "patientfileno", "patientidnumber", "servicenameen", "servicegroupname", "soldprice", "discountamount", "qtysold", "total", "cashorinsurance", "doctorname", "branchname"];
+
 /**
- * The report as CSV (the site reads CSV most reliably): dates as
- * YYYY-MM-DD HH:MM, numbers as written. Falls back to the file itself.
+ * The report as CSV (the site reads CSV most reliably): only the columns
+ * the dashboard uses, dates as YYYY-MM-DD HH:MM, the ID number replaced by
+ * a has-ID mark. Also counts its rows and adds up its «Total» column, to
+ * check against what the site stores. Falls back to the file itself.
  */
 async function toCsv(file) {
   try {
@@ -276,19 +281,33 @@ async function toCsv(file) {
     const book = XLSX.read(await readFile(file), { type: "buffer", cellDates: true });
     const sheet = book.Sheets[book.SheetNames[0]];
     const pad = (n) => String(n).padStart(2, "0");
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" }).map((r) =>
-      r.map((v) =>
-        v instanceof Date
-          ? `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())} ${pad(v.getHours())}:${pad(v.getMinutes())}`
-          : String(v ?? "")
-      )
-    );
+    const table = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" });
+    const key = (v) => String(v ?? "").toLowerCase().replace(/[\s_.\-/()]+/g, "");
+    const at = table.findIndex((r) => r.some((c) => key(c) === "invdate"));
+    let rows = table;
+    let count = null;
+    let total = null;
+    if (at >= 0) {
+      const head = table[at].map(key);
+      const keep = head.map((h, i) => (KEEP.includes(h) ? i : -1)).filter((i) => i >= 0);
+      const dateCol = head.indexOf("invdate");
+      const totalCol = head.indexOf("total");
+      const idCol = head.indexOf("patientidnumber");
+      const body = table.slice(at + 1).filter((r) => r[dateCol] instanceof Date || /\d{1,4}[/-]\d{1,2}[/-]\d{1,4}/.test(String(r[dateCol] ?? "")));
+      count = body.length;
+      total = totalCol >= 0 ? body.reduce((sum, r) => sum + (Number(String(r[totalCol]).replace(/,/g, "")) || 0), 0) : null;
+      rows = [table[at], ...body].map((r, n) =>
+        keep.map((i) => (n > 0 && i === idCol ? (/\d{6,}/.test(String(r[i] ?? "")) ? "0000000000" : "") : r[i]))
+      );
+    }
+    const cell = (v) =>
+      v instanceof Date ? `${v.getFullYear()}-${pad(v.getMonth() + 1)}-${pad(v.getDate())} ${pad(v.getHours())}:${pad(v.getMinutes())}` : String(v ?? "");
     const quote = (c) => (/[",\n\r]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
     const out = file.replace(/\.\w+$/, "") + ".csv";
-    await writeFile(out, "\ufeff" + rows.map((r) => r.map(quote).join(",")).join("\n"));
-    return out;
+    await writeFile(out, "\ufeff" + rows.map((r) => r.map((v) => quote(cell(v))).join(",")).join("\n"));
+    return { file: out, count, total };
   } catch {
-    return file;
+    return { file, count: null, total: null };
   }
 }
 
@@ -449,7 +468,17 @@ async function main() {
             if (rep.menu) await openMenu(page, rep.menu);
             const file = await exportReport(latest(page), rep, v, dir, `${branch ?? "all"}-${from}`);
             await closeOthers(page);
-            if (!(await send(await toCsv(file), branch ?? rep.branch))) throw new Error("ingest");
+            const csv = await toCsv(file);
+            const answer = await send(csv.file, branch ?? rep.branch);
+            // Nothing lost: the rows and the «Total» sum of the file must be
+            // what the site read and now stores for those dates (amounts are
+            // compared here, never printed).
+            if (csv.count !== null) {
+              const near = (a, b) => typeof a === "number" && typeof b === "number" && Math.abs(a - b) < 1;
+              const same = answer.rows === csv.count && (csv.total === null || near(answer.readNet, csv.total)) && near(answer.readNet, answer.storedNet);
+              console.log(`check ${rep.name} ${from}..${to}: rows ${csv.count} sent, ${answer.rows ?? "?"} read; totals ${same ? "match" : "MISMATCH"}`);
+              if (!same) throw new Error("check mismatch");
+            }
             sent++;
           }
           log(name);

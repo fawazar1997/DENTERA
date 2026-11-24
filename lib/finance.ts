@@ -85,7 +85,7 @@ export async function readInstallments(): Promise<Installments | undefined> {
 }
 
 /** Re-sums a month after its lines changed (or the settings that shape it). */
-async function rebuildMonth(month: string, data: MonthData, settings: FinanceSettings): Promise<void> {
+async function rebuildMonth(month: string, data: MonthData, settings: FinanceSettings): Promise<MonthAgg> {
   const agg = aggregateMonth(month, data.lines, data.payments, settings);
   await writeJson(`finance/days/${month}.json`, agg);
   const totals = await readMonthTotals();
@@ -94,6 +94,7 @@ async function rebuildMonth(month: string, data: MonthData, settings: FinanceSet
       Object.values(agg.days).reduce((s, day) => s + Object.values(day).reduce((t, b) => t + (b?.net ?? 0), 0), 0) * 100
     ) / 100;
   await writeJson("finance/months.json", totals);
+  return agg;
 }
 
 /** Rebuilds every stored month (after the specialty settings change). */
@@ -116,7 +117,17 @@ const inRange = (date: string, from: string, to: string) => date >= from && date
  * Stores one report. The period and branches it covers replace what was
  * stored for them (so re-sending the same day never counts it twice).
  */
-export async function ingestReport(result: ImportResult): Promise<{ ok: boolean; kind: string; rows: number; months: string[] }> {
+export type IngestResult = {
+  ok: boolean;
+  kind: string;
+  rows: number;
+  months: string[];
+  /** Invoices: the net read from the file, and the net now stored for its dates and branches (to check nothing was lost). */
+  readNet?: number;
+  storedNet?: number;
+};
+
+export async function ingestReport(result: ImportResult): Promise<IngestResult> {
   if (result.kind === "unknown") return { ok: false, kind: "unknown", rows: 0, months: [] };
   if (result.kind === "installments") {
     await writeJson("finance/installments.json", result.installments);
@@ -126,6 +137,7 @@ export async function ingestReport(result: ImportResult): Promise<{ ok: boolean;
   const settings = await readFinanceSettings();
   const months: string[] = [];
   for (let m = monthOf(result.from); m <= monthOf(result.to); m = shiftMonth(m, 1)) months.push(m);
+  let storedNet = 0;
   for (const month of months) {
     const data = (await readJson<MonthData>(`finance/lines/${month}.json`)) ?? { lines: [], payments: [] };
     const covers = (item: { date: string; branch: FinanceBranch }) =>
@@ -136,9 +148,16 @@ export async function ingestReport(result: ImportResult): Promise<{ ok: boolean;
       data.payments = data.payments.filter((p) => !covers(p)).concat(result.payments.filter((p) => p.date.startsWith(month)));
     }
     await writeJson(`finance/lines/${month}.json`, data);
-    await rebuildMonth(month, data, settings);
+    const agg = await rebuildMonth(month, data, settings);
+    for (const [date, branches] of Object.entries(agg.days)) {
+      if (!inRange(date, result.from, result.to)) continue;
+      for (const [b, day] of Object.entries(branches)) if (result.branches.includes(b as FinanceBranch)) storedNet += day?.net ?? 0;
+    }
   }
-  return { ok: true, kind: result.kind, rows: result.rows, months };
+  if (result.kind !== "invoices") return { ok: true, kind: result.kind, rows: result.rows, months };
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const readNet = result.lines.filter((l) => !l.cancelled).reduce((sum, l) => sum + l.net, 0);
+  return { ok: true, kind: result.kind, rows: result.rows, months, readNet: round(readNet), storedNet: round(storedNet) };
 }
 
 /** Reads and stores one uploaded report file. */

@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
   try {
     const result = await importReportFile(new Uint8Array(await file.arrayBuffer()), file.name, branchText ? branchOf(branchText) : undefined);
     if (!result.ok) return reply(422, { ok: false, error: "unknown-report" });
-    return reply(200, { ok: true, kind: result.kind, rows: result.rows, months: result.months.length });
+    // For the robot's check (it compares with the file and logs only match / mismatch).
+    return reply(200, { ok: true, kind: result.kind, rows: result.rows, months: result.months.length, readNet: result.readNet, storedNet: result.storedNet });
   } catch (error) {
     console.error("finance: ingest failed", error);
     await recordRun({ at: new Date().toISOString(), ok: false, source: "robot", note: "ingest" }).catch(() => undefined);
