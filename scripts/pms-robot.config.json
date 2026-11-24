@@ -131,7 +131,7 @@
   "accounting": {
     "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete or edit (scripts/robot-safety.mjs).",
     "login": {
-      "url": "",
+      "url": "https://dentera.microchips-cloud.com/accounting/Home/Login",
       "user": "input[type=text]:visible, input[type=email]:visible, input[name*=user i], input[id*=user i]",
       "password": "input[type=password]",
       "submit": "button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Sign in'), button:has-text('دخول'), button:has-text('تسجيل الدخول')",
