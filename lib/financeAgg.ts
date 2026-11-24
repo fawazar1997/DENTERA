@@ -13,6 +13,7 @@ import {
   type FinanceSettings,
   type FlagRef,
   type MonthAgg,
+  type SalesInvoice,
   type Specialty,
 } from "./financeTypes";
 
@@ -32,7 +33,19 @@ export function specialtyOf(service: string | undefined, doctor: string, setting
 const round = (n: number) => Math.round(n * 100) / 100;
 const MAX_FLAGS = 300;
 
-export function aggregateMonth(month: string, lines: FinLine[], payments: FinPayment[], settings: Pick<FinanceSettings, "doctorSpecialty">): MonthAgg {
+/**
+ * `sales`: the PMS Sales Report's invoices. Where a day has them, its revenue,
+ * invoices, patients, credit and returns come from them (the main source);
+ * doctors, specialties and the quality lists still come from the detailed
+ * lines.
+ */
+export function aggregateMonth(
+  month: string,
+  lines: FinLine[],
+  payments: FinPayment[],
+  settings: Pick<FinanceSettings, "doctorSpecialty">,
+  sales: SalesInvoice[] = []
+): MonthAgg {
   const days: MonthAgg["days"] = {};
   const dayOf = (date: string, branch: FinanceBranch): BranchDay => {
     const d = (days[date] ??= {});
@@ -125,6 +138,48 @@ export function aggregateMonth(month: string, lines: FinLine[], payments: FinPay
   for (const p of payments) {
     if (!p.date.startsWith(month)) continue;
     dayOf(p.date, p.branch).payments[p.method] += p.amount;
+  }
+
+  // The Sales Report's days replace the revenue figures from the lines.
+  const salesDays = new Set(sales.filter((i) => i.date.startsWith(month)).map((i) => i.date));
+  for (const date of salesDays) {
+    for (const day of Object.values(days[date] ?? {})) {
+      if (!day) continue;
+      day.net = 0;
+      day.gross = 0;
+      day.discount = 0;
+      day.invoices = 0;
+      day.patients = 0;
+      day.credit = { count: 0, amount: 0 };
+      day.returns = { count: 0, amount: 0 };
+      day.creditNotes = { count: 0, amount: 0 };
+    }
+  }
+  const salesPatients = new Map<string, Set<string>>();
+  for (const i of sales) {
+    if (!i.date.startsWith(month)) continue;
+    const day = dayOf(i.date, i.branch);
+    day.net += i.net;
+    day.gross += i.gross;
+    day.discount += i.discount;
+    if (i.kind === "return" || i.kind === "creditNote") {
+      const bucket = i.kind === "return" ? day.returns : day.creditNotes;
+      bucket.count++;
+      bucket.amount += Math.abs(i.net);
+      continue;
+    }
+    day.invoices++;
+    if (i.kind === "credit") {
+      day.credit.count++;
+      day.credit.amount += i.remaining;
+    }
+    const key = `${i.date}|${i.branch}`;
+    if (!salesPatients.has(key)) salesPatients.set(key, new Set());
+    salesPatients.get(key)!.add(i.patient);
+  }
+  for (const [key, set] of salesPatients) {
+    const [date, branch] = key.split("|") as [string, FinanceBranch];
+    dayOf(date, branch).patients = set.size;
   }
 
   // Tidy the sums.

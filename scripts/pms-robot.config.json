@@ -14,31 +14,6 @@
   ],
   "reports": [
     {
-      "name": "detailed-sales",
-      "menu": [
-        "Reports",
-        "Financial Reports",
-        "Detailed Sales Report"
-      ],
-      "steps": [
-        {
-          "clickText": "Filters"
-        },
-        {
-          "wait": 1000
-        },
-        {
-          "fill": "#fromDate-txt",
-          "value": "{from}"
-        },
-        {
-          "fill": "#toDate-txt",
-          "value": "{to}"
-        }
-      ],
-      "export": "Excel (SP)"
-    },
-    {
       "name": "sales",
       "menu": [
         "Reports",
@@ -69,7 +44,6 @@
         }
       ],
       "export": "Apply Filters (Excel)",
-      "enabled": false,
       "branches": [
         "Abha",
         "Khamis"
@@ -107,7 +81,51 @@
           ],
           "export": "Excel"
         }
-      ]
+      ],
+      "keep": [
+        "invdate",
+        "patientfileno",
+        "patientidnumber",
+        "invoiceno",
+        "price",
+        "totaldiscount",
+        "totalpriceafterdiscount",
+        "totalrowpaid",
+        "remaining",
+        "doctor",
+        "clinc",
+        "branchname",
+        "revenuetypedesc",
+        "invtype",
+        "originalinvseqno"
+      ],
+      "keepPattern": "^(cash|mada|master|visa|stc ?pay|bank|tabby|tamara|emkan|moyasar)",
+      "totalColumn": "totalpriceafterdiscount"
+    },
+    {
+      "name": "detailed-sales",
+      "menu": [
+        "Reports",
+        "Financial Reports",
+        "Detailed Sales Report"
+      ],
+      "steps": [
+        {
+          "clickText": "Filters"
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
+        }
+      ],
+      "export": "Excel (SP)"
     }
   ]
 }

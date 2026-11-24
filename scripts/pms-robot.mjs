@@ -299,16 +299,19 @@ async function exportReport(page, rep, vars, dir, tag) {
   return file;
 }
 
-/** The detailed sales columns the dashboard uses (nothing else leaves the PMS). */
-const KEEP = ["invdate", "invseqno", "patientfileno", "patientidnumber", "servicenameen", "servicegroupname", "soldprice", "discountamount", "qtysold", "total", "cashorinsurance", "doctorname", "branchname"];
+/**
+ * The columns the dashboard uses, per report (nothing else leaves the PMS):
+ * a report's «keep» list, and «keepPattern» for its payment-method columns.
+ */
+const DETAILED_KEEP = ["invdate", "invseqno", "patientfileno", "patientidnumber", "servicenameen", "servicegroupname", "soldprice", "discountamount", "qtysold", "total", "cashorinsurance", "doctorname", "branchname"];
 
 /**
  * The report as CSV (the site reads CSV most reliably): only the columns
  * the dashboard uses, dates as YYYY-MM-DD HH:MM, the ID number replaced by
- * a has-ID mark. Also counts its rows and adds up its «Total» column, to
+ * a has-ID mark. Also counts its rows and adds up its total column, to
  * check against what the site stores. Falls back to the file itself.
  */
-async function toCsv(file) {
+async function toCsv(file, rep = {}) {
   try {
     const XLSX = (await import("xlsx")).default;
     const book = XLSX.read(await readFile(file), { type: "buffer", cellDates: true });
@@ -322,9 +325,11 @@ async function toCsv(file) {
     let total = null;
     if (at >= 0) {
       const head = table[at].map(key);
-      const keep = head.map((h, i) => (KEEP.includes(h) ? i : -1)).filter((i) => i >= 0);
+      const keepList = rep.keep ?? DETAILED_KEEP;
+      const keepRe = rep.keepPattern ? new RegExp(rep.keepPattern, "i") : null;
+      const keep = head.map((h, i) => (keepList.includes(h) || (keepRe && keepRe.test(String(table[at][i]))) ? i : -1)).filter((i) => i >= 0);
       const dateCol = head.indexOf("invdate");
-      const totalCol = head.indexOf("total");
+      const totalCol = head.indexOf(rep.totalColumn ?? "total");
       const idCol = head.indexOf("patientidnumber");
       const body = table.slice(at + 1).filter((r) => r[dateCol] instanceof Date || /\d{1,4}[/-]\d{1,2}[/-]\d{1,4}/.test(String(r[dateCol] ?? "")));
       count = body.length;
@@ -524,7 +529,7 @@ async function main() {
             if (rep.menu) await openMenu(page, rep.menu);
             const file = await exportReport(latest(page), rep, v, dir, `${branch ?? "all"}-${from}`);
             await closeOthers(page);
-            const csv = await toCsv(file);
+            const csv = await toCsv(file, rep);
             const answer = await send(csv.file, branch ?? rep.branch);
             // Nothing lost: the rows and the «Total» sum of the file must be
             // what the site read and now stores for those dates (amounts are

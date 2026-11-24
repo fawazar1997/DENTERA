@@ -7,7 +7,7 @@
 
 import { readSpreadsheet } from "./spreadsheet";
 import { readDate, westernDigits } from "./dateParse";
-import type { FinLine, FinPayment, FinanceBranch, InvoiceKind, Installments, PayMethod } from "./financeTypes";
+import type { FinLine, FinPayment, FinanceBranch, InvoiceKind, Installments, PayMethod, SalesInvoice } from "./financeTypes";
 
 const norm = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
 const key = (s: string) => norm(s).toLowerCase().replace(/[\s_.\-/()]+/g, "");
@@ -22,7 +22,7 @@ const HEADERS: Record<Field, string[]> = {
   patientName: ["patientname", "patientfullname", "patient", "اسمالمريض", "المريض"],
   nationalId: ["nationalid", "patientidnumber", "idno", "idnumber", "iqama", "iqamano", "identity", "رقمالهوية", "الهوية", "رقمالإقامة"],
   gross: ["gross", "grossamount", "amountbeforediscount", "totalbeforediscount", "subtotal", "الإجماليقبلالخصم", "السعر"],
-  discount: ["discount", "discountamount", "الخصم", "قيمةالخصم"],
+  discount: ["discount", "discountamount", "totaldiscount", "الخصم", "قيمةالخصم"],
   net: ["net", "netamount", "nettotal", "الصافي", "صافي", "afterdiscount"],
   total: ["total", "totalamount", "الإجمالي", "المجموع"],
   vat: ["vat", "vatamount", "tax", "taxamount", "الضريبة", "ضريبة"],
@@ -38,15 +38,20 @@ const HEADERS: Record<Field, string[]> = {
   unitPrice: ["soldprice", "unitprice", "price", "السعر"],
   qty: ["qtysold", "qty", "quantity", "الكمية"],
   serviceGroup: ["servicegroupname", "servicegroup", "مجموعةالخدمة"],
+  // The PMS Sales Report: one row per invoice.
+  salesNet: ["totalpriceafterdiscount"],
+  clinic: ["clinc", "clinic"],
 };
 
 /** Payment methods as wide columns (some collection reports have one column per method). */
 const METHOD_COLUMNS: [PayMethod, RegExp][] = [
   ["cash", /^(cash|نقد|نقدي|كاش)/i],
-  ["card", /^(card|mada|visa|master|network|pos|شبكة|مدى|بطاقة)/i],
+  ["card", /^(card|mada|visa|master|network|pos|stc ?pay|apple ?pay|شبكة|مدى|بطاقة)/i],
   ["transfer", /^(transfer|bank|تحويل|بنك)/i],
   ["tabby", /^(tabby|تابي)/i],
   ["tamara", /^(tamara|تمارا)/i],
+  // Other financing / gateways (Emkan, Moyasar).
+  ["other", /^(emkan|moyasar|إمكان|ميسر)/i],
 ];
 
 export function methodOf(text: string): PayMethod {
@@ -105,6 +110,7 @@ function header(rows: string[][]): { at: number; cols: Record<Field, number>; he
 export type ImportResult =
   | { kind: "invoices"; lines: FinLine[]; from: string; to: string; branches: FinanceBranch[]; rows: number; skipped: number }
   | { kind: "payments"; payments: FinPayment[]; from: string; to: string; branches: FinanceBranch[]; rows: number; skipped: number }
+  | { kind: "sales"; invoices: SalesInvoice[]; payments: FinPayment[]; from: string; to: string; branches: FinanceBranch[]; rows: number; skipped: number }
   | { kind: "installments"; installments: Installments; rows: number }
   | { kind: "unknown"; reason: string };
 
@@ -162,8 +168,67 @@ export function readReport(bytes: Uint8Array, fileName: string, options: { branc
     return { kind: "installments", installments: inst, rows: n };
   }
 
-  // Payments: a method column, or one column per method.
   const wide = h.head.map((name, i) => [i, METHOD_COLUMNS.find(([, re]) => re.test(norm(name)))?.[0]] as const).filter(([, m]) => m);
+
+  // The PMS Sales Report: one row per invoice, its payments by method in
+  // columns («Cash Abha», «Mada Dental Lab»…), and what is still owed.
+  if ("inv" in cols && "salesNet" in cols) {
+    const invoices: SalesInvoice[] = [];
+    const payments: FinPayment[] = [];
+    let skipped = 0;
+    for (const r of body) {
+      const date = isoOf(get(r, "date"));
+      const inv = get(r, "inv");
+      if (!date || !inv) {
+        skipped++;
+        continue;
+      }
+      const doctor = get(r, "doctor").replace(/\s*-\s*Khamis$/i, "") || "—";
+      const lab = /dental ?lab|معمل|مختبر/i.test(`${get(r, "clinic")} ${doctor}`);
+      const own = "branch" in cols ? branchOf(get(r, "branch"), fallbackBranch) : fallbackBranch;
+      const branch: FinanceBranch = lab ? "lab" : own;
+      let net = money(get(r, "salesNet"));
+      const discount = Math.abs(money(get(r, "discount")));
+      let gross = "unitPrice" in cols ? money(get(r, "unitPrice")) : net + discount;
+      const remaining = money(get(r, "remaining"));
+      const typeText = `${get(r, "type")} ${get(r, "status")}`;
+      let kind: InvoiceKind = "invoice";
+      if (/credit ?note|إشعار ?دائن|اشعار ?دائن/i.test(typeText)) kind = "creditNote";
+      else if (/return|refund|مرتجع|استرجاع/i.test(typeText) || net < 0) kind = "return";
+      else if (remaining > 0.5) kind = "credit";
+      if (kind === "return" || kind === "creditNote") {
+        net = -Math.abs(net);
+        gross = -Math.abs(gross);
+      }
+      const id = get(r, "nationalId");
+      invoices.push({
+        inv: `${own}-${inv}`,
+        date,
+        branch,
+        doctor,
+        patient: get(r, "patient") || get(r, "patientName"),
+        hasId: "nationalId" in cols ? /\d{6,}/.test(westernDigits(id)) : null,
+        gross,
+        discount,
+        net,
+        remaining,
+        kind,
+        origin: own,
+      });
+      for (const [i, m] of wide) {
+        const amount = money(r[i]);
+        if (!amount) continue;
+        const payBranch: FinanceBranch = /dental ?lab|معمل/i.test(h.head[i]) ? "lab" : own;
+        payments.push({ date, branch: payBranch, method: m!, amount, origin: own });
+      }
+    }
+    const all = span(invoices);
+    // The branches whose reports these are (the lab's entries travel inside them).
+    const branches = [...new Set(invoices.map((i) => i.origin!))];
+    return { kind: "sales", invoices, payments, from: all.from, to: all.to, branches, rows: invoices.length, skipped };
+  }
+
+  // Payments: a method column, or one column per method.
   if (!("inv" in cols) && ("method" in cols || wide.length >= 2)) {
     const payments: FinPayment[] = [];
     let skipped = 0;

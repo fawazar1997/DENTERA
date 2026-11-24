@@ -14,6 +14,7 @@ import {
   type FinanceStatus,
   type Installments,
   type MonthAgg,
+  type SalesInvoice,
 } from "./financeTypes";
 
 export * from "./financeTypes";
@@ -27,7 +28,8 @@ export * from "./financeTypes";
 //   finance/settings.json          targets, partners, specialties, share link
 //   finance/status.json            the robot's / uploads' last runs
 
-type MonthData = { lines: FinLine[]; payments: FinPayment[] };
+/** A month's stored reports: detailed lines, payments, and the Sales Report's invoices. */
+type MonthData = { lines: FinLine[]; payments: FinPayment[]; sales?: SalesInvoice[] };
 
 async function readJson<T>(path: string): Promise<T | null> {
   const bytes = await readPrivateFile(path).catch(() => null);
@@ -86,7 +88,7 @@ export async function readInstallments(): Promise<Installments | undefined> {
 
 /** Re-sums a month after its lines changed (or the settings that shape it). */
 async function rebuildMonth(month: string, data: MonthData, settings: FinanceSettings): Promise<MonthAgg> {
-  const agg = aggregateMonth(month, data.lines, data.payments, settings);
+  const agg = aggregateMonth(month, data.lines, data.payments, settings, data.sales ?? []);
   await writeJson(`finance/days/${month}.json`, agg);
   const totals = await readMonthTotals();
   totals[month] =
@@ -142,21 +144,30 @@ export async function ingestReport(result: ImportResult): Promise<IngestResult> 
     const data = (await readJson<MonthData>(`finance/lines/${month}.json`)) ?? { lines: [], payments: [] };
     const covers = (item: { date: string; branch: FinanceBranch }) =>
       inRange(item.date, result.from, result.to) && result.branches.includes(item.branch);
+    const inMonth = (item: { date: string }) => item.date.startsWith(month);
     if (result.kind === "invoices") {
-      data.lines = data.lines.filter((l) => !covers(l)).concat(result.lines.filter((l) => l.date.startsWith(month)));
+      data.lines = data.lines.filter((l) => !covers(l)).concat(result.lines.filter(inMonth));
+      storedNet += data.lines.filter((l) => covers(l) && !l.cancelled).reduce((sum, l) => sum + l.net, 0);
+    } else if (result.kind === "sales") {
+      // The Sales Report brings the invoices and their payments by method,
+      // replacing what the same branch's report brought for those dates.
+      const fromFile = (item: { date: string; branch: FinanceBranch; origin?: FinanceBranch }) =>
+        inRange(item.date, result.from, result.to) && result.branches.includes(item.origin ?? item.branch);
+      data.sales = (data.sales ?? []).filter((i) => !fromFile(i)).concat(result.invoices.filter(inMonth));
+      data.payments = data.payments.filter((p) => !fromFile(p)).concat(result.payments.filter(inMonth));
+      storedNet += data.sales.filter(fromFile).reduce((sum, i) => sum + i.net, 0);
     } else {
-      data.payments = data.payments.filter((p) => !covers(p)).concat(result.payments.filter((p) => p.date.startsWith(month)));
+      data.payments = data.payments.filter((p) => !covers(p)).concat(result.payments.filter(inMonth));
     }
     await writeJson(`finance/lines/${month}.json`, data);
-    const agg = await rebuildMonth(month, data, settings);
-    for (const [date, branches] of Object.entries(agg.days)) {
-      if (!inRange(date, result.from, result.to)) continue;
-      for (const [b, day] of Object.entries(branches)) if (result.branches.includes(b as FinanceBranch)) storedNet += day?.net ?? 0;
-    }
+    await rebuildMonth(month, data, settings);
   }
-  if (result.kind !== "invoices") return { ok: true, kind: result.kind, rows: result.rows, months };
+  if (result.kind === "payments") return { ok: true, kind: result.kind, rows: result.rows, months };
   const round = (n: number) => Math.round(n * 100) / 100;
-  const readNet = result.lines.filter((l) => !l.cancelled).reduce((sum, l) => sum + l.net, 0);
+  const readNet =
+    result.kind === "sales"
+      ? result.invoices.reduce((sum, i) => sum + i.net, 0)
+      : result.lines.filter((l) => !l.cancelled).reduce((sum, l) => sum + l.net, 0);
   return { ok: true, kind: result.kind, rows: result.rows, months, readNet: round(readNet), storedNet: round(storedNet) };
 }
 

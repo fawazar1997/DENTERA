@@ -36,7 +36,37 @@ export type FinLine = {
   service?: string;
 };
 
-export type FinPayment = { date: string; branch: FinanceBranch; method: PayMethod; amount: number };
+export type FinPayment = {
+  date: string;
+  branch: FinanceBranch;
+  method: PayMethod;
+  amount: number;
+  /** The branch whose report brought it (the lab's come in the branches' files). */
+  origin?: FinanceBranch;
+};
+
+/**
+ * One invoice of the PMS Sales Report (the main source for revenue: one row
+ * per invoice, with its payments by method and what is still owed).
+ */
+export type SalesInvoice = {
+  inv: string;
+  date: string;
+  branch: FinanceBranch;
+  doctor: string;
+  patient: string;
+  hasId: boolean | null;
+  /** Before discount, without VAT. */
+  gross: number;
+  discount: number;
+  /** After discount, without VAT. */
+  net: number;
+  /** Still owed (آجل). */
+  remaining: number;
+  kind: InvoiceKind;
+  /** The branch whose report brought it (the lab's come in the branches' files). */
+  origin?: FinanceBranch;
+};
 
 /** One invoice in a quality list. */
 export type FlagRef = { inv: string; doctor: string; patient: string; net: number; gross: number; discountPct: number };
