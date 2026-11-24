@@ -59,9 +59,15 @@
         {
           "fill": "#toDate-txt",
           "value": "{to}"
+        },
+        {
+          "clickText": "Apply Filters (SP)"
+        },
+        {
+          "wait": 8000
         }
       ],
-      "export": "Apply Filters (Excel)"
+      "export": "Excel"
     }
   ]
 }

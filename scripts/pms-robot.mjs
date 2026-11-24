@@ -221,10 +221,10 @@ async function describe(page, title, navigation = false) {
     console.log(`-- ${where}`);
     for (const f of info.fields)
       console.log(`field ${f.tag}[type=${f.type}] name=${safe(f.name)} id=${safe(f.id)} placeholder=${safe(f.placeholder)} label=${safe(f.label)}${f.button ? ` value=${safe(f.button)}` : ""}`);
-    for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map(safe).join(" | ")}]` : ""}`);
+    for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
-    for (const h of info.heads.slice(0, 5)) console.log(`table columns: ${h.map(safe).join(" | ")}`);
-    const menu = [...new Set(info.menu.map(safe))].filter(Boolean).slice(0, 80);
+    for (const h of info.heads.slice(0, 5)) console.log(`table columns: ${h.map((x) => safe(x)).join(" | ")}`);
+    const menu = [...new Set(info.menu.map((x) => safe(x)))].filter(Boolean).slice(0, 80);
     if (menu.length) console.log(`menu items: ${menu.join(" | ")}`);
   }
 }
@@ -276,7 +276,7 @@ async function inspect(file) {
     rows = String(table.length);
     // The header: the first row with at least 3 cells that are words, not numbers.
     const header = table.find((r) => r.filter((c) => String(c).trim() && !/^[\d.,\s/:-]+$/.test(String(c))).length >= 3);
-    columns = (header ?? []).map(safe).filter(Boolean);
+    columns = (header ?? []).map((x) => safe(x)).filter(Boolean);
   } catch {
     // Not readable here; the site's own reader decides.
   }
