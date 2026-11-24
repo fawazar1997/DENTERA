@@ -24,18 +24,20 @@ export function suggestLine(code: string, account?: Pick<Account, "en" | "ar" | 
   if (code.startsWith("5")) {
     if (has(text, /zakat|زكاة|زكاه/)) return "zakat";
     if (has(text, /depreciat|amortiz|استهلاك|إطفاء|اطفاء/)) return "depreciation";
-    if (has(text, /murabaha|financ|interest|loan|bank charge|مرابحة|تمويل|فوائد|قرض|عمولات بنكية|مصاريف بنكية/)) return "financial";
+    // Murabaha / loan costs only (bank charges are general expenses).
+    if (has(text, /murabaha|finance cost|financing cost|interest|loan|مرابحة|تكلفة التمويل|فوائد|قرض/)) return "financial";
     if (has(text, /impair|doubtful|bad debt|انخفاض|مشكوك|ديون معدومة/)) return "impairments";
-    if (has(text, /commission|incentive|عمول|حوافز|نسب الأطباء|نسبة الطبيب/)) return "commissions";
-    if (has(text, /\blab|معمل|مختبر/)) return "labs";
-    if (has(text, /material|consum|supplies|cost of (goods|sales)|inventory|مواد|مستهلك|تكلفة المبيعات|تكلفة البضاعة/)) return "materials";
-    if (has(text, /salar|wage|payroll|gosi|staff|employee|personnel|housing|end of service|medical insurance for|رواتب|أجور|اجور|موظف|تأمينات|بدل|مكافأة نهاية|نهاية الخدمة/)) return "personnel";
-    if (has(text, /direct|operating|sterili|clinic expense|تشغيل|مباشرة|تعقيم/)) return "otherOperating";
+    if (has(text, /commission|\bcomm\b|عمول|نسب الأطباء|نسبة الطبيب/)) return "commissions";
+    // Staff costs, in any branch (the lab's salaries, GOSI and iqamas too).
+    if (has(text, /salar|wage|payroll|gosi|gozi|staff|employee|personnel|housing|allowance|vacation|ticket|\bvisas?\b|iqama|sponsorship|recruit|incentive|reward|medical insurance|end of service|رواتب|أجور|اجور|موظف|تأمينات|بدل|إقامة|اقامة|تأشير|استقدام|حوافز|مكافأة|نهاية الخدمة/)) return "personnel";
+    if (has(text, /material|consumable|dental suppl|medical suppl|invisalign|aligner|cost of (goods|sales)|مواد|مستهلك|تكلفة المبيعات|تكلفة البضاعة/)) return "materials";
+    if (has(text, /^lab|\blab (expense|cost)|lab expense|cost of lab|dental lab|external lab|معامل|المعمل|معمل/)) return "labs";
+    if (has(text, /clinic expense|operating|sterili|direct cost|تشغيل|مباشرة|تعقيم/)) return "otherOperating";
     return "ga";
   }
   if (code.startsWith("1")) {
     if (has(text, /cash|bank|petty|fund|نقد|بنك|بنوك|صندوق|عهد/)) return "cash";
-    if (has(text, /receivable|customer|tabby|tamara|insurance co|مدين|عملاء|ذمم|تابي|تمارا/)) return "receivables";
+    if (has(text, /receivable|customer|tabby|tamara|moyasar|insurance co|مدين|عملاء|ذمم|تابي|تمارا|ميسر/)) return "receivables";
     if (has(text, /inventor|stock|warehouse|مخزون|مستودع/)) return "inventory";
     if (has(text, /prepaid|advance|deposit|مقدم|مدفوعة مقدما|سلف|تأمين مسترد/)) return "prepaid";
     if (has(text, /fixed|equipment|furniture|vehicle|building|leasehold|accumulated|أصول ثابتة|معدات|أثاث|اثاث|سيارات|مباني|مجمع/)) return "fixedAssets";
