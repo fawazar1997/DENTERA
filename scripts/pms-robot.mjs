@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { isForbidden } from "./robot-safety.mjs";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const config = JSON.parse(await readFile(join(here, "pms-robot.config.json"), "utf-8"));
@@ -90,17 +91,10 @@ async function send(path, branch) {
   throw new Error(`site ${res.status} ${body?.error ?? ""}`.trim());
 }
 
-/**
- * Buttons the robot must never press: it only reads reports. (The daily
- * collection page has «Post to Accounting», «Cancel Day Post» and «Report
- * to Zatca» next to its Excel button.)
- */
-const FORBIDDEN = /post|zatca|cancel|delete|remove|save|approve|refund|send|ترحيل|إلغاء|الغاء|حذف|حفظ|إرسال|اعتماد/i;
-
 /** Clicks the first visible element whose text is exactly `text` (the page, then its frames). */
 async function clickText(page, text, menu = false) {
   // Menu items are named in the config (e.g. «Deleted Invoices Report»), not buttons.
-  if (!menu && FORBIDDEN.test(text)) throw new Error(`refused: ${text}`);
+  if (!menu && isForbidden(text)) throw new Error(`refused: ${text}`);
   for (const frame of [page.mainFrame(), ...page.frames().filter((f) => f !== page.mainFrame())]) {
     const el = frame.getByText(text, { exact: true });
     const n = await el.count();
@@ -141,7 +135,7 @@ async function dismissDialogs(page) {
   }
 }
 
-async function openMenu(page, path) {
+async function openMenu(page, path, system = "pms") {
   const walk = async () => {
     for (let i = 0; i < path.length; i++) {
       // A submenu left open: its next item is already showing (clicking
@@ -155,8 +149,8 @@ async function openMenu(page, path) {
     await walk();
   } catch {
     // Lost on this page: back to the start (signing in again if asked).
-    await page.goto(config.baseUrl, { waitUntil: "networkidle" });
-    await ensureSignedIn(page);
+    await page.goto(system === "acct" ? config.accounting.login.url : config.baseUrl, { waitUntil: "networkidle" });
+    await ensureSignedIn(page, system);
     await dismissDialogs(page);
     await walk();
   }
@@ -231,28 +225,36 @@ async function describe(page, title, navigation = false) {
     for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
     for (const h of info.heads.slice(0, 5)) console.log(`table columns: ${h.map((x) => safe(x)).join(" | ")}`);
-    const menu = [...new Set(info.menu.map((x) => safe(x)))].filter(Boolean).slice(0, 80);
+    const menu = [...new Set(info.menu.map((x) => safe(x)))].filter(Boolean).slice(0, 160);
     if (menu.length) console.log(`menu items: ${menu.join(" | ")}`);
   }
 }
 
-async function login(page) {
-  await page.goto(config.login.url, { waitUntil: "networkidle" });
-  await page.locator(config.login.user).first().fill(process.env.PMS_USER);
-  await page.locator(config.login.password).first().fill(process.env.PMS_PASSWORD);
-  await page.locator(config.login.submit).first().click();
-  // The sign-in is done in the page (no new address): wait for the form to go.
-  await page.locator(config.login.password).first().waitFor({ state: "hidden", timeout: 45_000 });
-  if (config.login.after) await page.locator(config.login.after).first().waitFor();
+/** The systems the robot signs in to: the clinic system (PMS) and Microchips Accounting. */
+function systemOf(name) {
+  if (name === "acct") return { cfg: config.accounting?.login, user: process.env.ACCT_USER, pass: process.env.ACCT_PASSWORD };
+  return { cfg: config.login, user: process.env.PMS_USER, pass: process.env.PMS_PASSWORD };
+}
+
+async function login(page, system = "pms") {
+  const { cfg, user, pass } = systemOf(system);
+  await page.goto(cfg.url, { waitUntil: "networkidle" });
+  await page.locator(cfg.user).first().fill(user);
+  await page.locator(cfg.password).first().fill(pass);
+  await page.locator(cfg.submit).first().click();
+  // The sign-in may be done in the page (no new address): wait for the form to go.
+  await page.locator(cfg.password).first().waitFor({ state: "hidden", timeout: 45_000 });
+  if (cfg.after) await page.locator(cfg.after).first().waitFor();
   await page.waitForLoadState("networkidle").catch(() => undefined);
   await page.waitForTimeout(4000);
   // Back on the password form: the sign-in did not go through.
-  if (await page.locator(config.login.password).first().isVisible().catch(() => false)) throw new Error("login");
+  if (await page.locator(cfg.password).first().isVisible().catch(() => false)) throw new Error("login");
 }
 
 /** Signed in still? Else sign in again (the PMS may drop the session on reload). */
-async function ensureSignedIn(page) {
-  if (await page.locator(config.login.password).first().isVisible().catch(() => false)) await login(page);
+async function ensureSignedIn(page, system = "pms") {
+  const { cfg } = systemOf(system);
+  if (await page.locator(cfg.password).first().isVisible().catch(() => false)) await login(page, system);
 }
 
 /**
@@ -444,8 +446,52 @@ async function discover() {
       }
       await closeOthers(page);
     }
+    await discoverAccounting(browser);
   } finally {
     await browser.close();
+  }
+}
+
+/**
+ * Microchips Accounting (its own address and account): signs in and shows
+ * its menu and each configured report's page, like the PMS reports.
+ */
+async function discoverAccounting(browser) {
+  const acct = config.accounting;
+  if (!acct?.login?.url) return log("accounting: skipped (no address in the config yet)");
+  if (!process.env.ACCT_USER || !process.env.ACCT_PASSWORD) return log("accounting: skipped (ACCT_USER / ACCT_PASSWORD secrets not set yet)");
+  const page = await (await browser.newContext({ acceptDownloads: true, locale: "en-US", timezoneId: "Asia/Riyadh" })).newPage();
+  page.setDefaultTimeout(60_000);
+  try {
+    await login(page, "acct");
+    log("accounting login");
+  } catch {
+    log("accounting login", false);
+    await describe(page, "accounting — sign-in page");
+    process.exitCode = 1;
+    return;
+  }
+  await describe(page, "accounting — after login", true);
+  for (const rep of acct.reports ?? []) {
+    try {
+      await ensureSignedIn(page, "acct");
+      if (rep.menu) await openMenu(page, rep.menu, "acct");
+      log(`open ${rep.name}`);
+      const report = latest(page);
+      await describe(report, `accounting — ${rep.name}`);
+      if (rep.export) {
+        const dir = await mkdtemp(join(tmpdir(), "probe-"));
+        try {
+          await probe(report, rep, dir);
+        } finally {
+          await rm(dir, { recursive: true, force: true });
+        }
+      }
+    } catch (error) {
+      log(`open ${rep.name} (${safe(error?.message, 200)})`, false);
+      await describe(latest(page), `accounting — ${rep.name} — where it stopped`);
+    }
+    await closeOthers(page);
   }
 }
 
@@ -470,7 +516,7 @@ async function runStep(page, step, vars) {
   if (step.select) await page.locator(step.select).first().selectOption({ label: value(step.value) });
   if (step.click) {
     const el = page.locator(step.click).first();
-    if (FORBIDDEN.test((await el.textContent().catch(() => "")) ?? "")) throw new Error("refused");
+    if (isForbidden((await el.textContent().catch(() => "")) ?? "")) throw new Error("refused");
     await el.click();
   }
   if (step.wait) await page.waitForTimeout(Math.min(30_000, Number(step.wait)));

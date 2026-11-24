@@ -12,7 +12,7 @@ on:
   # branch runs «discover» (prints the report pages' fields, never data).
   push:
     branches: [claude/dentera-website-admin-panel-64epvc]
-    paths: [scripts/pms-robot.config.json, scripts/pms-robot.mjs, .github/workflows/pms-sync.yml]
+    paths: [scripts/pms-robot.config.json, scripts/pms-robot.mjs, scripts/robot-safety.mjs, .github/workflows/pms-sync.yml]
   workflow_dispatch:
     inputs:
       mode:
@@ -43,7 +43,7 @@ jobs:
       - name: Install the browser (in its own folder, not the site's packages)
         run: |
           mkdir -p "$RUNNER_TEMP/robot"
-          cp scripts/pms-robot.mjs scripts/pms-robot.config.json "$RUNNER_TEMP/robot/"
+          cp scripts/pms-robot.mjs scripts/robot-safety.mjs scripts/pms-robot.config.json "$RUNNER_TEMP/robot/"
           cd "$RUNNER_TEMP/robot"
           npm init -y > /dev/null
           npm install --no-audit --no-fund playwright@1.48.2 xlsx@0.18.5 > /dev/null
@@ -53,6 +53,8 @@ jobs:
           PMS_USER: ${{ secrets.PMS_USER }}
           PMS_PASSWORD: ${{ secrets.PMS_PASSWORD }}
           FINANCE_INGEST_KEY: ${{ secrets.FINANCE_INGEST_KEY }}
+          ACCT_USER: ${{ secrets.ACCT_USER }}
+          ACCT_PASSWORD: ${{ secrets.ACCT_PASSWORD }}
           SITE_URL: ${{ vars.SITE_URL || 'https://dentera.com.sa' }}
           MODE: ${{ inputs.mode || (github.event_name == 'push' && 'discover') || 'yesterday' }}
           MONTHS: ${{ inputs.months || '13' }}
