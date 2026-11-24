@@ -62,8 +62,9 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
     timeStyle: "short",
     timeZone: "Asia/Riyadh",
   });
-  const riyadhHour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Riyadh" }).format(new Date()));
-  const stale = !demo && d.hasData && (!lastOk || (Date.now() - lastOk.getTime() > 2 * 3600_000 && riyadhHour >= 10));
+  // The robot runs once a day at 1 am (Riyadh): more than a day and a half
+  // without a successful run means a night was missed.
+  const stale = !demo && d.hasData && (!lastOk || Date.now() - lastOk.getTime() > 36 * 3600_000);
 
   return (
     <div className="space-y-6">

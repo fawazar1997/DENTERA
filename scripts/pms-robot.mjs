@@ -8,8 +8,8 @@
 // page text. Downloads go to a temporary folder that is deleted at the end.
 //
 // Environment: PMS_USER, PMS_PASSWORD, FINANCE_INGEST_KEY (secrets),
-// SITE_URL (default https://dentera.com.sa), MODE (today | month | backfill |
-// discover), MONTHS (backfill length, default 13).
+// SITE_URL (default https://dentera.com.sa), MODE (yesterday | today | month |
+// backfill | discover), MONTHS (backfill length, default 13).
 //
 // discover: signs in, opens each report by its menu path and prints only the
 // page's shape (fields, buttons, column headers; digits masked), so the
@@ -25,7 +25,7 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 const config = JSON.parse(await readFile(join(here, "pms-robot.config.json"), "utf-8"));
 const SITE = (process.env.SITE_URL || "https://dentera.com.sa").replace(/\/+$/, "");
 const KEY = process.env.FINANCE_INGEST_KEY || "";
-const MODE = process.env.MODE || "today";
+const MODE = process.env.MODE || "yesterday";
 const MONTHS = Math.min(24, Math.max(1, Number(process.env.MONTHS) || 13));
 
 const log = (step, ok = true) => console.log(`${ok ? "ok" : "FAILED"}: ${step}`);
@@ -62,6 +62,8 @@ function format(iso, pattern) {
 /** The date ranges to export: one per month (keeps each file small). */
 function ranges() {
   const today = riyadh();
+  // The daily run at 1 am: the whole of the day before.
+  if (MODE === "yesterday") return [[addDays(today, -1), addDays(today, -1)]];
   if (MODE === "month") return [[monthStart(today), today]];
   if (MODE === "backfill") {
     const out = [];

@@ -6,10 +6,8 @@ name: PMS finance sync
 
 on:
   schedule:
-    # Every hour, 9 am to midnight Riyadh (06–21 UTC): yesterday and today.
-    - cron: "17 6-21 * * *"
-    # 2:41 am Riyadh: the whole current month (late edits, returns, cancellations).
-    - cron: "41 23 * * *"
+    # Every day at 1 am Riyadh (22:00 UTC the evening before): the day before.
+    - cron: "0 22 * * *"
   # While the robot is being set up: a change to its steps on the working
   # branch runs «discover» (prints the report pages' fields, never data).
   push:
@@ -18,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "today, month, backfill or discover"
-        default: today
+        description: "yesterday, today, month, backfill or discover"
+        default: yesterday
         type: choice
-        options: [today, month, backfill, discover]
+        options: [yesterday, today, month, backfill, discover]
       months:
         description: "Backfill: how many past months"
         default: "13"
@@ -56,7 +54,7 @@ jobs:
           PMS_PASSWORD: ${{ secrets.PMS_PASSWORD }}
           FINANCE_INGEST_KEY: ${{ secrets.FINANCE_INGEST_KEY }}
           SITE_URL: ${{ vars.SITE_URL || 'https://dentera.com.sa' }}
-          MODE: ${{ inputs.mode || (github.event_name == 'push' && 'discover') || (github.event.schedule == '41 23 * * *' && 'month') || 'today' }}
+          MODE: ${{ inputs.mode || (github.event_name == 'push' && 'discover') || 'yesterday' }}
           MONTHS: ${{ inputs.months || '13' }}
         working-directory: ${{ runner.temp }}/robot
         run: node pms-robot.mjs
