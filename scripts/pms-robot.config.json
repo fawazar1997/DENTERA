@@ -129,7 +129,7 @@
     }
   ],
   "accounting": {
-    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete, edit or «New Account» (scripts/robot-safety.mjs). 'url' opens a report page directly; 'range' is the period (month or year to date, else the day before); 'steps' fill its Filters window and «Run Report»; 'export' is the download button; 'look' (discover only) shows a page without downloading.",
+    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete, edit or «New Account» (scripts/robot-safety.mjs). 'url' opens a report page directly; 'range' is the period (month or year to date, else the day before); 'steps' fill its Filters window and «Run Report»; 'export' is the download button; 'look' (discover only) shows a page without downloading. 'kind' (tb, chart) sends the export to the site's /api/finance/acct-ingest; 'basis' posted = posted only, all = with not-posted entries.",
     "login": {
       "url": "https://dentera.microchips-cloud.com/accounting/Home/Login",
       "user": "input[type=text]:visible, input[type=email]:visible, input[name*=user i], input[id*=user i]",
@@ -180,7 +180,9 @@
         "branches": [
           "Abha",
           "Khamis"
-        ]
+        ],
+        "kind": "tb",
+        "basis": "posted"
       },
       {
         "name": "trial-balance-with-unposted",
@@ -224,7 +226,9 @@
         "branches": [
           "Abha",
           "Khamis"
-        ]
+        ],
+        "kind": "tb",
+        "basis": "all"
       },
       {
         "name": "account-statement",
@@ -332,7 +336,8 @@
             "wait": 1500
           }
         ],
-        "export": "Excel"
+        "export": "Excel",
+        "kind": "chart"
       },
       {
         "name": "balance-sheet",

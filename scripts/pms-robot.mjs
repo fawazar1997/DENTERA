@@ -623,6 +623,20 @@ async function main() {
     log("skipped: FINANCE_INGEST_KEY secret not set yet");
     return;
   }
+  // «accounting» / «accounting-backfill»: the accounting system alone.
+  if (MODE.startsWith("accounting")) {
+    const dir = await mkdtemp(join(tmpdir(), "acct-"));
+    const browser = await chromium.launch();
+    let result = { failed: 1, sent: 0 };
+    try {
+      result = await syncAccounting(browser, dir);
+    } finally {
+      await browser.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+    if (result.failed) process.exitCode = 1;
+    return;
+  }
   // Only reports whose export button is known (the rest are still being set up).
   // «enabled: false»: still being set up (discover tries it, scheduled runs skip it).
   const reports = (config.reports ?? []).filter((r) => r.export && r.enabled !== false);
@@ -683,12 +697,110 @@ async function main() {
         }
       }
     }
+    // Microchips Accounting: trial balances and the chart of accounts.
+    const acct = await syncAccounting(browser, dir);
+    failed += acct.failed;
+    sent += acct.sent;
   } finally {
     await browser.close();
     await rm(dir, { recursive: true, force: true });
   }
   await report(failed === 0 && sent > 0, failed ? `failed ${failed}` : `${MODE} sent ${sent}`);
   if (failed) process.exitCode = 1;
+}
+
+/** The months whose trial balances to export: [first day, last day] each. */
+function acctMonths() {
+  const today = riyadh();
+  const y = addDays(today, -1);
+  const upTo = (start) => (start.slice(0, 7) === y.slice(0, 7) ? y : monthEnd(start));
+  if (MODE === "backfill" || MODE === "accounting-backfill") {
+    // Every month of the financial year so far (from 1 January).
+    const out = [];
+    for (let m = `${y.slice(0, 4)}-01-01`; m <= y; m = shiftMonth(m, 1)) out.push([m, upTo(m)]);
+    return out;
+  }
+  if (MODE === "month") return [[monthStart(y), y]];
+  // Every night: the month before in full (late postings) and this month so far.
+  const prev = shiftMonth(monthStart(y), -1);
+  return [[prev, monthEnd(prev)], [monthStart(y), y]];
+}
+
+async function sendAcct(path, fields) {
+  const form = new FormData();
+  form.append("file", new Blob([await readFile(path)]), basename(path));
+  for (const [k, v] of Object.entries(fields)) form.append(k, v);
+  const res = await fetch(`${SITE}/api/finance/acct-ingest`, { method: "POST", headers: { Authorization: `Bearer ${KEY}` }, body: form });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`site ${res.status} ${body?.error ?? ""}`.trim());
+  return body ?? {};
+}
+
+/**
+ * Exports each accounting report that has a «kind» (tb, chart) and sends it
+ * to the site. Read-only in the accounting system; the log shows counts and
+ * match / mismatch only.
+ */
+async function syncAccounting(browser, dir) {
+  const acct = config.accounting;
+  const reports = (acct?.reports ?? []).filter((r) => r.kind && r.export && r.enabled !== false);
+  if (!reports.length) return { failed: 0, sent: 0 };
+  if (!process.env.ACCT_USER || !process.env.ACCT_PASSWORD) {
+    log("accounting: skipped (ACCT_USER / ACCT_PASSWORD secrets not set yet)");
+    return { failed: 0, sent: 0 };
+  }
+  let failed = 0;
+  let sent = 0;
+  const context = await browser.newContext({ acceptDownloads: true, locale: "en-US", timezoneId: "Asia/Riyadh" });
+  const page = await context.newPage();
+  page.setDefaultTimeout(60_000);
+  try {
+    await login(page, "acct");
+    log("accounting login");
+  } catch {
+    log("accounting login", false);
+    await context.close();
+    return { failed: 1, sent: 0 };
+  }
+  const pattern = acct.dateFormat ?? config.dateFormat;
+  const open = async (rep) => {
+    await ensureSignedIn(page, "acct");
+    await page.goto(new URL(rep.url, acct.login.url).href, { waitUntil: "networkidle" });
+  };
+  for (const rep of reports) {
+    const periods = rep.kind === "tb" ? acctMonths() : [[null, null]];
+    for (const [from, to] of periods) {
+      for (const branch of rep.branches ?? [null]) {
+        const name = `${rep.name}${branch ? ` ${branch}` : ""}${from ? ` ${from.slice(0, 7)}` : ""}`;
+        try {
+          await open(rep);
+          const vars = { from: from ? format(from, pattern) : "", to: to ? format(to, pattern) : "", branch };
+          const file = await exportReport(latest(page), rep, vars, dir, `${rep.name}-${branch ?? "all"}-${from ?? "now"}`);
+          await closeOthers(page);
+          const csv = await toCsv(file, rep);
+          const fields = { kind: rep.kind };
+          if (rep.kind === "tb") Object.assign(fields, { branch: branch ? branch.toLowerCase() : "all", basis: rep.basis ?? "posted", from, to });
+          const answer = await sendAcct(csv.file, fields);
+          // What the site read must be what it now stores (sums compared here, never printed).
+          const near = (a, b) => typeof a === "number" && typeof b === "number" && Math.abs(a - b) < 0.01;
+          const same =
+            rep.kind === "tb"
+              ? answer.rows > 0 && answer.read?.rows === answer.stored?.rows && near(answer.read?.dr, answer.stored?.dr) && near(answer.read?.cr, answer.stored?.cr)
+              : answer.rows > 0 && answer.rows === answer.stored;
+          const balanced = rep.kind === "tb" ? (near(answer.read?.dr, answer.read?.cr) ? ", debits = credits" : ", debits ≠ credits (shown on the dashboard, not adjusted)") : "";
+          console.log(`check ${name}: rows ${answer.rows ?? "?"} read; stored ${same ? "match" : "MISMATCH"}${balanced}`);
+          if (!same) throw new Error("check mismatch");
+          sent++;
+          log(name);
+        } catch (error) {
+          failed++;
+          log(`${name} (${safe(error?.message, 200)})`, false);
+        }
+      }
+    }
+  }
+  await context.close();
+  return { failed, sent };
 }
 
 await main();

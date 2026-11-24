@@ -16,10 +16,10 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "yesterday, today, month, backfill or discover"
+        description: "yesterday, today, month, backfill, discover, accounting (recent months) or accounting-backfill (from 1 January)"
         default: yesterday
         type: choice
-        options: [yesterday, today, month, backfill, discover]
+        options: [yesterday, today, month, backfill, discover, accounting, accounting-backfill]
       months:
         description: "Backfill: how many past months"
         default: "13"
