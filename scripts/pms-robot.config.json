@@ -356,7 +356,7 @@
             "clickText": "Run Report"
           },
           {
-            "wait": 8000
+            "wait": 15000
           }
         ],
         "export": "Excel"
@@ -379,6 +379,10 @@
           {
             "fill": "#toDate-txt",
             "value": "{to}"
+          },
+          {
+            "select": "#accounts-select",
+            "value": "Receivables Customers"
           },
           {
             "clickText": "Run Report"
@@ -407,6 +411,10 @@
           {
             "fill": "#toDate-txt",
             "value": "{to}"
+          },
+          {
+            "select": "#accounts-select",
+            "value": "Local Suppliers"
           },
           {
             "clickText": "Run Report"

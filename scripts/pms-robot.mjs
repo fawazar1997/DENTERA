@@ -201,8 +201,18 @@ async function describe(page, title, navigation = false) {
           .filter(vis)
           .map((el) => ({ text: el.textContent || el.getAttribute("title") || el.getAttribute("alt") || "", id: el.id, cls: el.className?.toString?.() ?? "" }))
           .filter((b) => b.text.trim() || b.id);
+        // Column titles: the table's th cells, else its first row when that
+        // row is titles (debit, credit, date…), never a row of data.
+        const titles = /debit|credit|balance|account|amount|date|reference|number|status|type|entry|journal|description|مدين|دائن|رصيد|حساب|مبلغ|تاريخ|رقم|حالة|قيد|بيان/i;
         const heads = [...document.querySelectorAll("table")]
-          .map((t) => [...t.querySelectorAll("th")].map((th) => th.textContent).concat(`(${t.querySelectorAll("tbody tr").length} rows)`))
+          .map((t) => {
+            let cells = [...t.querySelectorAll("th")].map((th) => th.textContent);
+            if (!cells.length) {
+              const first = [...(t.querySelector("tr")?.children ?? [])].map((c) => c.textContent || "");
+              if (first.filter((c) => titles.test(c)).length >= 2) cells = first;
+            }
+            return cells.concat(`(${t.querySelectorAll("tbody tr").length || t.querySelectorAll("tr").length} rows)`);
+          })
           .filter((h) => h.length > 1);
         const menu = [...document.querySelectorAll("a, li, span")]
           .filter((el) => vis(el) && el.children.length === 0 && /report|financ|sales|تقرير|تقارير|مالي|مبيعات|collection|payment|install|تحصيل|سداد|أقساط/i.test(el.textContent || ""))
@@ -224,7 +234,7 @@ async function describe(page, title, navigation = false) {
       console.log(`field ${f.tag}[type=${f.type}] name=${safe(f.name)} id=${safe(f.id)} placeholder=${safe(f.placeholder)} label=${safe(f.label)}${f.button ? ` value=${safe(f.button)}` : ""}`);
     for (const s of info.selects) console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.options.length ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
-    for (const h of info.heads.slice(0, 5)) console.log(`table columns: ${h.map((x) => safe(x)).join(" | ")}`);
+    for (const h of info.heads.slice(0, 12)) console.log(`table columns: ${h.map((x) => safe(x)).join(" | ")}`);
     const menu = [...new Set(info.menu.map((x) => safe(x)))].filter(Boolean).slice(0, 160);
     if (menu.length) console.log(`menu items: ${menu.join(" | ")}`);
   }
@@ -409,6 +419,9 @@ async function inspect(file, strict = false) {
       ? table.find((r) => r.filter((c) => titles.test(String(c))).length >= 2)
       : table.find((r) => r.filter((c) => String(c).trim() && !/^[\d.,\s/:-]+$/.test(String(c))).length >= 3);
     columns = (header ?? []).map((x) => safe(x)).filter(Boolean);
+    // A second title row under it (e.g. Debit | Credit under each group).
+    const next = header ? table[table.indexOf(header) + 1] : null;
+    if (strict && next && next.filter((c) => titles.test(String(c))).length >= 2) columns.push(`|| under: ${next.map((x) => safe(x) || "·").join(" | ")}`);
     if (strict && !header) columns = [`(no title row found; ${Math.max(0, ...table.slice(0, 20).map((r) => r.length))} columns)`];
   } catch {
     // Not readable here; the site's own reader decides.
