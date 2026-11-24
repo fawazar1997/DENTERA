@@ -118,7 +118,7 @@ const TEXT = {
 export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: Locale; href: (q: { branch?: AcctBranch; basis?: AcctBasis }) => string }) {
   const t = TEXT[locale === "ar" ? "ar" : "en"];
   const nl = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
-  const n0 = (v: number) => Math.round(v).toLocaleString(nl);
+  const n0 = (v: number) => (Math.round(v) || 0).toLocaleString(nl);
   const pct = (v: number) => `${(v * 100).toLocaleString(nl, { maximumFractionDigits: 1 })}%`;
   const monthName = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { month: "short", timeZone: "UTC" });
   const when = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" });

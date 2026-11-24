@@ -17,6 +17,8 @@ import {
 } from "@/lib/financeActions";
 import { FinanceView } from "@/components/finance/FinanceView";
 import { IncomeStatementView } from "@/components/finance/IncomeStatementView";
+import { AcctView } from "@/components/finance/AcctView";
+import { ACCT_TABS, ACCT_TAB_NAMES, loadAcctTab, type AcctTab } from "@/lib/acctLoad";
 import { loadPnl } from "@/lib/acctPnl";
 import type { AcctBasis, AcctBranch } from "@/lib/acct";
 import { PartnerPicker } from "@/components/finance/PartnerPicker";
@@ -39,7 +41,10 @@ export default async function AdminFinancePage({
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const dict = getDictionary(locale);
   const t = financeText(locale);
-  const tab = searchParams.tab === "settings" ? "settings" : searchParams.tab === "income" ? "income" : "dashboard";
+  const TABS = ["dashboard", "income", ...ACCT_TABS, "settings"] as const;
+  const tab = (TABS as readonly string[]).includes(searchParams.tab ?? "") ? (searchParams.tab as (typeof TABS)[number]) : "dashboard";
+  const tabName = (k: (typeof TABS)[number]) =>
+    k === "dashboard" ? t.tabDashboard : k === "settings" ? t.tabSettings : k === "income" ? (locale === "ar" ? "قائمة الدخل" : "Income statement") : ACCT_TAB_NAMES[locale === "ar" ? "ar" : "en"][k];
   const base = localePath(locale, "/admin/finance");
 
   return (
@@ -49,14 +54,15 @@ export default async function AdminFinancePage({
           <h1 className="text-2xl font-extrabold text-ink-950">{t.title}</h1>
           <p className="mt-1 max-w-3xl text-ink-500">{t.subtitle}</p>
         </div>
-        <nav className="flex gap-1 rounded-xl bg-white p-1 shadow-card">
-          {(["dashboard", "income", "settings"] as const).map((k) => (
+        <nav className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-card">
+          {TABS.map((k) => (
             <Link
               key={k}
               href={k === "dashboard" ? base : `${base}?tab=${k}`}
-              className={`rounded-lg px-4 py-2 text-sm font-bold ${tab === k ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-ink-50"}`}
+              aria-current={tab === k ? "page" : undefined}
+              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold ${tab === k ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-ink-50"}`}
             >
-              {k === "dashboard" ? t.tabDashboard : k === "income" ? (locale === "ar" ? "قائمة الدخل" : "Income statement") : t.tabSettings}
+              {tabName(k)}
             </Link>
           ))}
         </nav>
@@ -66,6 +72,8 @@ export default async function AdminFinancePage({
           <DashboardTab locale={locale} searchParams={searchParams} base={base} />
         ) : tab === "income" ? (
           <IncomeTab locale={locale} searchParams={searchParams} base={base} />
+        ) : tab !== "settings" ? (
+          <AcctTabView tab={tab} locale={locale} searchParams={searchParams} base={base} />
         ) : (
           <SettingsTab locale={locale} searchParams={searchParams} isAdmin={user === "admin"} dict={dict} />
         )}
@@ -131,6 +139,22 @@ async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searc
     return `${base}?${p.toString()}`;
   };
   return <IncomeStatementView pnl={pnl} locale={locale} href={href} />;
+}
+
+async function AcctTabView({ tab, locale, searchParams, base }: { tab: AcctTab; locale: Locale; searchParams: Record<string, string | undefined>; base: string }) {
+  const upTo = addDays(riyadhDate(), -1);
+  const branch: AcctBranch = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
+  const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
+  const view = await loadAcctTab(tab, branch, basis, upTo);
+  const href = (q: { branch?: AcctBranch; basis?: AcctBasis }) => {
+    const p = new URLSearchParams({ tab });
+    const b = q.branch ?? branch;
+    const s = q.basis ?? basis;
+    if (b !== "all") p.set("branch", b);
+    if (s !== "all") p.set("basis", s);
+    return `${base}?${p.toString()}`;
+  };
+  return <AcctView view={view} locale={locale} branch={branch} basis={basis} href={href} />;
 }
 
 async function SettingsTab({

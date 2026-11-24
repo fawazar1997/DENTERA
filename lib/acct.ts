@@ -299,3 +299,19 @@ export async function saveUnposted(asOf: string, items: Unposted[]) {
   await writeJson("acct/unposted.json", { asOf, items, importedAt: new Date().toISOString() } satisfies UnpostedList);
   return (await readUnposted())?.items.length ?? 0;
 }
+
+// --- Accounting settings (Settings tab) ---
+
+export type AcctSettings = {
+  /** Financing (2201) repayment schedule: date → amount. */
+  maturities: { date: string; amount: number }[];
+  /** PMS ↔ accounting revenue difference flagged above this share (0.02 = 2%). */
+  reconThreshold: number;
+};
+
+export async function readAcctSettings(): Promise<AcctSettings> {
+  const s = await readJson<Partial<AcctSettings>>("acct/settings.json");
+  return { maturities: s?.maturities ?? [], reconThreshold: s?.reconThreshold ?? 0.02 };
+}
+
+export const saveAcctSettings = (s: AcctSettings) => writeJson("acct/settings.json", s);
