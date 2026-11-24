@@ -467,7 +467,7 @@ async function probe(page, rep, dir) {
           if (rep.url) await page.goto(new URL(rep.url, config.accounting.login.url).href, { waitUntil: "networkidle" });
           else await openMenu(page, rep.menu);
         }
-        const file = await exportReport(page, way, { from, to: y, branch }, dir, `probe-${n}`);
+        const file = await exportReport(page, way, { from, to: y, branch, account: rep.sampleAccount }, dir, `probe-${n}`);
         log(`export ${tag}`);
         await inspect(file, rep.strict);
         await rm(file, { force: true });
@@ -547,6 +547,8 @@ async function discoverAccounting(browser) {
     return;
   }
   await describe(page, "accounting — after login", true);
+  const years = await page.locator("#globalFinancialYears-select").first().evaluate((sel) => [...sel.options].map((o) => `${o.text.trim()}${o.selected ? " (selected)" : ""}`)).catch(() => []);
+  console.log(`financial years: ${years.join(" | ") || "?"}`);
   await listLinks(page, "accounting — every menu link");
   for (const top of acct.explore ?? []) {
     try {
@@ -566,6 +568,13 @@ async function discoverAccounting(browser) {
       log(`open ${rep.name}`);
       const report = latest(page);
       await describe(report, `accounting — ${rep.name}`);
+      if (rep.kind === "statement") {
+        for (const step of rep.listFrom ?? []) await runStep(report, step, { from: "", to: "", branch: "" });
+        const codes = await accountCodes(report, rep.accountSelect ?? "#accounts-select", rep.accounts);
+        console.log(`statement accounts (${codes.length}): ${codes.join(" ")}`);
+        rep.sampleAccount = codes.find((c) => c.startsWith("1102")) ?? codes[0];
+        await page.goto(new URL(rep.url, acct.login.url).href, { waitUntil: "networkidle" });
+      }
       // Discover only: open the report's filters window and show its fields.
       if (!rep.export && rep.look?.length) {
         const pattern = rep.dateFormat ?? acct.dateFormat ?? config.dateFormat;
@@ -591,7 +600,7 @@ async function discoverAccounting(browser) {
 }
 
 async function runStep(page, step, vars) {
-  const value = (text) => String(text ?? "").replace("{from}", vars.from).replace("{to}", vars.to).replace("{branch}", vars.branch ?? "");
+  const value = (text) => String(text ?? "").replace("{from}", vars.from).replace("{to}", vars.to).replace("{branch}", vars.branch ?? "").replace("{account}", vars.account ?? "");
   if (step.menu) await openMenu(page, step.menu);
   if (step.clickText) await clickText(page, value(step.clickText));
   if (step.goto) await page.goto(value(step.goto), { waitUntil: "networkidle" });
@@ -614,6 +623,15 @@ async function runStep(page, step, vars) {
     }).catch(() => undefined);
     await page.locator(".datepicker, .ui-datepicker, .daterangepicker").evaluateAll((els) => els.forEach((d) => (d.style.display = "none"))).catch(() => undefined);
     if (MODE === "discover") console.log(`  ${step.fill} = ${safe(await el.inputValue().catch(() => ""))}`);
+  }
+  // An option chosen by the start of its text (an account code such as «1102-0001»).
+  if (step.selectMatch) {
+    const el = page.locator(step.selectMatch).first();
+    const want = value(step.value);
+    const option = await el.evaluate((sel, want) => [...sel.options].find((o) => o.text.trim().startsWith(want) || o.text.includes(`${want} `) || o.value === want)?.value ?? null, want);
+    if (option === null) throw new Error("account not in the list");
+    await el.selectOption(option);
+    await el.evaluate((e) => e.dispatchEvent(new Event("change", { bubbles: true }))).catch(() => undefined);
   }
   // An empty choice (e.g. no branch: the whole clinic) leaves the list as it is.
   if (step.select && value(step.value) !== "") await page.locator(step.select).first().selectOption({ label: value(step.value) });
@@ -724,6 +742,49 @@ async function main() {
   if (failed) process.exitCode = 1;
 }
 
+/** The account codes offered by a page's account list that match a pattern (e.g. ^(1102|2201)). */
+async function accountCodes(page, selector, pattern) {
+  const re = new RegExp(pattern, "i");
+  const texts = await page.locator(selector).first().evaluate((sel) => [...sel.options].map((o) => o.text.trim())).catch(() => []);
+  const codes = [];
+  for (const t of texts) {
+    const code = (t.match(/\d{2,}(?:-\d+)*/) ?? [""])[0];
+    if (code && (re.test(code) || re.test(t)) && !codes.includes(code)) codes.push(code);
+  }
+  return codes;
+}
+
+/**
+ * The «UnPosted Transactions» report read from the page (it has no Excel):
+ * module, transaction number, date, branch and status of each entry, as CSV.
+ */
+async function unpostedCsv(page, file) {
+  const rows = await page.evaluate(() => {
+    const out = [];
+    const text = (el) => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+    for (const table of document.querySelectorAll("table")) {
+      const head = [...table.querySelectorAll("thead th, tr:first-child th")].map(text);
+      const at = (name) => head.findIndex((h) => h.toLowerCase() === name);
+      const no = at("transaction no");
+      const date = at("transaction date");
+      if (no < 0 || date < 0 || head.length > 6) continue;
+      // The module: the row of the outer table this one sits in.
+      const outer = table.parentElement?.closest("tr");
+      let module = "";
+      for (let prev = outer?.previousElementSibling; prev && !module; prev = prev.previousElementSibling) module = text(prev.querySelector("td"));
+      for (const tr of table.querySelectorAll("tbody tr")) {
+        const cells = [...tr.querySelectorAll("td")].map(text);
+        if (cells.length < head.length) continue;
+        out.push([module, cells[no], cells[date], cells[at("branch")] ?? "", cells[at("status")] ?? ""]);
+      }
+    }
+    return out;
+  });
+  const quote = (c) => (/[",\n\r]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
+  await writeFile(file, "\ufeff" + [["Module", "Transaction No", "Transaction Date", "Branch", "Status"], ...rows].map((r) => r.map((c) => quote(String(c ?? ""))).join(",")).join("\n"));
+  return rows.length;
+}
+
 /** The months whose trial balances to export: [first day, last day] each. */
 function acctMonths() {
   const today = riyadh();
@@ -758,7 +819,7 @@ async function sendAcct(path, fields) {
  */
 async function syncAccounting(browser, dir) {
   const acct = config.accounting;
-  const reports = (acct?.reports ?? []).filter((r) => r.kind && r.export && r.enabled !== false);
+  const reports = (acct?.reports ?? []).filter((r) => r.kind && (r.export || r.kind === "unposted") && r.enabled !== false);
   if (!reports.length) return { failed: 0, sent: 0 };
   if (!process.env.ACCT_USER || !process.env.ACCT_PASSWORD) {
     log("accounting: skipped (ACCT_USER / ACCT_PASSWORD secrets not set yet)");
@@ -782,7 +843,56 @@ async function syncAccounting(browser, dir) {
     await ensureSignedIn(page, "acct");
     await page.goto(new URL(rep.url, acct.login.url).href, { waitUntil: "networkidle" });
   };
-  for (const rep of reports) {
+  const yesterday = addDays(riyadh(), -1);
+  for (const rep of reports.filter((r) => r.kind === "statement" || r.kind === "unposted")) {
+    const from = `${yesterday.slice(0, 4)}-01-01`;
+    const vars = { from: format(from, pattern), to: format(yesterday, pattern), branch: "" };
+    if (rep.kind === "unposted") {
+      try {
+        await open(rep);
+        for (const step of rep.look ?? rep.steps ?? []) await runStep(page, step, vars);
+        const file = join(dir, "unposted.csv");
+        const count = await unpostedCsv(page, file);
+        const answer = await sendAcct(file, { kind: "unposted", to: yesterday });
+        console.log(`check ${rep.name}: ${count} entries read, ${answer.rows ?? "?"} stored`);
+        if (answer.rows !== count) throw new Error("check mismatch");
+        sent++;
+        log(rep.name);
+      } catch (error) {
+        failed++;
+        log(`${rep.name} (${safe(error?.message, 200)})`, false);
+      }
+      continue;
+    }
+    // Statements: every account in the list whose code matches.
+    let codes = [];
+    try {
+      await open(rep);
+      if (rep.listFrom) for (const step of rep.listFrom) await runStep(page, step, vars);
+      codes = await accountCodes(page, rep.accountSelect ?? "#accounts-select", rep.accounts);
+      console.log(`${rep.name}: ${codes.length} accounts`);
+    } catch (error) {
+      failed++;
+      log(`${rep.name} list (${safe(error?.message, 200)})`, false);
+    }
+    for (const code of codes) {
+      try {
+        await open(rep);
+        const file = await exportReport(latest(page), rep, { ...vars, account: code }, dir, `${rep.name}-${code}`);
+        await closeOthers(page);
+        const csv = await toCsv(file, rep);
+        const answer = await sendAcct(csv.file, { kind: "statement", account: code, from, to: yesterday });
+        const same = answer.rows >= 0 && answer.read?.rows === answer.stored?.rows && Math.abs((answer.read?.dr ?? 0) - (answer.stored?.dr ?? 0)) < 0.01 && Math.abs((answer.read?.cr ?? 0) - (answer.stored?.cr ?? 0)) < 0.01;
+        console.log(`check ${rep.name} ${code}: rows ${answer.rows ?? "?"} read; stored ${same ? "match" : "MISMATCH"}`);
+        if (!same) throw new Error("check mismatch");
+        sent++;
+      } catch (error) {
+        failed++;
+        log(`${rep.name} ${code} (${safe(error?.message, 200)})`, false);
+      }
+    }
+  }
+  for (const rep of reports.filter((r) => r.kind !== "statement" && r.kind !== "unposted")) {
     const periods = rep.kind === "tb" ? acctMonths() : [[null, null]];
     for (const [from, to] of periods) {
       for (const branch of rep.branches ?? [null]) {

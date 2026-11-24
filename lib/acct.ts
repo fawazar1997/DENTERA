@@ -173,3 +173,129 @@ export async function readTbYear(year: string): Promise<Record<string, TbMonth |
   const files = await Promise.all(months.map((m) => readTbMonth(m)));
   return Object.fromEntries(months.map((m, i) => [m, files[i]]));
 }
+
+// --- Account statements (banks, receivables, payables, financing) ---
+
+export type StLine = { date: string; je: string; ref: string; source: string; desc: string; method: string; dr: number; cr: number; bal: number };
+export type Statement = { code: string; from: string; to: string; opening: number; lines: StLine[]; importedAt: string };
+
+/** «23/11/2026», «2026-11-23 10:15», «11/23/2026» → «2026-11-23». */
+export function isoDate(text: unknown): string {
+  const t = String(text ?? "").trim();
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return "";
+}
+
+/**
+ * What of a statement line is kept. Receivables (patients, Tabby, Tamara,
+ * customers) keep amounts only — never a description that could name a
+ * patient. Banks keep the description of money paid out (suppliers, labs:
+ * the «largest payments»), not of money received. Payables, financing and
+ * commissions keep their descriptions.
+ */
+export function keepText(code: string, dr: number, cr: number): boolean {
+  if (/^11(0[3-9]|[1-9])/.test(code)) return false; // receivables and other current assets
+  if (code.startsWith("1102")) return cr > 0 && dr === 0;
+  return true;
+}
+
+/** The Account Statement export: «Journal Entry # | Date | Reference No. | Source Module | Description | Payment Method | Debit | Credit | Balance». */
+export function parseStatement(table: string[][], code: string): { opening: number; lines: StLine[] } {
+  const h = table.findIndex((r) => r.some((c) => key(c) === "debit") && r.some((c) => key(c) === "credit") && r.some((c) => /^(date|التاريخ)$/.test(key(c))));
+  if (h < 0) return { opening: 0, lines: [] };
+  const head = table[h].map(key);
+  const col = (...names: string[]) => head.findIndex((c) => names.includes(c));
+  const c = {
+    je: col("journalentry", "journalentryno", "entry", "entryid", "رقمالقيد"),
+    date: col("date", "التاريخ"),
+    ref: col("referenceno", "reference", "refno", "المرجع"),
+    source: col("sourcemodule", "source", "module", "المصدر"),
+    desc: col("description", "notes", "البيان", "الوصف"),
+    method: col("paymentmethod", "method", "طريقةالدفع"),
+    dr: col("debit", "مدين"),
+    cr: col("credit", "دائن"),
+    bal: col("balance", "الرصيد"),
+  };
+  const get = (r: string[], i: number) => (i >= 0 ? String(r[i] ?? "").trim() : "");
+  let opening = 0;
+  const lines: StLine[] = [];
+  for (const r of table.slice(h + 1)) {
+    const date = isoDate(get(r, c.date));
+    const text = r.join(" ");
+    if (!date) {
+      // The opening balance row (no date), and totals rows (skipped).
+      if (/opening|افتتاح/i.test(text)) opening = amount(get(r, c.bal)) || amount(get(r, c.dr)) - amount(get(r, c.cr));
+      continue;
+    }
+    const dr = amount(get(r, c.dr));
+    const cr = amount(get(r, c.cr));
+    const keep = keepText(code, dr, cr);
+    lines.push({
+      date,
+      je: get(r, c.je).slice(0, 30),
+      ref: keep ? get(r, c.ref).slice(0, 40) : "",
+      source: get(r, c.source).slice(0, 40),
+      desc: keep ? get(r, c.desc).slice(0, 120) : "",
+      method: get(r, c.method).slice(0, 40),
+      dr: round2(dr),
+      cr: round2(cr),
+      bal: round2(amount(get(r, c.bal))),
+    });
+  }
+  return { opening: round2(opening), lines };
+}
+
+export const stTotals = (lines: StLine[]) => ({ rows: lines.length, dr: round2(lines.reduce((s, l) => s + l.dr, 0)), cr: round2(lines.reduce((s, l) => s + l.cr, 0)) });
+
+export const readStatement = (year: string, code: string) => readJson<Statement>(`acct/statements/${year}/${code}.json`);
+
+export async function saveStatement(st: Statement) {
+  const year = st.to.slice(0, 4);
+  await writeJson(`acct/statements/${year}/${st.code}.json`, st);
+  // The list of stored accounts, for the dashboard.
+  const index = (await readJson<{ codes: string[] }>(`acct/statements/${year}/index.json`)) ?? { codes: [] };
+  if (!index.codes.includes(st.code)) {
+    index.codes.push(st.code);
+    index.codes.sort();
+    await writeJson(`acct/statements/${year}/index.json`, index);
+  }
+  return stTotals((await readStatement(year, st.code))?.lines ?? []);
+}
+
+export async function readStatements(year: string): Promise<Statement[]> {
+  const index = (await readJson<{ codes: string[] }>(`acct/statements/${year}/index.json`)) ?? { codes: [] };
+  const all = await Promise.all(index.codes.map((code) => readStatement(year, code)));
+  return all.filter((s): s is Statement => !!s);
+}
+
+// --- Unposted entries (System Reports → UnPosted Transactions) ---
+
+export type Unposted = { module: string; no: string; date: string; branch: string; status: string };
+export type UnpostedList = { asOf: string; items: Unposted[]; importedAt: string };
+
+export function parseUnposted(table: string[][]): Unposted[] {
+  const h = table.findIndex((r) => r.some((c) => key(c) === "transactionno"));
+  if (h < 0) return [];
+  const head = table[h].map(key);
+  const at = (n: string) => head.indexOf(n);
+  return table
+    .slice(h + 1)
+    .map((r) => ({
+      module: String(r[at("module")] ?? "").trim().slice(0, 60),
+      no: String(r[at("transactionno")] ?? "").trim().slice(0, 30),
+      date: isoDate(r[at("transactiondate")]),
+      branch: String(r[at("branch")] ?? "").trim().slice(0, 30),
+      status: String(r[at("status")] ?? "").trim().slice(0, 30),
+    }))
+    .filter((u) => u.no && u.date);
+}
+
+export const readUnposted = () => readJson<UnpostedList>("acct/unposted.json");
+
+export async function saveUnposted(asOf: string, items: Unposted[]) {
+  await writeJson("acct/unposted.json", { asOf, items, importedAt: new Date().toISOString() } satisfies UnpostedList);
+  return (await readUnposted())?.items.length ?? 0;
+}

@@ -235,7 +235,7 @@
       {
         "name": "account-statement",
         "url": "/accounting/AccountStatement/Index",
-        "range": "month",
+        "range": "year",
         "steps": [
           {
             "clickText": "Filters"
@@ -256,13 +256,27 @@
             "value": true
           },
           {
+            "selectMatch": "#accounts-select",
+            "value": "{account}"
+          },
+          {
             "clickText": "Run Report"
           },
           {
-            "wait": 8000
+            "wait": 10000
           }
         ],
-        "export": "Excel"
+        "export": "Excel",
+        "kind": "statement",
+        "accounts": "^(1102|1105|2102|2103|2201)|doctor comm|technicians comm",
+        "listFrom": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "journal-entries",
@@ -328,7 +342,8 @@
           {
             "wait": 8000
           }
-        ]
+        ],
+        "kind": "unposted"
       },
       {
         "name": "chart-of-accounts",

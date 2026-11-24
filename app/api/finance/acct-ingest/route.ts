@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ingestKeyOk } from "@/lib/finance";
 import { readSpreadsheet } from "@/lib/spreadsheet";
-import { parseChart, parseTrialBalance, saveChart, saveTrialBalance, tbTotals, type AcctBasis, type AcctBranch } from "@/lib/acct";
+import {
+  parseChart,
+  parseStatement,
+  parseTrialBalance,
+  parseUnposted,
+  saveChart,
+  saveStatement,
+  saveTrialBalance,
+  saveUnposted,
+  stTotals,
+  tbTotals,
+  type AcctBasis,
+  type AcctBranch,
+} from "@/lib/acct";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -11,8 +24,9 @@ const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * The robot sends each Microchips Accounting export here (multipart:
- * «file», «kind» = tb | chart, and for a trial balance «branch» = abha |
- * khamis | all, «basis» = posted | all, «from» / «to» as YYYY-MM-DD), with
+ * «file», «kind» = tb | chart | statement | unposted; a trial balance also
+ * «branch» = abha | khamis | all and «basis» = posted | all; a statement
+ * «account»; «from» / «to» as YYYY-MM-DD), with
  * the same key as the PMS reports. The answer gives counts and sums for the
  * robot's check; the robot logs only match / mismatch, never the figures.
  */
@@ -47,6 +61,23 @@ export async function POST(request: NextRequest) {
       const read = tbTotals(rows);
       const stored = await saveTrialBalance(from.slice(0, 7), branch, basis, { from, to, rows, importedAt: new Date().toISOString() });
       return reply(200, { ok: true, kind, rows: rows.length, read, stored });
+    }
+    if (kind === "statement") {
+      const account = String(form.get("account") ?? "");
+      const from = String(form.get("from") ?? "");
+      const to = String(form.get("to") ?? "");
+      if (!/^\d[\d-]{1,20}$/.test(account) || !ISO.test(from) || !ISO.test(to)) return reply(400, { ok: false, error: "fields" });
+      const { opening, lines } = parseStatement(table, account);
+      // An account with no movement this year is a valid, empty statement.
+      const stored = await saveStatement({ code: account, from, to, opening, lines, importedAt: new Date().toISOString() });
+      return reply(200, { ok: true, kind, rows: lines.length, read: stTotals(lines), stored });
+    }
+    if (kind === "unposted") {
+      const to = String(form.get("to") ?? "");
+      if (!ISO.test(to)) return reply(400, { ok: false, error: "fields" });
+      const items = parseUnposted(table);
+      const stored = await saveUnposted(to, items);
+      return reply(200, { ok: true, kind, rows: stored, read: items.length });
     }
     return reply(400, { ok: false, error: "kind" });
   } catch (error) {
