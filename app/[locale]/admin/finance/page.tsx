@@ -18,6 +18,7 @@ import {
 import { FinanceView } from "@/components/finance/FinanceView";
 import { IncomeStatementView } from "@/components/finance/IncomeStatementView";
 import { AcctView } from "@/components/finance/AcctView";
+import { AcctSettings } from "@/components/finance/AcctSettings";
 import { ACCT_TABS, ACCT_TAB_NAMES, loadAcctTab, type AcctTab } from "@/lib/acctLoad";
 import { loadPnl } from "@/lib/acctPnl";
 import type { AcctBasis, AcctBranch } from "@/lib/acct";
@@ -75,7 +76,10 @@ export default async function AdminFinancePage({
         ) : tab !== "settings" ? (
           <AcctTabView tab={tab} locale={locale} searchParams={searchParams} base={base} />
         ) : (
-          <SettingsTab locale={locale} searchParams={searchParams} isAdmin={user === "admin"} dict={dict} />
+          <div className="space-y-6">
+            <SettingsTab locale={locale} searchParams={searchParams} isAdmin={user === "admin"} dict={dict} />
+            <AcctSettings locale={locale} saved={searchParams.acctSaved === "1"} />
+          </div>
         )}
       </div>
     </div>
