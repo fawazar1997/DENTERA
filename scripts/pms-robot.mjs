@@ -528,6 +528,11 @@ async function discoverAccounting(browser) {
       log(`open ${rep.name}`);
       const report = latest(page);
       await describe(report, `accounting — ${rep.name}`);
+      // Discover only: open the report's filters window and show its fields.
+      if (!rep.export && rep.look?.length) {
+        for (const step of rep.look) await runStep(report, step, { from: "", to: "", branch: "" });
+        await describe(latest(page), `accounting — ${rep.name} — filters`);
+      }
       if (rep.export) {
         const dir = await mkdtemp(join(tmpdir(), "probe-"));
         try {

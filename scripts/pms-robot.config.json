@@ -129,7 +129,7 @@
     }
   ],
   "accounting": {
-    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete or edit (scripts/robot-safety.mjs). 'url' opens a report page directly; 'explore' lists the links under those top menu items (discover only).",
+    "$comment": "Microchips Accounting: its own address and account (GitHub secrets ACCT_USER, ACCT_PASSWORD). Read-only: the robot never presses post, unpost, approve, save, delete or edit (scripts/robot-safety.mjs). 'url' opens a report page directly; 'explore' lists the links under those top menu items (discover only). 'look' (discover only) opens the filters window to list its fields.",
     "login": {
       "url": "https://dentera.microchips-cloud.com/accounting/Home/Login",
       "user": "input[type=text]:visible, input[type=email]:visible, input[name*=user i], input[id*=user i]",
@@ -140,35 +140,99 @@
     "reports": [
       {
         "name": "trial-balance",
-        "url": "/accounting/TrailBalanceFull/Index"
+        "url": "/accounting/TrailBalanceFull/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "trial-balance-cost-centers",
-        "url": "/accounting/TrailBalanceByCostCenters/Index"
+        "url": "/accounting/TrailBalanceByCostCenters/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "income-statement",
-        "url": "/accounting/IncomeStatement/Index"
+        "url": "/accounting/IncomeStatement/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "balance-sheet",
-        "url": "/accounting/BalanceSheet/Index"
+        "url": "/accounting/BalanceSheet/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "account-statement",
-        "url": "/accounting/AccountStatement/Index"
+        "url": "/accounting/AccountStatement/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "customers-trial-balance",
-        "url": "/accounting/CustomersTrailBalance/Index"
+        "url": "/accounting/CustomersTrailBalance/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "suppliers-trial-balance",
-        "url": "/accounting/SuppliersTrailBalance/Index"
+        "url": "/accounting/SuppliersTrailBalance/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "suppliers-aging",
-        "url": "/accounting/SuppliersAgingReport/Index"
+        "url": "/accounting/SuppliersAgingReport/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "unposted",
@@ -176,7 +240,15 @@
       },
       {
         "name": "cash-flow",
-        "url": "/accounting/CashFlowReport/Index"
+        "url": "/accounting/CashFlowReport/Index",
+        "look": [
+          {
+            "clickText": "Filters"
+          },
+          {
+            "wait": 1500
+          }
+        ]
       },
       {
         "name": "chart-of-accounts",
