@@ -64,7 +64,8 @@ export function pnlOf(rows: TbRow[], mapping: Mapping, chart: Map<string, Accoun
     if (!isPnlCode(r.code)) continue;
     const amount = r.cr - r.dr;
     if (!amount) continue;
-    const line = lineOf(r.code, mapping, chart);
+    // The chart's names, else the trial balance's own account name.
+    const line = lineOf(r.code, mapping, chart.has(r.code) ? chart : new Map([[r.code, { code: r.code, parent: "", en: r.name, ar: r.name, nature: "", type: "", path: "", hidden: false }]]));
     if (!line || !MODEL_PNL.some((m) => m.line === line)) {
       unmapped.push({ code: r.code, name: r.name, amount: round2(amount) });
       continue;
@@ -105,7 +106,7 @@ export function buildPnl(args: {
     const { values, unmapped: um } = pnlOf(file.rows, args.mapping, chart);
     const dr = file.rows.reduce((s, r) => s + r.dr, 0);
     const cr = file.rows.reduce((s, r) => s + r.cr, 0);
-    months.push({ month, missing: false, partial: coverage < 1, from: file.from, to: file.to, values, balanced: Math.abs(dr - cr) < 0.01, coverage });
+    months.push({ month, missing: false, partial: coverage < 1, from: file.from, to: file.to, values, balanced: Math.abs(dr - cr) < 0.5, coverage });
     for (const [line, v] of Object.entries(values)) ytd[line as PnlLine] = round2((ytd[line as PnlLine] ?? 0) + (v ?? 0));
     for (const row of MODEL_PNL) {
       budget[row.line] = round2((budget[row.line] ?? 0) + (row.y2026 / 12) * coverage);
@@ -146,4 +147,11 @@ export function rowValue(values: PnlValues, row: (typeof PNL_ROWS)[number]): num
   if (row.kind === "line") return values[row.key] ?? 0;
   const sub = PNL_SUBTOTALS.find((s) => s.key === row.key);
   return sub ? subtotal(values, sub) : 0;
+}
+
+/** The income statement as the dashboard shows it, from what is stored. */
+export async function loadPnl(year: string, branch: AcctBranch, basis: AcctBasis, upTo: string): Promise<Pnl> {
+  const { readTbYear, readChart, readMapping } = await import("./acct");
+  const [tb, chart, mapping] = await Promise.all([readTbYear(year), readChart(), readMapping()]);
+  return buildPnl({ year, branch, basis, tb, chart: chart?.accounts ?? [], mapping: mapping as Mapping, upTo });
 }

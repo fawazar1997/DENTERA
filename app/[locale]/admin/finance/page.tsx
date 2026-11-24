@@ -16,6 +16,9 @@ import {
   uploadFinanceReportsAction,
 } from "@/lib/financeActions";
 import { FinanceView } from "@/components/finance/FinanceView";
+import { IncomeStatementView } from "@/components/finance/IncomeStatementView";
+import { loadPnl } from "@/lib/acctPnl";
+import type { AcctBasis, AcctBranch } from "@/lib/acct";
 import { PartnerPicker } from "@/components/finance/PartnerPicker";
 import { partnerDoctors } from "@/lib/financeNames";
 import { SubmitButton } from "@/components/admin/SubmitButton";
@@ -36,7 +39,7 @@ export default async function AdminFinancePage({
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const dict = getDictionary(locale);
   const t = financeText(locale);
-  const tab = searchParams.tab === "settings" ? "settings" : "dashboard";
+  const tab = searchParams.tab === "settings" ? "settings" : searchParams.tab === "income" ? "income" : "dashboard";
   const base = localePath(locale, "/admin/finance");
 
   return (
@@ -47,13 +50,13 @@ export default async function AdminFinancePage({
           <p className="mt-1 max-w-3xl text-ink-500">{t.subtitle}</p>
         </div>
         <nav className="flex gap-1 rounded-xl bg-white p-1 shadow-card">
-          {(["dashboard", "settings"] as const).map((k) => (
+          {(["dashboard", "income", "settings"] as const).map((k) => (
             <Link
               key={k}
-              href={k === "dashboard" ? base : `${base}?tab=settings`}
+              href={k === "dashboard" ? base : `${base}?tab=${k}`}
               className={`rounded-lg px-4 py-2 text-sm font-bold ${tab === k ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-ink-50"}`}
             >
-              {k === "dashboard" ? t.tabDashboard : t.tabSettings}
+              {k === "dashboard" ? t.tabDashboard : k === "income" ? (locale === "ar" ? "قائمة الدخل" : "Income statement") : t.tabSettings}
             </Link>
           ))}
         </nav>
@@ -61,6 +64,8 @@ export default async function AdminFinancePage({
       <div className="mt-6">
         {tab === "dashboard" ? (
           <DashboardTab locale={locale} searchParams={searchParams} base={base} />
+        ) : tab === "income" ? (
+          <IncomeTab locale={locale} searchParams={searchParams} base={base} />
         ) : (
           <SettingsTab locale={locale} searchParams={searchParams} isAdmin={user === "admin"} dict={dict} />
         )}
@@ -108,6 +113,24 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
       demoLinks={{ on: q(true), off: q(false) }}
     />
   );
+}
+
+async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searchParams: Record<string, string | undefined>; base: string }) {
+  const upTo = addDays(riyadhDate(), -1);
+  const branch: AcctBranch = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
+  const basis: AcctBasis = searchParams.basis === "all" ? "all" : "posted";
+  const year = /^\d{4}$/.test(searchParams.year ?? "") ? searchParams.year! : upTo.slice(0, 4);
+  const pnl = await loadPnl(year, branch, basis, upTo);
+  const href = (q: { branch?: AcctBranch; basis?: AcctBasis }) => {
+    const p = new URLSearchParams({ tab: "income" });
+    const b = q.branch ?? branch;
+    const s = q.basis ?? basis;
+    if (b !== "all") p.set("branch", b);
+    if (s !== "posted") p.set("basis", s);
+    if (searchParams.year) p.set("year", year);
+    return `${base}?${p.toString()}`;
+  };
+  return <IncomeStatementView pnl={pnl} locale={locale} href={href} />;
 }
 
 async function SettingsTab({
