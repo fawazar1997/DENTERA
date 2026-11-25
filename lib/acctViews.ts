@@ -360,6 +360,15 @@ export type FinancingView = {
   /** How current / non-current is split: by account (2103 / 2201) until a maturity schedule is entered. */
   splitBasis: "accounts" | "schedule";
   maturities: Maturity[];
+  /** The installments still to come: the schedule's balance after each, and whether due within 12 months. */
+  schedule: { date: string; amount: number; after: number; current: boolean }[];
+  /** The schedule's remaining total and its part due within 12 months. */
+  scheduleTotal: number;
+  scheduleCurrent: number;
+  /** Book balance (2201 + 2103) − the schedule's remaining total: shown as it is, never adjusted. */
+  bookDiff: number;
+  /** Installments already due with no repayment found for them in the Murabaha statements. */
+  overdue: Maturity[];
   /** Trailing 12 months EBITDA: this year's actual months + the rest of the 12 from last year. */
   ebitdaTtm: number;
   ttmActualMonths: number;
@@ -398,6 +407,24 @@ export function financingView(args: {
   const in12 = addDays(upTo, 365);
   const upcoming = args.maturities.filter((m) => m.date > upTo).sort((a, b) => a.date.localeCompare(b.date));
   const bySchedule = upcoming.length > 0;
+  const scheduleTotal = round2(upcoming.reduce((s, m) => s + m.amount, 0));
+  let left = scheduleTotal;
+  const schedule = upcoming.map((m) => {
+    left = round2(left - m.amount);
+    return { date: m.date, amount: m.amount, after: Math.max(0, left), current: m.date <= in12 };
+  });
+  const scheduleCurrent = round2(schedule.filter((m) => m.current).reduce((s, m) => s + m.amount, 0));
+  // Installments due this year (the statements start on 1 January): covered, oldest first, by the
+  // repayments booked from two weeks before the first of them; the rest are overdue.
+  const yearStart = `${upTo.slice(0, 4)}-01-01`;
+  const due = args.maturities.filter((m) => m.date <= upTo && m.date >= yearStart).sort((a, b) => a.date.localeCompare(b.date));
+  const paidFrom = due.length ? addDays(due[0].date, -15) : upTo;
+  let paid = round2(moves.filter((l) => l.date >= paidFrom && l.date <= upTo).reduce((s, l) => s + l.dr, 0));
+  const overdue: Maturity[] = [];
+  for (const m of due) {
+    if (paid + Math.max(1, m.amount * 0.02) >= m.amount) paid = round2(paid - m.amount);
+    else overdue.push(m);
+  }
   const current = bySchedule
     ? round2(Math.min(balance, upcoming.filter((m) => m.date <= in12).reduce((s, m) => s + m.amount, 0)))
     : round2(accounts.filter((a) => a.part === "current").reduce((s, a) => s + a.balance, 0));
@@ -436,6 +463,11 @@ export function financingView(args: {
     nonCurrent: round2(balance - current),
     splitBasis: bySchedule ? "schedule" : "accounts",
     maturities: upcoming,
+    schedule,
+    scheduleTotal,
+    scheduleCurrent,
+    bookDiff: bySchedule ? round2(balance - scheduleTotal) : 0,
+    overdue,
     ebitdaTtm,
     ttmActualMonths: Math.round(covered * 10) / 10,
     ttmLastYear: actualPrev && modelPrev ? "mixed" : modelPrev ? "model" : "actual",
@@ -458,7 +490,8 @@ export type AlertKind =
   | "bsImbalance"
   | "financeCostMissing"
   | "unclosedMonths"
-  | "lastRunFailed";
+  | "lastRunFailed"
+  | "murabahaOverdue";
 
 export type ReconRow = { month: string; pms: number | null; accounting: number | null; lab: number; diff: number | null; pct: number | null; flagged: boolean };
 export type AlertsView = {
@@ -554,6 +587,7 @@ export function buildAlerts(args: {
     out.push({ kind: "plVsTb", items: [{ label: "51xx", amount: round2(pnl.check.tb51 - pnl.check.lines51) }, { label: "4–5", amount: round2(pnl.check.tbNet - pnl.check.linesNet) }] });
   if (Math.abs(bs.difference) >= 1) out.push({ kind: "bsImbalance", items: [{ label: "", amount: bs.difference }] });
   if (fin.costMissing) out.push({ kind: "financeCostMissing", items: [{ label: "", amount: fin.balance }] });
+  if (fin.overdue.length) out.push({ kind: "murabahaOverdue", items: fin.overdue.map((m) => ({ label: m.date, amount: m.amount })) });
   const unclosed = pnl.months.filter((m) => !m.missing && !m.closed);
   if (unclosed.length) out.push({ kind: "unclosedMonths", items: unclosed.map((m) => ({ label: m.month })) });
   return out;

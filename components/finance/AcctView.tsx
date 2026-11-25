@@ -42,6 +42,7 @@ const AR = {
     financeCostMissing: () => "تكلفة تمويل غير مسجلة رغم وجود رصيد مرابحة",
     unclosedMonths: () => "أشهر دفاترها غير مقفولة (عمولات ناقصة أو بلا استهلاك)",
     lastRunFailed: (d: string) => `آخر تحديث فشل في ${d}`,
+    murabahaOverdue: () => "قسط مرابحة مستحق لم يُسجَّل سداده",
   } as Record<Alert["kind"], (d: string) => string>,
   lines: {
     commissions: "عمولات الأطباء والفنيين",
@@ -154,7 +155,16 @@ const AR = {
     noSchedule: "أضف جدول استحقاقات المرابحة من الإعدادات.",
     date: "تاريخ الاستحقاق",
     amount: "القسط",
+    after: "المتبقي بعد القسط",
+    part: "التصنيف",
     accounts: "الحسابات",
+    scheduleTotal: "المتبقي حسب الجدول",
+    scheduleCurrent: "منه متداول (خلال 12 شهرًا)",
+    scheduleNonCurrent: "منه غير متداول",
+    book: "الرصيد الدفتري (2201 + 2103)",
+    bookDiff: "الفرق بين الدفاتر والجدول",
+    bookNote: "التقسيم إلى متداول وغير متداول من الجدول، والرصيد من ميزان المراجعة؛ الفرق معروض كما هو دون أي تسوية.",
+    overdueTag: "مستحق لم يُسدَّد",
   },
   alerts: {
     unposted: "قيود غير مرحّلة",
@@ -224,6 +234,7 @@ const EN: typeof AR = {
     financeCostMissing: () => "No financing cost booked although Murabaha is outstanding",
     unclosedMonths: () => "Months not closed in the books (commissions short or no depreciation)",
     lastRunFailed: (d: string) => `The last update failed at ${d}`,
+    murabahaOverdue: () => "A Murabaha installment is due with no repayment booked",
   },
   lines: {
     commissions: "Doctors' & technicians' commissions",
@@ -337,7 +348,16 @@ const EN: typeof AR = {
     noSchedule: "Add the Murabaha maturity schedule in Settings.",
     date: "Due date",
     amount: "Installment",
+    after: "Remaining after it",
+    part: "Class",
     accounts: "Accounts",
+    scheduleTotal: "Remaining per schedule",
+    scheduleCurrent: "of which current (within 12 months)",
+    scheduleNonCurrent: "of which non-current",
+    book: "Book balance (2201 + 2103)",
+    bookDiff: "Books less schedule",
+    bookNote: "Current and non-current come from the schedule, the balance from the trial balance; the difference is shown as it is, never adjusted.",
+    overdueTag: "Due, not paid",
   },
   alerts: {
     ...AR.alerts,
@@ -491,6 +511,8 @@ export function AcctView({
 function AlertsBar({ alerts, t, n0, monthName, locale }: { alerts: Alert[]; t: T; n0: (v: number) => string; monthName: (m: string) => string; locale: string }) {
   const when = (iso: string) =>
     new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(iso));
+  const dayOf = (iso: string) =>
+    new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
   if (!alerts.length)
     return (
       <p className="flex items-center gap-2 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
@@ -513,7 +535,13 @@ function AlertsBar({ alerts, t, n0, monthName, locale }: { alerts: Alert[]; t: T
               <ul className="ms-6 mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900">
                 {a.items.slice(0, 8).map((x, j) => (
                   <li key={j} className="tabular-nums">
-                    {a.kind === "unclosedMonths" || a.kind === "pmsGap" ? monthName(x.label) : a.kind === "lastRunFailed" ? reasonText(x.label, locale) : t.lines[x.label] ?? x.label}
+                    {a.kind === "unclosedMonths" || a.kind === "pmsGap"
+                      ? monthName(x.label)
+                      : a.kind === "lastRunFailed"
+                        ? reasonText(x.label, locale)
+                        : a.kind === "murabahaOverdue"
+                          ? dayOf(x.label)
+                          : t.lines[x.label] ?? x.label}
                     {x.amount !== undefined && <span className="ms-1 font-bold">{n0(x.amount)}</span>}
                   </li>
                 ))}
@@ -889,23 +917,69 @@ function FinancingBody({ d, t, M, day, nl, n0 }: { d: Extract<AcctTabData, { tab
             ))}
           </Table>
         </Card>
-        <Card title={t.fin.schedule} icon={Clock}>
-          {d.maturities.length ? (
-            <Table head={[t.fin.date, t.fin.amount]}>
-              {d.maturities.map((m) => (
-                <tr key={m.date}>
-                  <Td>{day(m.date)}</Td>
-                  <Td num>
-                    <M v={m.amount} />
-                  </Td>
-                </tr>
-              ))}
-            </Table>
-          ) : (
-            <Note text={t.fin.noSchedule} />
-          )}
-        </Card>
       </div>
+      <Card title={t.fin.schedule} icon={Clock}>
+        {d.schedule.length || d.overdue.length ? (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="max-h-[520px] overflow-auto">
+              <Table head={[t.fin.date, t.fin.amount, t.fin.after, t.fin.part]}>
+                {d.overdue.map((m) => (
+                  <tr key={`o-${m.date}`} className="bg-red-50/60">
+                    <Td>{day(m.date)}</Td>
+                    <Td num>
+                      <M v={m.amount} />
+                    </Td>
+                    <Td num>—</Td>
+                    <Td>
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-800 ring-1 ring-red-200">{t.fin.overdueTag}</span>
+                    </Td>
+                  </tr>
+                ))}
+                {d.schedule.map((m) => (
+                  <tr key={m.date}>
+                    <Td>{day(m.date)}</Td>
+                    <Td num>
+                      <M v={m.amount} />
+                    </Td>
+                    <Td num>
+                      <M v={m.after} />
+                    </Td>
+                    <Td>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ${m.current ? "bg-primary-50 text-primary-800 ring-primary-200" : "bg-sand-50 text-ink-600 ring-ink-100"}`}
+                      >
+                        {m.current ? t.fin.current : t.fin.nonCurrent}
+                      </span>
+                    </Td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+            <div className="self-start rounded-xl bg-sand-50 p-4 ring-1 ring-ink-100">
+              {(
+                [
+                  [t.fin.scheduleTotal, d.scheduleTotal, true],
+                  [t.fin.scheduleCurrent, d.scheduleCurrent, false],
+                  [t.fin.scheduleNonCurrent, d.scheduleTotal - d.scheduleCurrent, false],
+                  [t.fin.book, d.balance, true],
+                  [t.fin.bookDiff, d.bookDiff, true],
+                ] as const
+              ).map(([label, v, strong], i) => (
+                <div
+                  key={label}
+                  className={`flex items-center justify-between gap-3 py-1.5 text-sm ${i === 3 ? "mt-2 border-t border-ink-200 pt-3" : ""} ${strong ? "font-extrabold text-ink-950" : "text-ink-700"}`}
+                >
+                  <span>{label}</span>
+                  <M v={v} />
+                </div>
+              ))}
+              <p className="mt-3 text-xs leading-relaxed text-ink-500">{t.fin.bookNote}</p>
+            </div>
+          </div>
+        ) : (
+          <Note text={t.fin.noSchedule} />
+        )}
+      </Card>
     </>
   );
 }

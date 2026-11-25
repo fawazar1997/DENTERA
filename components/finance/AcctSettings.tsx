@@ -177,13 +177,15 @@ export async function AcctSettings({ locale, saved }: { locale: Locale; saved: b
 
       <div className="grid gap-5 lg:grid-cols-2">
         <label className="block">
-          <span className="font-bold text-ink-900">{ar ? "جدول استحقاقات المرابحة (2201)" : "Murabaha (2201) maturity schedule"}</span>
+          <span className="font-bold text-ink-900">{ar ? "جدول استحقاقات المرابحة (2201 + 2103)" : "Murabaha (2201 + 2103) maturity schedule"}</span>
           <span className="mt-1 block text-sm text-ink-500">
-            {ar ? "سطر لكل قسط: التاريخ = المبلغ، مثل 2027-03-15 = 400000. يُصنّف به المتداول وغير المتداول." : "One installment per line: date = amount, e.g. 2027-03-15 = 400000. Splits current and non-current."}
+            {ar
+              ? "سطر لكل قسط: التاريخ = المبلغ، مثل 2027-03-31 = 150000.00. يُصنّف به المتداول (خلال 12 شهرًا) وغير المتداول، ويُنبَّه إلى أي قسط مستحق لم يُسجَّل سداده."
+              : "One installment per line: date = amount, e.g. 2027-03-31 = 150000.00. Splits current (within 12 months) and non-current, and flags any due installment with no repayment booked."}
           </span>
           <textarea
             name="maturities"
-            rows={6}
+            rows={10}
             dir="ltr"
             defaultValue={settings.maturities.map((m) => `${m.date} = ${m.amount}`).join("\n")}
             className="input mt-2 font-mono"
