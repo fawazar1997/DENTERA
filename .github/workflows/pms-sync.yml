@@ -13,6 +13,8 @@ on:
     # day, so nothing is counted twice.
     - cron: "17 22 * * *"
     - cron: "7 7 * * *"
+  # NOTE: never put «[skip ci]» in a commit message on this branch — when the
+  # latest commit says skip, GitHub skips the scheduled runs too.
   # While the robot is being set up: a change to its steps on the working
   # branch runs «discover» (prints the report pages' fields, never data).
   push:
