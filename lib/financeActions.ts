@@ -24,20 +24,14 @@ import {
 } from "./finance";
 
 // Control Panel → الأداء المالي (the admin and the finance account): manual
-// report uploads, targets, partners, doctors' specialties; the share link is
-// the admin's only.
+// report uploads, targets, partners, doctors' specialties, and the two view
+// links with the tabs each shows.
 
 const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 async function requireFinance(): Promise<AdminUser> {
   const user = await sessionUser(cookies().get(SESSION_COOKIE)?.value);
   if (!user || !canUseSection(user, "/finance")) throw new Error("Unauthorized");
-  return user;
-}
-
-async function requireAdminOnly(): Promise<AdminUser> {
-  const user = await sessionUser(cookies().get(SESSION_COOKIE)?.value);
-  if (user !== "admin") throw new Error("Unauthorized");
   return user;
 }
 
@@ -123,7 +117,7 @@ export async function saveFinanceSettingsAction(formData: FormData) {
 
 /** Creates (or replaces) the private view link. */
 export async function createFinanceShareKeyAction() {
-  const user = await requireAdminOnly();
+  const user = await requireFinance();
   const settings = await readFinanceSettings();
   await saveFinanceSettings({ ...settings, shareKey: newShareKey() });
   await logActivity(user, "/finance", "link");
@@ -132,7 +126,7 @@ export async function createFinanceShareKeyAction() {
 
 /** Revokes the private view link. */
 export async function revokeFinanceShareKeyAction() {
-  const user = await requireAdminOnly();
+  const user = await requireFinance();
   const settings = await readFinanceSettings();
   await saveFinanceSettings({ ...settings, shareKey: undefined });
   await logActivity(user, "/finance", "delete", "link");
@@ -141,7 +135,7 @@ export async function revokeFinanceShareKeyAction() {
 
 /** Creates (or replaces) Al-Maghrabi management's view link. */
 export async function createMaghrabiShareKeyAction() {
-  const user = await requireAdminOnly();
+  const user = await requireFinance();
   const settings = await readFinanceSettings();
   await saveFinanceSettings({ ...settings, maghrabiKey: newShareKey() });
   await logActivity(user, "/finance", "link", "maghrabi");
@@ -150,7 +144,7 @@ export async function createMaghrabiShareKeyAction() {
 
 /** Revokes Al-Maghrabi management's view link. */
 export async function revokeMaghrabiShareKeyAction() {
-  const user = await requireAdminOnly();
+  const user = await requireFinance();
   const settings = await readFinanceSettings();
   await saveFinanceSettings({ ...settings, maghrabiKey: undefined });
   await logActivity(user, "/finance", "delete", "maghrabi link");
@@ -159,7 +153,7 @@ export async function revokeMaghrabiShareKeyAction() {
 
 /** Which tabs each view-link copy shows (unticked = hidden). */
 export async function saveShareTabsAction(formData: FormData) {
-  const user = await requireAdminOnly();
+  const user = await requireFinance();
   const settings = await readFinanceSettings();
   const hiddenTabs: FinanceSettings["hiddenTabs"] = {};
   for (const copy of SHARE_COPIES) hiddenTabs[copy] = SHARE_TABS.filter((tab) => formData.get(`show-${copy}-${tab}`) !== "on");

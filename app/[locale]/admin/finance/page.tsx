@@ -41,7 +41,7 @@ export default async function AdminFinancePage({
   params: { locale: string };
   searchParams: Record<string, string | undefined>;
 }) {
-  const user = await requireAdminPage(params.locale, "/finance");
+  await requireAdminPage(params.locale, "/finance");
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const dict = getDictionary(locale);
   const t = financeText(locale);
@@ -80,7 +80,7 @@ export default async function AdminFinancePage({
           <AcctTabView tab={tab} locale={locale} searchParams={searchParams} base={base} />
         ) : (
           <div className="space-y-6">
-            <SettingsTab locale={locale} searchParams={searchParams} isAdmin={user === "admin"} dict={dict} />
+            <SettingsTab locale={locale} searchParams={searchParams} dict={dict} />
             <AcctSettings locale={locale} saved={searchParams.acctSaved === "1"} />
           </div>
         )}
@@ -167,12 +167,10 @@ async function AcctTabView({ tab, locale, searchParams, base }: { tab: AcctTab; 
 async function SettingsTab({
   locale,
   searchParams,
-  isAdmin,
   dict,
 }: {
   locale: Locale;
   searchParams: Record<string, string | undefined>;
-  isAdmin: boolean;
   dict: ReturnType<typeof getDictionary>;
 }) {
   const t = financeText(locale);
@@ -305,97 +303,91 @@ async function SettingsTab({
           )}
         </form>
 
-        {isAdmin && (
-          <div className="space-y-2">
-            <LinkCard
-              title={`${t.shareLink} — ${copyName.management}`}
-              hint={ar ? "للإدارة: كل الأقسام المسموح بها، مع نسبة عمولات الأطباء." : "For management: every allowed tab, with the doctors' commission rate."}
-              icon={Link2}
-              link={shareLink}
-              path={sharePath}
-              openLabel={t.tabDashboard}
-              action={createFinanceShareKeyAction}
-              dict={dict}
-              noLinkText={t.noShareLink}
-            />
-            {shareLink && (
-              <form action={revokeFinanceShareKeyAction} className="px-1">
-                <ConfirmSubmit label={t.revoke} confirmText={t.revokeConfirm} className="btn-outline" />
-              </form>
-            )}
-          </div>
-        )}
+        <div className="space-y-2">
+          <LinkCard
+            title={`${t.shareLink} — ${copyName.management}`}
+            hint={ar ? "للإدارة: كل الأقسام المسموح بها، مع نسبة عمولات الأطباء." : "For management: every allowed tab, with the doctors' commission rate."}
+            icon={Link2}
+            link={shareLink}
+            path={sharePath}
+            openLabel={t.tabDashboard}
+            action={createFinanceShareKeyAction}
+            dict={dict}
+            noLinkText={t.noShareLink}
+          />
+          {shareLink && (
+            <form action={revokeFinanceShareKeyAction} className="px-1">
+              <ConfirmSubmit label={t.revoke} confirmText={t.revokeConfirm} className="btn-outline" />
+            </form>
+          )}
+        </div>
 
-        {isAdmin && (
-          <div className="space-y-2">
-            <LinkCard
-              title={`${t.shareLink} — ${copyName.maghrabi}`}
-              hint={ar ? "لإدارة المغربي: رابط مستقل يمكن إلغاؤه وحده، ولا يعرض نسب عمولات الأطباء أبدًا." : "For Al-Maghrabi management: its own link, revocable on its own, never showing doctors' commission rates."}
-              icon={Link2}
-              link={maghrabiLink}
-              path={maghrabiPath}
-              openLabel={t.tabDashboard}
-              action={createMaghrabiShareKeyAction}
-              dict={dict}
-              noLinkText={t.noShareLink}
-            />
-            {maghrabiLink && (
-              <form action={revokeMaghrabiShareKeyAction} className="px-1">
-                <ConfirmSubmit label={t.revoke} confirmText={t.revokeConfirm} className="btn-outline" />
-              </form>
-            )}
-          </div>
-        )}
+        <div className="space-y-2">
+          <LinkCard
+            title={`${t.shareLink} — ${copyName.maghrabi}`}
+            hint={ar ? "لإدارة المغربي: رابط مستقل يمكن إلغاؤه وحده، ولا يعرض نسب عمولات الأطباء أبدًا." : "For Al-Maghrabi management: its own link, revocable on its own, never showing doctors' commission rates."}
+            icon={Link2}
+            link={maghrabiLink}
+            path={maghrabiPath}
+            openLabel={t.tabDashboard}
+            action={createMaghrabiShareKeyAction}
+            dict={dict}
+            noLinkText={t.noShareLink}
+          />
+          {maghrabiLink && (
+            <form action={revokeMaghrabiShareKeyAction} className="px-1">
+              <ConfirmSubmit label={t.revoke} confirmText={t.revokeConfirm} className="btn-outline" />
+            </form>
+          )}
+        </div>
 
-        {isAdmin && (
-          <form id="share-tabs" action={saveShareTabsAction} className="card space-y-4 p-6">
-            <input type="hidden" name="locale" value={locale} />
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="font-bold text-ink-900">{ar ? "الأقسام الظاهرة في كل رابط" : "Tabs shown in each link"}</h2>
-                <p className="mt-1 text-sm text-ink-500">{ar ? "أزل العلامة لإخفاء القسم من تلك النسخة. لوحة التحكم تعرض كل الأقسام دائمًا." : "Untick to hide a tab from that copy. The Control Panel always shows every tab."}</p>
-              </div>
-              {searchParams.tabsSaved && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
-                  <CheckCircle2 className="h-4 w-4" /> {ar ? "تم الحفظ" : "Saved"}
-                </span>
-              )}
+        <form id="share-tabs" action={saveShareTabsAction} className="card space-y-4 p-6">
+          <input type="hidden" name="locale" value={locale} />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-bold text-ink-900">{ar ? "الأقسام الظاهرة في كل رابط" : "Tabs shown in each link"}</h2>
+              <p className="mt-1 text-sm text-ink-500">{ar ? "أزل العلامة لإخفاء القسم من تلك النسخة. لوحة التحكم تعرض كل الأقسام دائمًا." : "Untick to hide a tab from that copy. The Control Panel always shows every tab."}</p>
             </div>
-            <div className="overflow-x-auto rounded-xl ring-1 ring-ink-100">
-              <table className="w-full text-sm">
-                <thead className="bg-sand-50 text-xs text-ink-500">
-                  <tr>
-                    <th className="px-3 py-2 text-start font-bold">{ar ? "القسم" : "Tab"}</th>
+            {searchParams.tabsSaved && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
+                <CheckCircle2 className="h-4 w-4" /> {ar ? "تم الحفظ" : "Saved"}
+              </span>
+            )}
+          </div>
+          <div className="overflow-x-auto rounded-xl ring-1 ring-ink-100">
+            <table className="w-full text-sm">
+              <thead className="bg-sand-50 text-xs text-ink-500">
+                <tr>
+                  <th className="px-3 py-2 text-start font-bold">{ar ? "القسم" : "Tab"}</th>
+                  {SHARE_COPIES.map((c) => (
+                    <th key={c} className="px-3 py-2 text-center font-bold">
+                      {copyName[c]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink-100/70">
+                {SHARE_TABS.map((k) => (
+                  <tr key={k}>
+                    <td className="px-3 py-2 font-bold text-ink-800">{shareTabName(k)}</td>
                     {SHARE_COPIES.map((c) => (
-                      <th key={c} className="px-3 py-2 text-center font-bold">
-                        {copyName[c]}
-                      </th>
+                      <td key={c} className="px-3 py-2 text-center">
+                        <input
+                          type="checkbox"
+                          name={`show-${c}-${k}`}
+                          defaultChecked={!(settings.hiddenTabs[c] ?? []).includes(k)}
+                          aria-label={`${shareTabName(k)} — ${copyName[c]}`}
+                          className="h-4 w-4 accent-primary-600"
+                        />
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-ink-100/70">
-                  {SHARE_TABS.map((k) => (
-                    <tr key={k}>
-                      <td className="px-3 py-2 font-bold text-ink-800">{shareTabName(k)}</td>
-                      {SHARE_COPIES.map((c) => (
-                        <td key={c} className="px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
-                            name={`show-${c}-${k}`}
-                            defaultChecked={!(settings.hiddenTabs[c] ?? []).includes(k)}
-                            aria-label={`${shareTabName(k)} — ${copyName[c]}`}
-                            className="h-4 w-4 accent-primary-600"
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <SubmitButton label={ar ? "حفظ الأقسام" : "Save tabs"} savedLabel={ar ? "تم الحفظ" : "Saved"} />
-          </form>
-        )}
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <SubmitButton label={ar ? "حفظ الأقسام" : "Save tabs"} savedLabel={ar ? "تم الحفظ" : "Saved"} />
+        </form>
 
         <section className="card p-6">
           <h2 className="font-bold text-ink-900">{t.runs}</h2>
