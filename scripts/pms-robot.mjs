@@ -80,11 +80,29 @@ function ranges() {
   return y.slice(0, 7) === today.slice(0, 7) ? [[y, today]] : [[y, y], [today, today]];
 }
 
+/**
+ * POST a file to the site, retrying a network error or a 502/503/504 twice
+ * (after 5 s, then 20 s). Safe: each file replaces the same period on the site.
+ */
+async function postFile(url, path, fields) {
+  const bytes = await readFile(path);
+  for (let attempt = 0; ; attempt++) {
+    const form = new FormData();
+    form.append("file", new Blob([bytes]), basename(path));
+    for (const [k, v] of Object.entries(fields)) if (v) form.append(k, v);
+    try {
+      const res = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${KEY}` }, body: form });
+      if (![502, 503, 504].includes(res.status) || attempt >= 2) return res;
+    } catch (e) {
+      if (attempt >= 2) throw e;
+    }
+    console.log(`retry: upload to the site (${attempt + 1})`);
+    await new Promise((done) => setTimeout(done, attempt ? 20000 : 5000));
+  }
+}
+
 async function send(path, branch) {
-  const form = new FormData();
-  form.append("file", new Blob([await readFile(path)]), basename(path));
-  if (branch) form.append("branch", branch);
-  const res = await fetch(`${SITE}/api/finance/ingest`, { method: "POST", headers: { Authorization: `Bearer ${KEY}` }, body: form });
+  const res = await postFile(`${SITE}/api/finance/ingest`, path, { branch });
   if (res.ok) return (await res.json().catch(() => ({}))) ?? {};
   // The site answers with an error code only (never figures).
   const body = await res.json().catch(() => ({}));
@@ -818,10 +836,7 @@ function acctMonths() {
 }
 
 async function sendAcct(path, fields) {
-  const form = new FormData();
-  form.append("file", new Blob([await readFile(path)]), basename(path));
-  for (const [k, v] of Object.entries(fields)) form.append(k, v);
-  const res = await fetch(`${SITE}/api/finance/acct-ingest`, { method: "POST", headers: { Authorization: `Bearer ${KEY}` }, body: form });
+  const res = await postFile(`${SITE}/api/finance/acct-ingest`, path, fields);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`site ${res.status} ${body?.error ?? ""}`.trim());
   return body ?? {};
