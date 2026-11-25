@@ -130,7 +130,7 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
 async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searchParams: Record<string, string | undefined>; base: string }) {
   const upTo = addDays(riyadhDate(), -1);
   const branch: AcctBranch = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
-  const basis: AcctBasis = searchParams.basis === "all" ? "all" : "posted";
+  const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
   const year = /^\d{4}$/.test(searchParams.year ?? "") ? searchParams.year! : upTo.slice(0, 4);
   const pnl = await loadPnl(year, branch, basis, upTo);
   const href = (q: { branch?: AcctBranch; basis?: AcctBasis }) => {
@@ -138,7 +138,7 @@ async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searc
     const b = q.branch ?? branch;
     const s = q.basis ?? basis;
     if (b !== "all") p.set("branch", b);
-    if (s !== "posted") p.set("basis", s);
+    if (s !== "all") p.set("basis", s);
     if (searchParams.year) p.set("year", year);
     return `${base}?${p.toString()}`;
   };

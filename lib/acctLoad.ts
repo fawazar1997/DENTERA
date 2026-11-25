@@ -1,10 +1,22 @@
-// Loads one accounting tab's figures from storage (see lib/acctViews.ts).
+// Loads the accounting tabs' figures from storage (see lib/acctViews.ts).
+// Every tab also gets the alerts shown at its top and the check table.
 
 import { readAcctSettings, readChart, readMapping, readStatements, readTbYear, readUnposted, type AcctBasis, type AcctBranch } from "./acct";
 import { buildPnl } from "./acctPnl";
-import { alertsView, arApView, balanceSheet, cashView, financingView, latestTb } from "./acctViews";
+import {
+  alertsView,
+  arApView,
+  balanceSheet,
+  buildAlerts,
+  cashView,
+  financingView,
+  firstTb,
+  labRevenueByMonth,
+  latestTb,
+  verification,
+} from "./acctViews";
 import type { Mapping } from "./acctMapping";
-import { readMonthAgg, FINANCE_BRANCHES, type FinanceBranch } from "./finance";
+import { readMonthAgg, type FinanceBranch } from "./finance";
 
 export type AcctTab = "balance" | "cash" | "arap" | "financing" | "alerts";
 export const ACCT_TABS = ["balance", "cash", "arap", "financing", "alerts"] as const satisfies readonly AcctTab[];
@@ -13,10 +25,10 @@ export const ACCT_TAB_NAMES: Record<"ar" | "en", Record<AcctTab, string>> = {
   en: { balance: "Balance sheet", cash: "Cash & banks", arap: "Receivables & payables", financing: "Financing", alerts: "Alerts & reconciliation" },
 };
 
-/** PMS revenue (Sales Report net) per month of a year, for one branch or the whole clinic. */
+/** PMS revenue (Sales Report net) per month: the clinic branches only (the PMS has no lab). */
 async function pmsRevenue(year: string, branch: AcctBranch): Promise<Record<string, number>> {
   const months = Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
-  const branches: FinanceBranch[] = branch === "all" ? FINANCE_BRANCHES : [branch];
+  const branches: FinanceBranch[] = branch === "all" ? ["abha", "khamis"] : [branch];
   const aggs = await Promise.all(months.map((m) => readMonthAgg(m).catch(() => undefined)));
   const out: Record<string, number> = {};
   months.forEach((m, i) => {
@@ -29,34 +41,53 @@ async function pmsRevenue(year: string, branch: AcctBranch): Promise<Record<stri
 
 export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctBasis, upTo: string) {
   const year = upTo.slice(0, 4);
-  const [tb, prevTb, chartFile, mapping, statements, unposted, settings] = await Promise.all([
+  const prevYear = String(Number(year) - 1);
+  const [tb, prevTb, chartFile, mapping, statements, unposted, settings, pms] = await Promise.all([
     readTbYear(year),
-    tab === "financing" || tab === "alerts" ? readTbYear(String(Number(year) - 1)) : Promise.resolve({}),
+    readTbYear(prevYear),
     readChart(),
     readMapping(),
-    tab === "cash" || tab === "arap" || tab === "financing" ? readStatements(year) : Promise.resolve([]),
-    tab === "alerts" ? readUnposted() : Promise.resolve(null),
+    readStatements(year),
+    readUnposted(),
     readAcctSettings(),
+    pmsRevenue(year, branch),
   ]);
   const chartList = chartFile?.accounts ?? [];
   const chart = new Map(chartList.map((a) => [a.code, a]));
   const map = mapping as Mapping;
+  const pnlOf = (b: AcctBasis, br: AcctBranch = branch) => buildPnl({ year, branch: br, basis: b, tb, prevTb, chart: chartList, mapping: map, upTo });
+  const pnl = pnlOf(basis);
+  const prevPnl = buildPnl({ year: prevYear, branch: "all", basis, tb: prevTb, chart: chartList, mapping: map, upTo: `${prevYear}-12-31` });
+  // Banks, receivables, payables and financing are the company's: the whole clinic's trial balance.
   const file = latestTb(tb, branch, basis);
-  const pnl = (b: AcctBasis) => buildPnl({ year, branch, basis: b, tb, prevTb, chart: chartList, mapping: map, upTo });
+  const fileAll = latestTb(tb, "all", basis);
+  const bs = balanceSheet(file, chart);
+  const cash = cashView(statements, fileAll, chart, upTo);
+  const arap = arApView(statements, fileAll, chart, upTo);
+  const pnlAll = branch === "all" ? pnl : pnlOf(basis, "all");
+  const fin = financingView({ statements, file: fileAll, openFile: firstTb(tb, "all", basis), chart, pnl: pnlAll, prevPnl: prevPnl.months.some((m) => !m.missing) ? prevPnl : null, maturities: settings.maturities, upTo });
+  const alerts = alertsView({
+    unposted,
+    posted: basis === "posted" ? pnl : pnlOf("posted"),
+    withUnposted: basis === "all" ? pnl : pnlOf("all"),
+    pmsRevenue: pms,
+    labRevenue: labRevenueByMonth(tb, branch, "all"),
+    threshold: settings.reconThreshold,
+  });
+  const top = buildAlerts({ pnl, bs, cash, fin, alerts, bankMinimums: settings.bankMinimums });
+  const check = verification({ pnl, tb, branch, basis, bs, arap, fin, cash });
+  const common = { top, check, threshold: settings.reconThreshold };
   switch (tab) {
     case "balance":
-      return { tab, data: balanceSheet(file, chart, map) } as const;
+      return { tab, data: bs, ...common } as const;
     case "cash":
-      // Banks are the company's, not a branch's: the whole clinic's trial balance.
-      return { tab, data: cashView(statements, latestTb(tb, "all", basis), chart, upTo) } as const;
+      return { tab, data: cash, ...common } as const;
     case "arap":
-      return { tab, data: arApView(statements, latestTb(tb, "all", basis), chart, upTo) } as const;
+      return { tab, data: arap, ...common } as const;
     case "financing":
-      return { tab, data: financingView(statements, latestTb(tb, "all", basis), pnl(basis), settings.maturities, upTo) } as const;
-    case "alerts": {
-      const [posted, withUnposted, pms] = [pnl("posted"), pnl("all"), await pmsRevenue(year, branch)];
-      return { tab, data: alertsView({ unposted, posted, withUnposted, pmsRevenue: pms, threshold: settings.reconThreshold }), threshold: settings.reconThreshold } as const;
-    }
+      return { tab, data: fin, ...common } as const;
+    case "alerts":
+      return { tab, data: alerts, ...common } as const;
   }
 }
 

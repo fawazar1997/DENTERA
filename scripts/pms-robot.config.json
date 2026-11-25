@@ -268,7 +268,7 @@
         ],
         "export": "Excel",
         "kind": "statement",
-        "accounts": "^(1102|1105|2102|2103|2201)|doctor comm|technicians comm",
+        "accounts": "^(1101|1102|1105|2101|2102|2103|2201|2202)|doctor comm|technicians comm",
         "listFrom": [
           {
             "clickText": "Filters"

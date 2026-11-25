@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from "react";
 import type { Locale } from "@/lib/i18n";
 import type { AcctBasis, AcctBranch } from "@/lib/acct";
 import { PNL_ROWS, rowValue, type Pnl } from "@/lib/acctPnl";
+import { MODEL_PNL, PNL_SUBTOTALS, subtotal } from "@/lib/financeModel";
 import { RiyalIcon } from "@/components/RiyalIcon";
 
 // قائمة الدخل: the income statement from Microchips Accounting's trial
@@ -17,7 +18,7 @@ type Icon = ComponentType<{ className?: string }>;
 const TEXT = {
   ar: {
     title: "قائمة الدخل",
-    sub: "من النظام المحاسبي (ميزان المراجعة) — فعلي فقط، دون تقديرات",
+    sub: "من النظام المحاسبي (ميزان المراجعة) — التقديرات في عمود منفصل",
     all: "الكل",
     abha: "أبها",
     khamis: "خميس مشيط",
@@ -32,6 +33,17 @@ const TEXT = {
     actual2025: "فعلي (ميزان 2025)",
     mixed2025: "فعلي + النموذج المالي",
     partial: "شهر غير مكتمل",
+    unclosed: "غير مقفول",
+    estimate: "تقديري",
+    actualPlusEstimate: "فعلي + تقديري",
+    estimateNote: "التقديري للأشهر غير المقفولة فقط: العمولات والمواد والمعامل بنسبتها من الإيراد في الأشهر المقفولة، والاستهلاك والموظفون والعمومية بمتوسطها الشهري. لا يُضاف إلى الفعلي.",
+    depNote: "الاستهلاك المسجّل مرة واحدة عن عدة أشهر موزّع على تلك الأشهر في عرض الأشهر فقط.",
+    ofTarget: "من المستهدف",
+    withEstimate: "مع التقديري",
+    chartRevenue: "الإيرادات الشهرية مقابل المستهدف",
+    chartEbitda: "EBITDA الشهري مقابل المستهدف",
+    actualLegend: "الفعلي",
+    targetLegend: "المستهدف",
     missing: "لم يُسجَّل بعد",
     revenue: "الإيرادات",
     ebitda: "EBITDA",
@@ -48,19 +60,19 @@ const TEXT = {
     modelNote: "الموازنة من النموذج المالي موزعة بالتساوي على الأشهر؛ 2025 من ميزان المراجعة الفعلي للفترة نفسها، ومن النموذج للأشهر غير المتوفرة.",
     lines: {
       revenue: "الإيرادات",
-      commissions: "عمولات الأطباء والموظفين",
-      materials: "المواد",
-      labs: "المعامل",
-      otherOperating: "مصاريف تشغيلية أخرى",
+      commissions: "عمولات الأطباء والفنيين",
+      materials: "المواد والمستهلكات",
+      labs: "مصروفات المعامل",
+      otherOperating: "مصروفات تشغيلية أخرى",
       grossMargin: "مجمل الربح",
-      personnel: "مصاريف الموظفين",
-      ga: "مصاريف عمومية وإدارية",
+      personnel: "تكاليف الموظفين",
+      ga: "مصروفات عمومية وإدارية",
       otherIncome: "إيرادات أخرى",
       impairments: "الانخفاض في القيمة",
       ebitda: "EBITDA",
       depreciation: "الاستهلاك",
       ebit: "الربح التشغيلي (EBIT)",
-      financial: "مصاريف تمويلية",
+      financial: "مصروفات تمويلية",
       ebt: "الربح قبل الزكاة",
       zakat: "الزكاة",
       netIncome: "صافي الربح",
@@ -83,6 +95,17 @@ const TEXT = {
     actual2025: "Actual (2025 trial balance)",
     mixed2025: "Actual + financial model",
     partial: "Month not complete",
+    unclosed: "Not closed",
+    estimate: "Estimated",
+    actualPlusEstimate: "Actual + estimated",
+    estimateNote: "Estimated for months not closed only: commissions, materials and labs at their share of revenue in closed months; depreciation, staff and G&A at their monthly average. Never added to actual.",
+    depNote: "Depreciation booked once for several months is spread over those months in the monthly view only.",
+    ofTarget: "of target",
+    withEstimate: "with estimated",
+    chartRevenue: "Monthly revenue vs target",
+    chartEbitda: "Monthly EBITDA vs target",
+    actualLegend: "Actual",
+    targetLegend: "Target",
     missing: "Not recorded yet",
     revenue: "Revenue",
     ebitda: "EBITDA",
@@ -99,7 +122,7 @@ const TEXT = {
     modelNote: "Budget from the financial model, spread evenly over the months; 2025 from the actual trial balance for the same period, the model where a month is missing.",
     lines: {
       revenue: "Revenue",
-      commissions: "Doctors & staff commissions",
+      commissions: "Doctors' & technicians' commissions",
       materials: "Materials",
       labs: "Dental labs",
       otherOperating: "Other operating",
@@ -122,8 +145,15 @@ const TEXT = {
 export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: Locale; href: (q: { branch?: AcctBranch; basis?: AcctBasis }) => string }) {
   const t = TEXT[locale === "ar" ? "ar" : "en"];
   const nl = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
-  const n0 = (v: number) => (Math.round(v) || 0).toLocaleString(nl);
-  const pct = (v: number) => `${(v * 100).toLocaleString(nl, { maximumFractionDigits: 1 })}%`;
+  // Whole riyals, negatives in brackets.
+  const n0 = (v: number) => {
+    const r = Math.round(v) || 0;
+    return r < 0 ? `(${Math.abs(r).toLocaleString(nl)})` : r.toLocaleString(nl);
+  };
+  const pct = (v: number) => {
+    const s = `${Math.abs(v * 100).toLocaleString(nl, { maximumFractionDigits: 1 })}%`;
+    return v < 0 ? `(${s})` : s;
+  };
   const monthName = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { month: "short", timeZone: "UTC" });
   const when = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" });
 
@@ -132,6 +162,13 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
   const revenue = sub("revenue");
   const ebitda = sub("ebitda");
   const net = sub("netIncome");
+  // Actual + estimated (months not closed).
+  const withEst = Object.fromEntries(
+    [...new Set([...Object.keys(pnl.ytd), ...Object.keys(pnl.ytdEstimate)])].map((k) => [k, (pnl.ytd[k as keyof typeof pnl.ytd] ?? 0) + (pnl.ytdEstimate[k as keyof typeof pnl.ytdEstimate] ?? 0)]),
+  ) as typeof pnl.ytd;
+  const hasEstimate = Object.values(pnl.ytdEstimate).some((v) => v);
+  const ebitdaEst = sub("ebitda", withEst);
+  const netEst = sub("netIncome", withEst);
   const budgetRevenue = sub("revenue", pnl.budget);
   const lastRevenue = sub("revenue", pnl.lastYear);
   const ratio = (a: number, b: number) => (b ? a / b : null);
@@ -153,7 +190,7 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
             </p>
           </div>
           <div className="flex gap-1 rounded-full bg-sand-50 p-1 ring-1 ring-ink-100" role="group">
-            {(["posted", "all"] as const).map((b) => (
+            {(["all", "posted"] as const).map((b) => (
               <Link
                 key={b}
                 href={href({ basis: b })}
@@ -196,10 +233,25 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
             <Kpi icon={TrendingUp} title={t.ebitda} value={<Money v={ebitda} n0={n0} big />}>
               <Line label={t.margin} value={ratio(ebitda, revenue)} pct={pct} plain />
               <Line label={t.vsBudget} value={ratio(ebitda, sub("ebitda", pnl.budget))} pct={pct} plain />
+              {hasEstimate && (
+                <>
+                  <p className="mt-1 flex items-center justify-between gap-2 border-t border-ink-100 pt-1.5 text-xs">
+                    <span className="text-ink-500">{t.withEstimate}</span>
+                    <span className="font-bold tabular-nums text-ink-900">{n0(ebitdaEst)}</span>
+                  </p>
+                  <Line label={`${t.vsBudget} (${t.withEstimate})`} value={ratio(ebitdaEst, sub("ebitda", pnl.budget))} pct={pct} plain />
+                </>
+              )}
             </Kpi>
             <Kpi icon={Landmark} title={t.net} value={<Money v={net} n0={n0} big />}>
               <Line label={t.margin} value={ratio(net, revenue)} pct={pct} plain />
               <Line label={t.vsBudget} value={ratio(net, sub("netIncome", pnl.budget))} pct={pct} plain />
+              {hasEstimate && (
+                <p className="mt-1 flex items-center justify-between gap-2 border-t border-ink-100 pt-1.5 text-xs">
+                  <span className="text-ink-500">{t.withEstimate}</span>
+                  <span className="font-bold tabular-nums text-ink-900">{n0(netEst)}</span>
+                </p>
+              )}
             </Kpi>
             <Kpi icon={Percent} title={t.lines.grossMargin} value={<Money v={sub("grossMargin")} n0={n0} big />}>
               <Line label={t.margin} value={ratio(sub("grossMargin"), revenue)} pct={pct} plain />
@@ -212,7 +264,11 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                 <Chip icon={Scale} />
                 {t.title}
               </h3>
-              <p className="text-xs text-ink-500">{t.modelNote}</p>
+              <div className="max-w-3xl space-y-0.5 text-xs text-ink-500">
+                <p>{t.modelNote}</p>
+                {hasEstimate && <p>{t.estimateNote}</p>}
+                <p>{t.depNote}</p>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-sm">
@@ -220,6 +276,12 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                   <tr className="text-xs text-ink-500">
                     <th className="sticky start-0 z-[1] whitespace-nowrap border-b border-ink-100 bg-white px-3 py-2.5 text-start font-bold">{t.line}</th>
                     <th className="whitespace-nowrap border-b border-ink-100 bg-primary-50/60 px-2 py-2.5 text-end font-extrabold text-ink-900">{t.ytd}</th>
+                    {hasEstimate && (
+                      <>
+                        <th className="whitespace-nowrap border-b border-ink-100 bg-amber-50/70 px-2 py-2.5 text-end font-bold text-amber-900">{t.estimate}</th>
+                        <th className="whitespace-nowrap border-b border-ink-100 px-2 py-2.5 text-end font-bold">{t.actualPlusEstimate}</th>
+                      </>
+                    )}
                     <th className="whitespace-nowrap border-b border-ink-100 px-2 py-2.5 text-end font-bold">
                       {t.budget}
                       <span className="block text-[10px] font-medium text-ink-400">{t.fromModel}</span>
@@ -236,6 +298,7 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                         {monthName.format(new Date(`${m.month}-15T00:00:00Z`))}
                         {m.partial && <span className="mt-0.5 block rounded-full bg-amber-50 px-1.5 text-[10px] font-bold text-amber-800 ring-1 ring-amber-200">{t.partial}</span>}
                         {m.missing && <span className="mt-0.5 block text-[10px] font-bold text-ink-400">{t.missing}</span>}
+                        {!m.missing && !m.closed && <span className="mt-0.5 block rounded-full bg-red-50 px-1.5 text-[10px] font-bold text-red-800 ring-1 ring-red-200">{t.unclosed}</span>}
                       </th>
                     ))}
                   </tr>
@@ -254,6 +317,12 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                           {isSub && revenue !== 0 && <span className="ms-2 text-[11px] font-bold text-primary-700">{pct(ytd / revenue)}</span>}
                         </th>
                         <td className="whitespace-nowrap bg-primary-50/40 px-2 py-2.5 text-end font-extrabold tabular-nums text-ink-950">{n0(ytd)}</td>
+                        {hasEstimate && (
+                          <>
+                            <td className="whitespace-nowrap bg-amber-50/50 px-2 py-2.5 text-end tabular-nums text-amber-900">{rowValue(pnl.ytdEstimate, row) ? n0(rowValue(pnl.ytdEstimate, row)) : "—"}</td>
+                            <td className="whitespace-nowrap px-2 py-2.5 text-end tabular-nums">{n0(rowValue(withEst, row))}</td>
+                          </>
+                        )}
                         <td className="whitespace-nowrap px-2 py-2.5 text-end tabular-nums text-ink-500">{n0(budget)}</td>
                         <td className={`whitespace-nowrap px-2 py-2.5 text-end font-bold tabular-nums ${diff >= 0 ? "text-emerald-700" : "text-red-700"}`}>
                           <span className="inline-flex items-center gap-1">
@@ -264,7 +333,7 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                         <td className="whitespace-nowrap border-e border-ink-100 px-2 py-2.5 text-end tabular-nums text-ink-500">{n0(rowValue(pnl.lastYear, row))}</td>
                         {pnl.months.map((m) => (
                           <td key={m.month} className="whitespace-nowrap px-2 py-2.5 text-end tabular-nums">
-                            {m.missing ? <span className="text-ink-300">—</span> : n0(rowValue(m.values, row))}
+                            {m.missing ? <span className="text-ink-300">—</span> : n0(rowValue(m.display, row))}
                           </td>
                         ))}
                       </tr>
@@ -274,6 +343,29 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
               </table>
             </div>
           </section>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            {(["revenue", "ebitda"] as const).map((k) => {
+              const target = (m: (typeof pnl.months)[number]) => {
+                const yearly = k === "revenue" ? MODEL_PNL.find((x) => x.line === "revenue")!.y2026 : subtotal(Object.fromEntries(MODEL_PNL.map((x) => [x.line, x.y2026])), PNL_SUBTOTALS.find((x) => x.key === "ebitda")!);
+                return (yearly / 12) * (m.missing ? 1 : m.coverage);
+              };
+              const points = pnl.months.map((m) => ({
+                label: monthName.format(new Date(`${m.month}-15T00:00:00Z`)),
+                actual: m.missing ? null : sub(k, m.display),
+                target: target(m),
+              }));
+              return (
+                <section key={k} className="card relative min-w-0 p-5">
+                  <h3 className="mb-3 flex items-center gap-3 font-extrabold text-ink-950">
+                    <Chip icon={BarChart3} />
+                    {k === "revenue" ? t.chartRevenue : t.chartEbitda}
+                  </h3>
+                  <MonthBars points={points} n0={n0} actualLabel={t.actualLegend} targetLabel={t.targetLegend} />
+                </section>
+              );
+            })}
+          </div>
 
           {(pnl.unmapped.length > 0 || unbalanced.length > 0) && (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -367,5 +459,56 @@ function Alert({ title, hint, children }: { title: string; hint: string; childre
       <p className="mt-1 text-xs text-amber-800">{hint}</p>
       {children}
     </section>
+  );
+}
+
+/**
+ * Monthly bars (actual, teal) with the target as an indigo step line; a
+ * month without data has no bar. Hover a month for its figures.
+ */
+function MonthBars({ points, n0, actualLabel, targetLabel }: { points: { label: string; actual: number | null; target: number }[]; n0: (v: number) => string; actualLabel: string; targetLabel: string }) {
+  const w = 640;
+  const h = 220;
+  const pad = 6;
+  const values = points.flatMap((p) => [p.actual ?? 0, p.target]);
+  const max = Math.max(1, ...values);
+  const min = Math.min(0, ...values);
+  const y = (v: number) => pad + ((max - v) / (max - min)) * (h - pad * 2);
+  const slot = (w - pad * 2) / points.length;
+  const bar = Math.max(6, slot * 0.56);
+  return (
+    <div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-56 w-full" role="img" aria-label={`${actualLabel} / ${targetLabel}`}>
+        <line x1={pad} x2={w - pad} y1={y(0)} y2={y(0)} stroke="#d9d3ca" />
+        {points.map((p, i) => {
+          const cx = pad + slot * i + slot / 2;
+          const top = p.actual === null ? null : Math.min(y(p.actual), y(0));
+          const height = p.actual === null ? 0 : Math.abs(y(p.actual) - y(0));
+          return (
+            <g key={i}>
+              <title>{`${p.label}: ${actualLabel} ${p.actual === null ? "—" : n0(p.actual)} · ${targetLabel} ${n0(p.target)}`}</title>
+              <rect x={cx - slot / 2} y={0} width={slot} height={h} fill="transparent" />
+              {top !== null && <rect x={cx - bar / 2} y={top} width={bar} height={Math.max(1, height)} rx={4} fill={p.actual! >= 0 ? "#0a9db0" : "#b4233a"} />}
+              <line x1={cx - slot * 0.42} x2={cx + slot * 0.42} y1={y(p.target)} y2={y(p.target)} stroke="#4b4bc4" strokeWidth={2.5} strokeLinecap="round" />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="mt-1 flex justify-between gap-1 text-[10px] text-ink-500" dir="ltr">
+        {points.map((p, i) => (
+          <span key={i} className="flex-1 truncate text-center">
+            {p.label}
+          </span>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center gap-4 text-xs text-ink-600">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-sm bg-[#0a9db0]" aria-hidden="true" /> {actualLabel}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-0.5 w-4 rounded bg-[#4b4bc4]" aria-hidden="true" /> {targetLabel}
+        </span>
+      </div>
+    </div>
   );
 }

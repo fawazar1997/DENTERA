@@ -277,7 +277,7 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
                 <Bars rows={d.branches.map((b) => ({ label: branchNames[b.branch], value: b.net, share: b.share }))} fmt={fmt} />
               </Card>
               <Card title={t.bySpecialty} icon={Stethoscope}>
-                <Bars rows={d.specialties.map((s) => ({ label: SPECIALTY_NAMES[locale][s.specialty], value: s.net, share: s.share }))} fmt={fmt} />
+                <Bars rows={d.specialties.map((s) => ({ label: s.specialty === "lab" ? branchNames.lab : SPECIALTY_NAMES[locale][s.specialty], value: s.net, share: s.share }))} fmt={fmt} />
               </Card>
               <Card title={t.discounts} icon={Percent}>
                 <div className="flex items-end justify-between gap-3">
@@ -291,6 +291,13 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
                 <Bars rows={d.discounts.byBranch.map((b) => ({ label: branchNames[b.branch], value: b.total, share: b.pct }))} fmt={fmt} />
               </Card>
             </div>
+            {d.labFromAccounting && (
+              <p className="text-xs text-ink-500 mt-3">
+                {locale === "ar"
+                  ? `إيراد المعمل في التوزيع من الحسابات (4103، 4106، 4109، شامل غير المرحّل) حتى ${d.labFromAccounting.to.split("-").reverse().join("-")}؛ نظام العيادة لا يسجّل مبيعات المعمل، والمؤشرات أعلاه من نظام العيادة.`
+                  : `Lab revenue in these splits is from accounting (4103, 4106, 4109, incl. unposted) up to ${d.labFromAccounting.to.split("-").reverse().join("-")}; the PMS records no lab sales, and the KPIs above are the PMS's.`}
+              </p>
+            )}
           </Section>
 
           {/* 3. Doctors */}

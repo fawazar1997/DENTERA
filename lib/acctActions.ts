@@ -8,7 +8,7 @@ import { canUseSection } from "./adminRoles";
 import { defaultLocale, isLocale, localePath } from "./i18n";
 import { logActivity } from "./activity";
 import { readAcctSettings, readChart, readMapping, saveAcctSettings, saveMapping } from "./acct";
-import { suggestLine } from "./acctMapping";
+import { suggestedLine } from "./acctMapping";
 import { MODEL_BS, MODEL_PNL } from "./financeModel";
 
 // Control Panel → الأداء المالي → الإعدادات: the accounting part (account
@@ -31,7 +31,7 @@ export async function saveAcctSettingsAction(formData: FormData) {
     const line = String(value);
     if (!LINES.has(line)) continue;
     const shown = String(formData.get(`sug-${code}`) ?? "");
-    const suggested = LINES.has(shown) ? shown : suggestLine(code, chart.get(code)) ?? "none";
+    const suggested = LINES.has(shown) ? shown : suggestedLine(code, chart.get(code)) ?? "none";
     if (line === suggested) delete mapping[code];
     else mapping[code] = line;
   }
@@ -48,7 +48,15 @@ export async function saveAcctSettingsAction(formData: FormData) {
     .slice(0, 240);
   const pct = Number(String(formData.get("reconThreshold") ?? "").replace(/[%\s]/g, ""));
   const settings = await readAcctSettings();
-  await saveAcctSettings({ maturities, reconThreshold: Number.isFinite(pct) && pct > 0 && pct < 100 ? pct / 100 : settings.reconThreshold });
+  // Bank minimums: one «account = amount» per line (account digits as the key).
+  const bankMinimums: Record<string, number> = {};
+  for (const l of String(formData.get("bankMinimums") ?? "").split(/\r?\n/)) {
+    const m = /^\s*([\d-]{2,24})\s*[=:,]\s*([\d,.\s]+)\s*$/.exec(l);
+    if (!m) continue;
+    const amount = Number(m[2].replace(/[,\s]/g, ""));
+    if (Number.isFinite(amount) && amount >= 0) bankMinimums[m[1].replace(/\D/g, "")] = amount;
+  }
+  await saveAcctSettings({ maturities, reconThreshold: Number.isFinite(pct) && pct > 0 && pct < 100 ? pct / 100 : settings.reconThreshold, bankMinimums });
 
   await logActivity(user, "/finance", "settings", "accounting");
   revalidatePath("/", "layout");

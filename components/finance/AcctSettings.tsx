@@ -1,9 +1,9 @@
 import { CheckCircle2, ListTree } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
 import { readAcctSettings, readChart, readMapping, readTbYear } from "@/lib/acct";
-import { suggestLine, type Mapping } from "@/lib/acctMapping";
+import { fixedLine, isPnlCode, suggestedLine, type Mapping } from "@/lib/acctMapping";
 import { latestTb } from "@/lib/acctViews";
-import { MODEL_BS, MODEL_PNL } from "@/lib/financeModel";
+import { MODEL_PNL } from "@/lib/financeModel";
 import { saveAcctSettingsAction } from "@/lib/acctActions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 
@@ -83,9 +83,11 @@ export async function AcctSettings({ locale, saved }: { locale: Locale; saved: b
   // The accounts that matter: those of the latest trial balance (detail accounts), else the chart's detail accounts.
   const file = latestTb(tb, "all", "all");
   const accounts = (file?.rows.map((r) => ({ code: r.code, name: chart.get(r.code)?.[ar ? "ar" : "en"] || r.name })) ??
-    [...chart.values()].filter((a) => !/group/i.test(a.type)).map((a) => ({ code: a.code, name: (ar ? a.ar : a.en) || a.en }))).sort((a, b) => a.code.localeCompare(b.code));
+    [...chart.values()].filter((a) => !/group/i.test(a.type)).map((a) => ({ code: a.code, name: (ar ? a.ar : a.en) || a.en })))
+    // Income-statement accounts (the balance sheet follows fixed rules by account number).
+    .filter((a) => isPnlCode(a.code))
+    .sort((a, b) => a.code.localeCompare(b.code));
   const pnl = MODEL_PNL.map((m) => m.line);
-  const bs = MODEL_BS.map((m) => m.line);
   const changed = Object.keys(mapping).length;
 
   return (
@@ -99,8 +101,8 @@ export async function AcctSettings({ locale, saved }: { locale: Locale; saved: b
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-500">
             {ar
-              ? "كل حساب مربوط تلقائيًا ببند حسب رقمه واسمه؛ غيّر ما يلزم. التعديل هنا فقط ولا يُرسل أي شيء إلى النظام المحاسبي."
-              : "Each account is suggested a line from its code and name; change what's needed. Only this site changes; nothing is sent to the accounting system."}
+              ? "حسابات 41 و42 و5101–5104 مربوطة بقواعد العيادة الثابتة؛ الباقي مقترح حسب رقمه واسمه ويمكن تغييره. التعديل هنا فقط ولا يُرسل أي شيء إلى النظام المحاسبي."
+              : "Accounts 41, 42 and 5101–5104 follow the clinic's fixed rules; the rest are suggested from code and name and can be changed. Only this site changes; nothing is sent to the accounting system."}
           </p>
         </div>
         {saved && (
@@ -121,10 +123,25 @@ export async function AcctSettings({ locale, saved }: { locale: Locale; saved: b
             </thead>
             <tbody className="divide-y divide-ink-100/70">
               {accounts.map((a) => {
-                const suggested = suggestLine(a.code, chart.get(a.code) ?? { en: a.name, ar: a.name, path: "" });
+                const fixed = fixedLine(a.code);
+                if (fixed)
+                  return (
+                    <tr key={a.code}>
+                      <td className="px-3 py-2">
+                        <span dir="ltr" className="me-2 font-mono text-xs text-ink-400">
+                          {a.code}
+                        </span>
+                        <span className="text-ink-800">{a.name}</span>
+                      </td>
+                      <td className="px-3 py-2 text-ink-700">
+                        {names[fixed]} <span className="text-xs text-ink-400">{ar ? "(قاعدة ثابتة)" : "(fixed rule)"}</span>
+                      </td>
+                    </tr>
+                  );
+                const suggested = suggestedLine(a.code, chart.get(a.code) ?? { en: a.name, ar: a.name, path: "" });
                 const current = (mapping as Mapping)[a.code] ?? suggested ?? "none";
                 const own = a.code in mapping;
-                const options = /^[45]/.test(a.code) ? pnl : bs;
+                const options = pnl;
                 return (
                   <tr key={a.code} className={own ? "bg-primary-50/40" : ""}>
                     <td className="px-3 py-2">
@@ -181,6 +198,19 @@ export async function AcctSettings({ locale, saved }: { locale: Locale; saved: b
           </div>
         </label>
       </div>
+      <label className="block">
+        <span className="font-bold text-ink-900">{ar ? "الحد الأدنى لرصيد كل حساب بنكي" : "Minimum balance per bank account"}</span>
+        <span className="mt-1 block text-sm text-ink-500">
+          {ar ? "سطر لكل حساب: رقم الحساب = المبلغ، مثل 1102-0001 = 500000. ينبّه الداشبورد إذا نزل الرصيد تحته." : "One account per line: account = amount, e.g. 1102-0001 = 500000. The dashboard alerts when a balance falls below it."}
+        </span>
+        <textarea
+          name="bankMinimums"
+          rows={4}
+          dir="ltr"
+          defaultValue={Object.entries(settings.bankMinimums).map(([c, v]) => `${c} = ${v}`).join("\n")}
+          className="input mt-2 font-mono"
+        />
+      </label>
       <SubmitButton label={ar ? "حفظ إعدادات المحاسبة" : "Save accounting settings"} savedLabel={ar ? "تم الحفظ" : "Saved"} />
     </form>
   );

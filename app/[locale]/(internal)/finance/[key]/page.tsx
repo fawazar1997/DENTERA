@@ -58,8 +58,8 @@ export default async function FinanceSharePage({
 
   let body;
   if (tab === "income") {
-    const basis: AcctBasis = searchParams.basis === "all" ? "all" : "posted";
-    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("posted")} />;
+    const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
+    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} />;
   } else if (tab !== "dashboard") {
     const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
     body = <AcctView view={await loadAcctTab(tab, acctBranch, basis, upTo)} locale={locale} branch={acctBranch} basis={basis} href={href("all")} />;

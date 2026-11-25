@@ -307,11 +307,13 @@ export type AcctSettings = {
   maturities: { date: string; amount: number }[];
   /** PMS ↔ accounting revenue difference flagged above this share (0.02 = 2%). */
   reconThreshold: number;
+  /** A bank or cash account's minimum balance (account digits → SAR): below it, an alert. */
+  bankMinimums: Record<string, number>;
 };
 
 export async function readAcctSettings(): Promise<AcctSettings> {
   const s = await readJson<Partial<AcctSettings>>("acct/settings.json");
-  return { maturities: s?.maturities ?? [], reconThreshold: s?.reconThreshold ?? 0.02 };
+  return { maturities: s?.maturities ?? [], reconThreshold: s?.reconThreshold ?? 0.02, bankMinimums: s?.bankMinimums ?? {} };
 }
 
 export const saveAcctSettings = (s: AcctSettings) => writeJson("acct/settings.json", s);

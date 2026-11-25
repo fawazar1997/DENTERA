@@ -162,7 +162,9 @@ export type Dashboard = {
   counts: { invoices: number; patients: number; avg: number };
   trend: { date: string; net: number; target: number }[];
   branches: { branch: FinanceBranch; net: number; share: number }[];
-  specialties: { specialty: Specialty; net: number; share: number }[];
+  specialties: { specialty: Specialty | "lab"; net: number; share: number }[];
+  /** The lab's month revenue from the trial balance (the PMS has none), up to `to`. */
+  labFromAccounting?: { net: number; to: string };
   discounts: { total: number; pct: number; byBranch: { branch: FinanceBranch; total: number; pct: number }[] };
   invoices: { new: number; credit: { count: number; amount: number }; returns: { count: number; amount: number }; creditNotes: { count: number; amount: number } };
   installments?: Installments;

@@ -5,6 +5,7 @@
 
 import type { BsLine, PnlLine } from "./financeModel";
 import type { Account } from "./acct";
+import { pnlRule } from "./acctRules";
 
 export type Line = PnlLine | BsLine;
 export type Mapping = Record<string, Line | "none">;
@@ -60,9 +61,21 @@ export function suggestLine(code: string, account?: Pick<Account, "en" | "ar" | 
   return null;
 }
 
-/** The line an account is on: the saved choice, else the suggestion. «none» leaves it out on purpose. */
+/** The line an account is on: a saved choice, else the clinic's rule, else the suggestion. «none» leaves it out on purpose. */
 export function lineOf(code: string, mapping: Mapping, chart: Map<string, Account>): Line | null {
+  // The clinic's fixed rules (41, 42, 5101–5104) win over any saved choice.
+  const rule = isPnlCode(code) ? pnlRule(code) : null;
+  if (rule) return rule;
   const saved = mapping[code];
   if (saved === "none") return null;
-  return saved ?? suggestLine(code, chart.get(code));
+  if (saved) return saved;
+  return suggestLine(code, chart.get(code));
+}
+
+/** The clinic's fixed rule for an income-statement account, if any (not editable in Settings). */
+export const fixedLine = (code: string): Line | null => (isPnlCode(code) ? pnlRule(code) : null);
+
+/** The suggestion shown in Settings: the clinic's rule, else the name-based guess. */
+export function suggestedLine(code: string, account?: Pick<Account, "en" | "ar" | "path">): Line | null {
+  return (isPnlCode(code) ? pnlRule(code) : null) ?? suggestLine(code, account);
 }
