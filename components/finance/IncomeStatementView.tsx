@@ -51,6 +51,7 @@ const TEXT = {
     vsBudget: "من الموازنة",
     vsLastYear: "مقارنة بـ 2025",
     margin: "هامش",
+    commissionRate: "نسبة العمولات من الإيرادات",
     imported: "آخر استيراد",
     noData: "لم تصل بيانات ميزان المراجعة بعد. يستوردها الروبوت يوميًا الساعة 1:00 صباحًا.",
     unmapped: "حسابات لها حركة ولم تُربط ببند",
@@ -113,6 +114,7 @@ const TEXT = {
     vsBudget: "of budget",
     vsLastYear: "vs 2025",
     margin: "Margin",
+    commissionRate: "Commissions as a share of revenue",
     imported: "Last import",
     noData: "No trial balance has arrived yet. The robot imports it daily at 1:00 am.",
     unmapped: "Accounts with movement not on any line",
@@ -142,7 +144,18 @@ const TEXT = {
   },
 };
 
-export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: Locale; href: (q: { branch?: AcctBranch; basis?: AcctBasis }) => string }) {
+export function IncomeStatementView({
+  pnl,
+  locale,
+  href,
+  showRates = false,
+}: {
+  pnl: Pnl;
+  locale: Locale;
+  href: (q: { branch?: AcctBranch; basis?: AcctBasis }) => string;
+  /** Doctors' and technicians' commission rate (of revenue): Control Panel and the management copy only. */
+  showRates?: boolean;
+}) {
   const t = TEXT[locale === "ar" ? "ar" : "en"];
   const nl = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
   // Whole riyals, negatives in brackets.
@@ -315,6 +328,11 @@ export function IncomeStatementView({ pnl, locale, href }: { pnl: Pnl; locale: L
                         <th scope="row" className={`sticky start-0 z-[1] whitespace-nowrap px-3 py-2.5 text-start ${isSub ? "bg-sand-50 font-extrabold" : "bg-white font-bold text-ink-700"}`}>
                           {t.lines[row.key] ?? row.key}
                           {isSub && revenue !== 0 && <span className="ms-2 text-[11px] font-bold text-primary-700">{pct(ytd / revenue)}</span>}
+                          {showRates && row.key === "commissions" && revenue !== 0 && (
+                            <span className="ms-2 text-[11px] font-bold text-primary-700" title={t.commissionRate}>
+                              {pct(Math.abs(ytd) / revenue)}
+                            </span>
+                          )}
                         </th>
                         <td className="whitespace-nowrap bg-primary-50/40 px-2 py-2.5 text-end font-extrabold tabular-nums text-ink-950">{n0(ytd)}</td>
                         {hasEstimate && (

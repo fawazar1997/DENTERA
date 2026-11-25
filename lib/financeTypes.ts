@@ -112,9 +112,19 @@ export type FinanceSettings = {
   partners: string[];
   /** A doctor's specialty when the service doesn't say (PMS name → specialty). */
   doctorSpecialty: Record<string, Specialty>;
-  /** The private view link's secret (/finance/<key>). */
+  /** The management copy's private view link secret (/finance/<key>). */
   shareKey?: string;
+  /** Al-Maghrabi management's copy: its own link, never showing doctors' commission rates. */
+  maghrabiKey?: string;
+  /** The tabs each copy hides. */
+  hiddenTabs: Partial<Record<ShareCopy, ShareTab[]>>;
 };
+
+/** The two view-link copies. */
+export type ShareCopy = "management" | "maghrabi";
+export const SHARE_COPIES: ShareCopy[] = ["management", "maghrabi"];
+export const SHARE_TABS = ["dashboard", "income", "balance", "cash", "arap", "financing", "alerts"] as const;
+export type ShareTab = (typeof SHARE_TABS)[number];
 
 export type FinanceRun = { at: string; ok: boolean; source: "robot" | "upload"; note?: string };
 

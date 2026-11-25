@@ -64,6 +64,8 @@ export async function readFinanceSettings(): Promise<FinanceSettings> {
         : saved.partners,
     doctorSpecialty: saved?.doctorSpecialty ?? {},
     shareKey: saved?.shareKey,
+    maghrabiKey: saved?.maghrabiKey,
+    hiddenTabs: saved?.hiddenTabs ?? {},
   };
 }
 

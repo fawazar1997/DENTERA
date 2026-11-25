@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Eye } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
-import { FINANCE_BRANCHES, loadDashboard, readFinanceSettings, sameKey, type FinanceBranch } from "@/lib/finance";
+import { FINANCE_BRANCHES, SHARE_TABS, loadDashboard, readFinanceSettings, sameKey, type FinanceBranch, type ShareCopy } from "@/lib/finance";
 import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { financeText } from "@/lib/financeText";
 import Link from "next/link";
@@ -36,14 +36,19 @@ export default async function FinanceSharePage({
 }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
   const settings = await readFinanceSettings();
-  if (!sameKey(settings.shareKey, params.key)) notFound();
+  // Two copies: management's, and Al-Maghrabi management's (no doctors' commission rates).
+  const copy: ShareCopy | null = sameKey(settings.shareKey, params.key) ? "management" : sameKey(settings.maghrabiKey, params.key) ? "maghrabi" : null;
+  if (!copy) notFound();
+  const hidden = new Set<string>(settings.hiddenTabs[copy] ?? []);
 
   const t = financeText(locale);
   const base = localePath(locale, `/finance/${params.key}`);
-  // The same tabs as Control Panel → الأداء المالي, read-only (no settings).
-  const TABS = ["dashboard", "income", ...ACCT_TABS] as const;
-  const tab = (TABS as readonly string[]).includes(searchParams.tab ?? "") ? (searchParams.tab as (typeof TABS)[number]) : "dashboard";
-  const tabName = (k: (typeof TABS)[number]) =>
+  // The same tabs as Control Panel → الأداء المالي, read-only (no settings), less the ones this copy hides.
+  const ALL_TABS = ["dashboard", "income", ...ACCT_TABS] as const satisfies readonly (typeof SHARE_TABS)[number][];
+  const TABS = ALL_TABS.filter((k) => !hidden.has(k));
+  if (!TABS.length) notFound();
+  const tab = TABS.find((k) => k === searchParams.tab) ?? TABS[0];
+  const tabName = (k: (typeof ALL_TABS)[number]) =>
     k === "dashboard" ? t.tabDashboard : k === "income" ? (locale === "ar" ? "قائمة الدخل" : "Income statement") : ACCT_TAB_NAMES[locale === "ar" ? "ar" : "en"][k];
   const upTo = addDays(riyadhDate(), -1);
   const acctBranch: AcctBranch = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
@@ -59,7 +64,7 @@ export default async function FinanceSharePage({
   let body;
   if (tab === "income") {
     const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
-    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} />;
+    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} showRates={copy === "management"} />;
   } else if (tab !== "dashboard") {
     const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
     body = <AcctView view={await loadAcctTab(tab, acctBranch, basis, upTo)} locale={locale} branch={acctBranch} basis={basis} href={href("all")} />;
@@ -88,7 +93,7 @@ export default async function FinanceSharePage({
         {TABS.map((k) => (
           <Link
             key={k}
-            href={k === "dashboard" ? base : `${base}?tab=${k}`}
+            href={k === TABS[0] ? base : `${base}?tab=${k}`}
             aria-current={tab === k ? "page" : undefined}
             className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold ${tab === k ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-ink-50"}`}
           >

@@ -16,7 +16,10 @@ import {
   rebuildAllMonths,
   recordRun,
   saveFinanceSettings,
+  SHARE_COPIES,
+  SHARE_TABS,
   type FinanceBranch,
+  type FinanceSettings,
   type Specialty,
 } from "./finance";
 
@@ -134,4 +137,34 @@ export async function revokeFinanceShareKeyAction() {
   await saveFinanceSettings({ ...settings, shareKey: undefined });
   await logActivity(user, "/finance", "delete", "link");
   revalidatePath("/", "layout");
+}
+
+/** Creates (or replaces) Al-Maghrabi management's view link. */
+export async function createMaghrabiShareKeyAction() {
+  const user = await requireAdminOnly();
+  const settings = await readFinanceSettings();
+  await saveFinanceSettings({ ...settings, maghrabiKey: newShareKey() });
+  await logActivity(user, "/finance", "link", "maghrabi");
+  revalidatePath("/", "layout");
+}
+
+/** Revokes Al-Maghrabi management's view link. */
+export async function revokeMaghrabiShareKeyAction() {
+  const user = await requireAdminOnly();
+  const settings = await readFinanceSettings();
+  await saveFinanceSettings({ ...settings, maghrabiKey: undefined });
+  await logActivity(user, "/finance", "delete", "maghrabi link");
+  revalidatePath("/", "layout");
+}
+
+/** Which tabs each view-link copy shows (unticked = hidden). */
+export async function saveShareTabsAction(formData: FormData) {
+  const user = await requireAdminOnly();
+  const settings = await readFinanceSettings();
+  const hiddenTabs: FinanceSettings["hiddenTabs"] = {};
+  for (const copy of SHARE_COPIES) hiddenTabs[copy] = SHARE_TABS.filter((tab) => formData.get(`show-${copy}-${tab}`) !== "on");
+  await saveFinanceSettings({ ...settings, hiddenTabs });
+  await logActivity(user, "/finance", "settings", "link tabs");
+  revalidatePath("/", "layout");
+  redirect(settingsPage(formData, "&tabsSaved=1"));
 }
