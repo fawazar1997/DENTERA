@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Eye } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
-import { FINANCE_BRANCHES, SHARE_TABS, loadDashboard, readFinanceSettings, sameKey, type FinanceBranch, type ShareCopy } from "@/lib/finance";
+import { FINANCE_BRANCHES, SHARE_TABS, loadDashboard, readFinanceSettings, readFinanceStatus, sameKey, type FinanceBranch, type ShareCopy } from "@/lib/finance";
 import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { financeText } from "@/lib/financeText";
 import Link from "next/link";
@@ -61,13 +61,15 @@ export default async function FinanceSharePage({
     return `${base}?${p.toString()}`;
   };
 
+  // «آخر تحديث» only: the update button is the Control Panel's, never a share link's.
+  const lastUpdate = (await readFinanceStatus()).lastSuccessAt;
   let body;
   if (tab === "income") {
     const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
-    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} showRates={copy === "management"} />;
+    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} showRates={copy === "management"} lastUpdate={lastUpdate} />;
   } else if (tab !== "dashboard") {
     const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
-    body = <AcctView view={await loadAcctTab(tab, acctBranch, basis, upTo)} locale={locale} branch={acctBranch} basis={basis} href={href("all")} />;
+    body = <AcctView view={await loadAcctTab(tab, acctBranch, basis, upTo)} locale={locale} branch={acctBranch} basis={basis} href={href("all")} lastUpdate={lastUpdate} />;
   } else {
     const text = searchParams.date;
     const date = text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : upTo;

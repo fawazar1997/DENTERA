@@ -23,13 +23,17 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "yesterday, today, month, backfill, discover, accounting (recent months), accounting-backfill (from 1 January) or accounting-2025 (last year's trial balances)"
+        description: "yesterday, today, refresh (the site's «تحديث الآن»: PMS yesterday + today, statements, this month's trial balances), month, backfill, discover, accounting (recent months), accounting-backfill (from 1 January) or accounting-2025 (last year's trial balances)"
         default: yesterday
         type: choice
-        options: [yesterday, today, month, backfill, discover, accounting, accounting-backfill, accounting-2025]
+        options: [yesterday, today, refresh, month, backfill, discover, accounting, accounting-backfill, accounting-2025]
       months:
         description: "Backfill: how many past months"
         default: "13"
+      requested_by:
+        description: "Who pressed «تحديث الآن» on the site (a Control Panel role), shown in the update log"
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -65,5 +69,6 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL || 'https://dentera.com.sa' }}
           MODE: ${{ inputs.mode || (github.event_name == 'push' && 'discover') || 'yesterday' }}
           MONTHS: ${{ inputs.months || '13' }}
+          REQUESTED_BY: ${{ inputs.requested_by || '' }}
         working-directory: ${{ runner.temp }}/robot
         run: node pms-robot.mjs

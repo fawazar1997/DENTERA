@@ -45,6 +45,8 @@ export type FinanceViewProps = {
   demoLinks?: { on: string; off: string } | null;
   /** The view link (read-only). */
   shared?: boolean;
+  /** Control Panel only: «تحديث الآن». */
+  controls?: ReactNode;
 };
 
 type Fmt = {
@@ -53,7 +55,7 @@ type Fmt = {
   locale: string;
 };
 
-export function FinanceView({ dashboard: d, locale, branch, status, demo, formAction, demoLinks }: FinanceViewProps) {
+export function FinanceView({ dashboard: d, locale, branch, status, demo, formAction, demoLinks, controls }: FinanceViewProps) {
   const todayDate = riyadhDate();
   const t = forDay(financeText(locale), locale, d.date, todayDate, addDays(todayDate, -1));
   const numberLocale = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
@@ -103,10 +105,13 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
           <div className="min-w-0">
             <p className="text-sm font-bold text-primary-700">{t.viewing}</p>
             <h2 className="mt-1 text-2xl font-extrabold text-ink-950 sm:text-3xl">{dayTitle}</h2>
-            <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-1 text-xs font-bold text-ink-600 ring-1 ring-ink-100">
-              <span className={`h-2 w-2 rounded-full ${stale ? "bg-red-600" : lastOk ? "bg-emerald-600" : "bg-ink-300"}`} aria-hidden="true" />
-              {t.lastUpdate}: {lastOk ? when.format(lastOk) : t.never}
-            </p>
+            <div className="mt-2 flex flex-wrap items-start gap-2">
+              <p className="inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-1 text-xs font-bold text-ink-600 ring-1 ring-ink-100">
+                <span className={`h-2 w-2 rounded-full ${stale ? "bg-red-600" : lastOk ? "bg-emerald-600" : "bg-ink-300"}`} aria-hidden="true" />
+                {t.lastUpdate}: {lastOk ? when.format(lastOk) : t.never}
+              </p>
+              {controls}
+            </div>
           </div>
           <AutoSubmitForm action={formAction} className="flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="finance-date">

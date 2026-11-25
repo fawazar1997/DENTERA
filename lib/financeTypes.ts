@@ -126,7 +126,25 @@ export const SHARE_COPIES: ShareCopy[] = ["management", "maghrabi"];
 export const SHARE_TABS = ["dashboard", "income", "balance", "cash", "arap", "financing", "alerts"] as const;
 export type ShareTab = (typeof SHARE_TABS)[number];
 
-export type FinanceRun = { at: string; ok: boolean; source: "robot" | "upload"; note?: string };
+export type FinanceRun = {
+  at: string;
+  ok: boolean;
+  /** robot: a scheduled run; manual: «تحديث الآن» in the Control Panel; upload: files uploaded by hand. */
+  source: "robot" | "manual" | "upload";
+  note?: string;
+  /** Who pressed «تحديث الآن» (a Control Panel role). */
+  by?: RefreshBy;
+  /** Records sent by the robot. */
+  rows?: number;
+  /** Why it failed (a code, see lib/financeRefreshText.ts). */
+  reason?: string;
+  mode?: string;
+};
+
+export type RefreshBy = "admin" | "finance";
+
+/** The last «تحديث الآن» press (for the 20-minute limit and the running state). */
+export type RefreshRequest = { at: string; by: RefreshBy };
 
 export type FinanceStatus = {
   lastSuccessAt?: string;

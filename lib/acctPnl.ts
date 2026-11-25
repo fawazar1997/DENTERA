@@ -54,6 +54,8 @@ export type Pnl = {
     linesNet: number;
   };
   importedAt?: string;
+  /** The last day the trial balances cover. */
+  asOf?: string;
 };
 
 const daysIn = (month: string) => new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).getUTCDate();
@@ -174,6 +176,7 @@ export function buildPnl(args: {
   const unmapped = new Map<string, { code: string; name: string; amount: number }>();
   const check = { tb51: 0, lines51: 0, tbNet: 0, linesNet: 0 };
   let importedAt: string | undefined;
+  let asOf: string | undefined;
   for (let m = 1; m <= Number(lastMonth.slice(5, 7)); m++) {
     const month = `${args.year}-${String(m).padStart(2, "0")}`;
     const file = tbFor(args.tb[month], args.branch, args.basis);
@@ -208,6 +211,7 @@ export function buildPnl(args: {
       unmapped.set(u.code, s ? { ...s, amount: round2(s.amount + u.amount) } : u);
     }
     if (!importedAt || file.importedAt > importedAt) importedAt = file.importedAt;
+    if (!asOf || file.to > asOf) asOf = file.to;
   }
   const lastYearSource = actualMonths && modelMonths ? "mixed" : actualMonths ? "actual" : "model";
   spreadDepreciation(months);
@@ -226,7 +230,7 @@ export function buildPnl(args: {
     lastYearSource,
     ytdEstimate,
     check: { tb51: r2(check.tb51), lines51: r2(check.lines51), tbNet: r2(check.tbNet), linesNet: r2(check.linesNet) },
-    unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)), importedAt };
+    unmapped: [...unmapped.values()].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)), importedAt, asOf };
 }
 
 /** Lines and subtotals in statement order, for the table. */

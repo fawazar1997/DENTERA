@@ -107,7 +107,8 @@ export function bsClass(code: string, name: string, close: number): { key: BsKey
   const debit = close > 0;
   if (n.startsWith("3")) return { key: "equity", group: "equity", flag: false };
   if (n.startsWith("1")) {
-    if (n.startsWith(PATIENTS)) return debit ? { key: "receivables", group: "asset", flag: false } : { key: "patientAdvances", group: "liability", flag: false };
+    // In credit: patients' advance payments, a liability, and flagged (an asset account against its nature).
+    if (n.startsWith(PATIENTS)) return debit ? { key: "receivables", group: "asset", flag: false } : { key: "patientAdvances", group: "liability", flag: close < -0.5 };
     const key: BsKey = isCash(n)
       ? "cash"
       : isReceivable(n)

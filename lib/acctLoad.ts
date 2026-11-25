@@ -16,7 +16,7 @@ import {
   verification,
 } from "./acctViews";
 import type { Mapping } from "./acctMapping";
-import { readMonthAgg, type FinanceBranch } from "./finance";
+import { readFinanceStatus, readMonthAgg, type FinanceBranch } from "./finance";
 
 export type AcctTab = "balance" | "cash" | "arap" | "financing" | "alerts";
 export const ACCT_TABS = ["balance", "cash", "arap", "financing", "alerts"] as const satisfies readonly AcctTab[];
@@ -42,7 +42,7 @@ async function pmsRevenue(year: string, branch: AcctBranch): Promise<Record<stri
 export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctBasis, upTo: string) {
   const year = upTo.slice(0, 4);
   const prevYear = String(Number(year) - 1);
-  const [tb, prevTb, chartFile, mapping, statements, unposted, settings, pms] = await Promise.all([
+  const [tb, prevTb, chartFile, mapping, statements, unposted, settings, pms, status] = await Promise.all([
     readTbYear(year),
     readTbYear(prevYear),
     readChart(),
@@ -51,6 +51,7 @@ export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctB
     readUnposted(),
     readAcctSettings(),
     pmsRevenue(year, branch),
+    readFinanceStatus(),
   ]);
   const chartList = chartFile?.accounts ?? [];
   const chart = new Map(chartList.map((a) => [a.code, a]));
@@ -74,7 +75,8 @@ export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctB
     labRevenue: labRevenueByMonth(tb, branch, "all"),
     threshold: settings.reconThreshold,
   });
-  const top = buildAlerts({ pnl, bs, cash, fin, alerts, bankMinimums: settings.bankMinimums });
+  const lastRun = status.runs.find((r) => r.source !== "upload");
+  const top = buildAlerts({ pnl, bs, cash, fin, alerts, bankMinimums: settings.bankMinimums, lastRun });
   const check = verification({ pnl, tb, branch, basis, bs, arap, fin, cash });
   const common = { top, check, threshold: settings.reconThreshold };
   switch (tab) {

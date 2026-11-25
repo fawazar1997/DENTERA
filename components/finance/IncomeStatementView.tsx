@@ -6,6 +6,7 @@ import type { AcctBasis, AcctBranch } from "@/lib/acct";
 import { PNL_ROWS, rowValue, type Pnl } from "@/lib/acctPnl";
 import { MODEL_PNL, PNL_SUBTOTALS, subtotal } from "@/lib/financeModel";
 import { RiyalIcon } from "@/components/RiyalIcon";
+import { LastUpdate } from "./LastUpdate";
 
 // قائمة الدخل: the income statement from Microchips Accounting's trial
 // balances, month by month, against the financial model (2026F budget and
@@ -53,6 +54,7 @@ const TEXT = {
     margin: "هامش",
     commissionRate: "نسبة العمولات من الإيرادات",
     imported: "آخر استيراد",
+    asOf: "كما في",
     noData: "لم تصل بيانات ميزان المراجعة بعد. يستوردها الروبوت يوميًا الساعة 1:00 صباحًا.",
     unmapped: "حسابات لها حركة ولم تُربط ببند",
     unmappedHint: "اربطها من الإعدادات ← ربط الحسابات، فلا يُستبعد شيء.",
@@ -116,6 +118,7 @@ const TEXT = {
     margin: "Margin",
     commissionRate: "Commissions as a share of revenue",
     imported: "Last import",
+    asOf: "As of",
     noData: "No trial balance has arrived yet. The robot imports it daily at 1:00 am.",
     unmapped: "Accounts with movement not on any line",
     unmappedHint: "Map them in Settings → Account mapping so nothing is left out.",
@@ -149,12 +152,18 @@ export function IncomeStatementView({
   locale,
   href,
   showRates = false,
+  lastUpdate,
+  controls,
 }: {
   pnl: Pnl;
   locale: Locale;
   href: (q: { branch?: AcctBranch; basis?: AcctBasis }) => string;
   /** Doctors' and technicians' commission rate (of revenue): Control Panel and the management copy only. */
   showRates?: boolean;
+  /** The robot's last successful run. */
+  lastUpdate?: string;
+  /** Control Panel only: «تحديث الآن». */
+  controls?: ReactNode;
 }) {
   const t = TEXT[locale === "ar" ? "ar" : "en"];
   const nl = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
@@ -168,7 +177,8 @@ export function IncomeStatementView({
     return v < 0 ? `(${s})` : s;
   };
   const monthName = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { month: "short", timeZone: "UTC" });
-  const when = new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" });
+  const day = (iso: string) =>
+    new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
 
   const present = pnl.months.filter((m) => !m.missing);
   const sub = (key: string, values = pnl.ytd) => rowValue(values, PNL_ROWS.find((r) => r.key === key)!);
@@ -197,10 +207,14 @@ export function IncomeStatementView({
             <h2 className="mt-1 text-2xl font-extrabold text-ink-950 sm:text-3xl">
               {t.title} — {pnl.year}
             </h2>
-            <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-1 text-xs font-bold text-ink-600 ring-1 ring-ink-100">
-              <span className={`h-2 w-2 rounded-full ${pnl.importedAt ? "bg-emerald-600" : "bg-ink-300"}`} aria-hidden="true" />
-              {t.imported}: {pnl.importedAt ? when.format(new Date(pnl.importedAt)) : "—"}
-            </p>
+            <div className="mt-2 flex flex-wrap items-start gap-2">
+              <p className="inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-1 text-xs font-bold text-ink-600 ring-1 ring-ink-100">
+                <span className={`h-2 w-2 rounded-full ${pnl.asOf ? "bg-emerald-600" : "bg-ink-300"}`} aria-hidden="true" />
+                {t.asOf}: {pnl.asOf ? day(pnl.asOf) : "—"}
+              </p>
+              <LastUpdate at={lastUpdate} locale={locale} />
+              {controls}
+            </div>
           </div>
           <div className="flex gap-1 rounded-full bg-sand-50 p-1 ring-1 ring-ink-100" role="group">
             {(["all", "posted"] as const).map((b) => (

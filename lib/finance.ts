@@ -21,6 +21,7 @@ import {
   type FinanceStatus,
   type Installments,
   type MonthAgg,
+  type RefreshRequest,
   type SalesInvoice,
 } from "./financeTypes";
 
@@ -86,6 +87,9 @@ export async function recordRun(run: FinanceRun): Promise<void> {
     lastSuccessAt: run.ok ? run.at : status.lastSuccessAt,
   } satisfies FinanceStatus);
 }
+
+export const readRefreshRequest = () => readJson<RefreshRequest>("finance/refresh.json");
+export const saveRefreshRequest = (r: RefreshRequest | null) => writeJson("finance/refresh.json", r);
 
 export async function readMonthAgg(month: string): Promise<MonthAgg | undefined> {
   return (await readJson<MonthAgg>(`finance/days/${month}.json`)) ?? undefined;

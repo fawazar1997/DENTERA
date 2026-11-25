@@ -7,6 +7,8 @@ import type { AcctTab, AcctTabData } from "@/lib/acctLoad";
 import type { Aging, Alert, CheckRow } from "@/lib/acctViews";
 import type { BsKey } from "@/lib/acctRules";
 import { RiyalIcon } from "@/components/RiyalIcon";
+import { LastUpdate } from "./LastUpdate";
+import { reasonText } from "@/lib/financeRefreshText";
 
 // The accounting tabs (المركز المالي، النقدية والبنوك، الذمم، التمويل،
 // التنبيهات والمطابقة), server-rendered in the dashboard's light identity.
@@ -39,6 +41,7 @@ const AR = {
     bsImbalance: () => "المركز المالي لا يتوازن بعد التبويب",
     financeCostMissing: () => "تكلفة تمويل غير مسجلة رغم وجود رصيد مرابحة",
     unclosedMonths: () => "أشهر دفاترها غير مقفولة (عمولات ناقصة أو بلا استهلاك)",
+    lastRunFailed: (d: string) => `آخر تحديث فشل في ${d}`,
   } as Record<Alert["kind"], (d: string) => string>,
   lines: {
     commissions: "عمولات الأطباء والفنيين",
@@ -104,7 +107,15 @@ const AR = {
   },
   arap: {
     receivables: "الذمم المدينة (بالصافي)",
+    agingTitle: "إجمالي الذمم حسب العمر",
+    allowanceLine: "المخصص (2202)",
+    netLine: "الصافي",
     payables: "الدائنون",
+    customerCredits: "أرصدة دائنة في حسابات العملاء",
+    patientAdvances: "دفعات مقدمة من المرضى",
+    customerCredit: "رصيد دائن لعميل",
+    creditsNote: "حسابات ذمم مدينة برصيد دائن، تُعرض هنا كالتزام ولا تدخل في إجمالي الموردين والمعامل.",
+    allCreditors: "إجمالي الدائنين شامل الأرصدة الدائنة للعملاء",
     gross: "إجمالي الذمم",
     allowance: "مخصص الديون المشكوك فيها",
     dso: "متوسط أيام التحصيل",
@@ -212,6 +223,7 @@ const EN: typeof AR = {
     bsImbalance: () => "The balance sheet does not balance after classification",
     financeCostMissing: () => "No financing cost booked although Murabaha is outstanding",
     unclosedMonths: () => "Months not closed in the books (commissions short or no depreciation)",
+    lastRunFailed: (d: string) => `The last update failed at ${d}`,
   },
   lines: {
     commissions: "Doctors' & technicians' commissions",
@@ -278,7 +290,15 @@ const EN: typeof AR = {
   },
   arap: {
     receivables: "Receivables (net)",
+    agingTitle: "Gross receivables by age",
+    allowanceLine: "Allowance (2202)",
+    netLine: "Net",
     payables: "Payables",
+    customerCredits: "Credit balances on customer accounts",
+    patientAdvances: "Advance payments from patients",
+    customerCredit: "Customer credit balance",
+    creditsNote: "Receivable accounts in credit, shown here as a liability and not counted in suppliers and labs.",
+    allCreditors: "All creditors, incl. customers' credit balances",
     gross: "Gross receivables",
     allowance: "Allowance for doubtful debts",
     dso: "Days sales outstanding",
@@ -380,12 +400,18 @@ export function AcctView({
   branch,
   basis,
   href,
+  lastUpdate,
+  controls,
 }: {
   view: AcctTabData;
   locale: Locale;
   branch: AcctBranch;
   basis: AcctBasis;
   href: (q: { branch?: AcctBranch; basis?: AcctBasis }) => string;
+  /** The robot's last successful run. */
+  lastUpdate?: string;
+  /** Control Panel only: «تحديث الآن». */
+  controls?: ReactNode;
 }) {
   const t = locale === "ar" ? AR : EN;
   const nl = locale === "ar" ? "ar-SA-u-nu-latn" : "en-US";
@@ -411,10 +437,14 @@ export function AcctView({
           <div className="min-w-0">
             <p className="text-sm font-bold text-primary-700">{t.sub}</p>
             <h2 className="mt-1 text-2xl font-extrabold text-ink-950 sm:text-3xl">{t.tabs[view.tab]}</h2>
-            <p className="mt-2 inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-1 text-xs font-bold text-ink-600 ring-1 ring-ink-100">
-              <span className={`h-2 w-2 rounded-full ${asOf ? "bg-emerald-600" : "bg-ink-300"}`} aria-hidden="true" />
-              {t.asOf}: {day(asOf)}
-            </p>
+            <div className="mt-2 flex flex-wrap items-start gap-2">
+              <p className="inline-flex items-center gap-2 rounded-full bg-sand-50 px-3 py-1 text-xs font-bold text-ink-600 ring-1 ring-ink-100">
+                <span className={`h-2 w-2 rounded-full ${asOf ? "bg-emerald-600" : "bg-ink-300"}`} aria-hidden="true" />
+                {t.asOf}: {day(asOf)}
+              </p>
+              <LastUpdate at={lastUpdate} locale={locale} />
+              {controls}
+            </div>
           </div>
           <div className="flex gap-1 rounded-full bg-sand-50 p-1 ring-1 ring-ink-100" role="group">
             {(["all", "posted"] as const).map((b) => (
@@ -447,7 +477,7 @@ export function AcctView({
         )}
       </section>
 
-      <AlertsBar alerts={view.top} t={t} n0={n0} monthName={monthName} />
+      <AlertsBar alerts={view.top} t={t} n0={n0} monthName={monthName} locale={locale} />
 
       {view.tab === "balance" && <BalanceBody d={view.data} t={t} M={M} pct={pct} n0={n0} nl={nl} />}
       {view.tab === "cash" && <CashBody d={view.data} t={t} M={M} n0={n0} day={day} />}
@@ -458,7 +488,9 @@ export function AcctView({
   );
 }
 
-function AlertsBar({ alerts, t, n0, monthName }: { alerts: Alert[]; t: T; n0: (v: number) => string; monthName: (m: string) => string }) {
+function AlertsBar({ alerts, t, n0, monthName, locale }: { alerts: Alert[]; t: T; n0: (v: number) => string; monthName: (m: string) => string; locale: string }) {
+  const when = (iso: string) =>
+    new Intl.DateTimeFormat(locale === "ar" ? "ar-SA-u-ca-gregory-nu-latn" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(iso));
   if (!alerts.length)
     return (
       <p className="flex items-center gap-2 rounded-2xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800 ring-1 ring-emerald-200">
@@ -475,13 +507,13 @@ function AlertsBar({ alerts, t, n0, monthName }: { alerts: Alert[]; t: T; n0: (v
           <li key={i}>
             <p className="flex items-start gap-2 font-bold">
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700" />
-              {t.alert[a.kind](a.kind === "expenseSpike" && a.detail ? monthName(a.detail) : a.detail ?? "")}
+              {t.alert[a.kind](a.kind === "expenseSpike" && a.detail ? monthName(a.detail) : a.kind === "lastRunFailed" && a.detail ? when(a.detail) : a.detail ?? "")}
             </p>
             {a.items && a.items.some((x) => x.label || x.amount !== undefined) && (
               <ul className="ms-6 mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900">
                 {a.items.slice(0, 8).map((x, j) => (
                   <li key={j} className="tabular-nums">
-                    {a.kind === "unclosedMonths" || a.kind === "pmsGap" ? monthName(x.label) : t.lines[x.label] ?? x.label}
+                    {a.kind === "unclosedMonths" || a.kind === "pmsGap" ? monthName(x.label) : a.kind === "lastRunFailed" ? reasonText(x.label, locale) : t.lines[x.label] ?? x.label}
                     {x.amount !== undefined && <span className="ms-1 font-bold">{n0(x.amount)}</span>}
                   </li>
                 ))}
@@ -722,42 +754,79 @@ function AgingLegend({ aging, t, n0 }: { aging: Aging; t: T; n0: (v: number) => 
 
 function ArApBody({ d, t, M, n0 }: { d: Extract<AcctTabData, { tab: "arap" }>["data"]; t: T; M: MFn; n0: (v: number) => string }) {
   if (!d.asOf) return <Empty text={t.noData} />;
-  const side = (title: string, rows: typeof d.receivables, total: number, aging: Aging, extra?: ReactNode) => (
-    <Card title={title} icon={Users} aside={<M v={total} />}>
-      {extra}
-      <AgingBar aging={aging} t={t} n0={n0} />
-      <AgingLegend aging={aging} t={t} n0={n0} />
-      <div className="mt-4 max-h-[460px] overflow-auto">
-        <Table head={[t.arap.account, t.arap.balance, t.arap.aging]}>
-          {rows.map((r) => (
-            <tr key={r.code}>
-              <Td>
-                <span className="block font-bold text-ink-900">{r.note === "allowance" ? t.arap.allowance : r.name || r.code}</span>
-                <span dir="ltr" className="font-mono text-[11px] text-ink-400">
-                  {r.code}
-                </span>
-              </Td>
-              <Td num>
-                <M v={r.balance} />
-              </Td>
-              <Td>{r.note === "allowance" ? "" : r.aging ? <AgingBar aging={r.aging} t={t} n0={n0} /> : <span className="text-[11px] text-ink-400">{t.arap.noAging}</span>}</Td>
-            </tr>
-          ))}
-        </Table>
-      </div>
-    </Card>
+  const accountName = (r: (typeof d.receivables)[number]) =>
+    r.note === "allowance" ? t.arap.allowance : r.note === "patientAdvances" ? t.arap.patientAdvances : r.name || r.code;
+  const table = (rows: typeof d.receivables, withAging = true) => (
+    <div className="mt-4 max-h-[460px] overflow-auto">
+      <Table head={withAging ? [t.arap.account, t.arap.balance, t.arap.aging] : [t.arap.account, t.arap.balance]}>
+        {rows.map((r) => (
+          <tr key={r.code}>
+            <Td>
+              <span className="block font-bold text-ink-900">{accountName(r)}</span>
+              <span dir="ltr" className="font-mono text-[11px] text-ink-400">
+                {r.code}
+              </span>
+              {r.note === "patientAdvances" && <span className="ms-2 text-[11px] text-ink-500">{r.name}</span>}
+            </Td>
+            <Td num>
+              <M v={r.balance} />
+            </Td>
+            {withAging && <Td>{r.aging ? <AgingBar aging={r.aging} t={t} n0={n0} /> : <span className="text-[11px] text-ink-400">{t.arap.noAging}</span>}</Td>}
+          </tr>
+        ))}
+      </Table>
+    </div>
   );
+  const summaryRow = (label: string, v: number, strong = false) => (
+    <div className={`flex items-center justify-between gap-3 py-1.5 text-sm ${strong ? "border-t border-ink-200 font-extrabold text-ink-950" : "text-ink-700"}`}>
+      <span>{label}</span>
+      <M v={v} />
+    </div>
+  );
+  const trade = d.receivables.filter((r) => r.note !== "allowance");
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi icon={ArrowDownRight} title={t.arap.receivables} value={<M v={d.totals.receivables} big />} hint={`${t.arap.gross}: ${n0(d.totals.receivablesGross)} · ${t.arap.allowance}: ${n0(d.totals.allowance)}`} />
-        <Kpi icon={ArrowUpRight} title={t.arap.payables} value={<M v={d.totals.payables} big />} />
+        <Kpi
+          icon={ArrowUpRight}
+          title={t.arap.payables}
+          value={<M v={d.totals.payables} big />}
+          hint={d.totals.customerCredits ? `${t.arap.customerCredits}: ${n0(d.totals.customerCredits)}` : undefined}
+        />
         <Kpi icon={Clock} title={t.arap.dso} value={<Big text={d.dso === null ? "—" : `${d.dso} ${t.arap.days}`} />} hint={d.dso === null ? t.arap.noBasis : t.arap.basisDso} />
         <Kpi icon={Clock} title={t.arap.dpo} value={<Big text={d.dpo === null ? "—" : `${d.dpo} ${t.arap.days}`} />} hint={d.dpo === null ? t.arap.noBasis : t.arap.basisDpo} />
       </div>
       <div className="grid gap-6 xl:grid-cols-2">
-        {side(t.arap.receivables, d.receivables, d.totals.receivables, d.totals.arAging)}
-        {side(t.arap.payables, d.payables, d.totals.payables, d.totals.apAging)}
+        {/* Receivables: the buckets add up to the gross above them; allowance and net follow. */}
+        <Card title={t.arap.agingTitle} icon={Users} aside={<M v={d.totals.receivablesGross} />}>
+          <AgingBar aging={d.totals.arAging} t={t} n0={n0} />
+          <AgingLegend aging={d.totals.arAging} t={t} n0={n0} />
+          <div className="mt-3 rounded-xl bg-sand-50 px-3 py-1 ring-1 ring-ink-100">
+            {summaryRow(t.arap.gross, d.totals.receivablesGross)}
+            {summaryRow(t.arap.allowanceLine, d.totals.allowance)}
+            {summaryRow(t.arap.netLine, d.totals.receivables, true)}
+          </div>
+          {table(trade)}
+        </Card>
+        <Card title={t.arap.payables} icon={Users} aside={<M v={d.totals.payables} />}>
+          <AgingBar aging={d.totals.apAging} t={t} n0={n0} />
+          <AgingLegend aging={d.totals.apAging} t={t} n0={n0} />
+          {table(d.payables)}
+          {d.customerCredits.length > 0 && (
+            <div className="mt-5 border-t border-ink-100 pt-4">
+              <h4 className="flex items-center justify-between gap-3 text-sm font-extrabold text-ink-900">
+                {t.arap.customerCredits}
+                <M v={d.totals.customerCredits} />
+              </h4>
+              <p className="mt-1 text-xs text-ink-500">{t.arap.creditsNote}</p>
+              {table(d.customerCredits, false)}
+              <div className="mt-3 rounded-xl bg-sand-50 px-3 py-1 ring-1 ring-ink-100">
+                {summaryRow(t.arap.allCreditors, d.totals.payables + d.totals.customerCredits, true)}
+              </div>
+            </div>
+          )}
+        </Card>
       </div>
     </>
   );

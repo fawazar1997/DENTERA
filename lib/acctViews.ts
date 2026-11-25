@@ -23,6 +23,7 @@ import {
   norm,
   pnlRule,
   ALLOWANCE,
+  PATIENTS,
   MURABAHA_CURRENT,
   MURABAHA_NONCURRENT,
   type BsKey,
@@ -228,12 +229,23 @@ export function cashView(statements: Statement[], file: TbFile | undefined, char
 // --- الذمم ---
 
 export type Aging = { b0: number; b31: number; b61: number; b91: number };
-export type ArApGroup = { code: string; name: string; balance: number; aging: Aging | null; note?: "allowance" };
+export type ArApGroup = { code: string; name: string; balance: number; aging: Aging | null; note?: "allowance" | "patientAdvances" | "customerCredit" };
 export type ArApView = {
   asOf?: string;
   receivables: ArApGroup[];
   payables: ArApGroup[];
-  totals: { receivablesGross: number; allowance: number; receivables: number; payables: number; suppliers: number; arAging: Aging; apAging: Aging };
+  /** Receivable accounts in credit (110501 «دفعات مقدمة من المرضى», others): shown among the creditors, never hidden. */
+  customerCredits: ArApGroup[];
+  totals: {
+    receivablesGross: number;
+    allowance: number;
+    receivables: number;
+    payables: number;
+    suppliers: number;
+    customerCredits: number;
+    arAging: Aging;
+    apAging: Aging;
+  };
   /** Days sales outstanding (net receivables) / days payables outstanding (local suppliers), 90-day basis. */
   dso: number | null;
   dpo: number | null;
@@ -272,10 +284,22 @@ export function arApView(statements: Statement[], file: TbFile | undefined, char
     const s = st.get(norm(code));
     return { code, name, balance: round2(balance), aging: s ? ageBalance(s.lines, balance, side, upTo) : null };
   };
-  // Receivables: the trade accounts (and the patients' account when in debit), less the allowance.
+  // Receivables: the trade accounts and the patients' account, in debit (their aging adds up to the gross), less the allowance.
+  const receivableAccount = (code: string) => isReceivable(code) || norm(code).startsWith(PATIENTS);
   const receivables = rows
-    .filter((r) => (isReceivable(r.code) || (norm(r.code).startsWith("110501") && r.close > 0)) && Math.abs(r.close) >= 0.5)
+    .filter((r) => receivableAccount(r.code) && r.close >= 0.5)
     .map((r) => group(r.code, nameOf(r.code, chart, r.name), r.close, "dr"))
+    .sort((a, b) => b.balance - a.balance);
+  // A receivable account in credit is owed to customers: shown among the creditors (110501: patients' advance payments).
+  const customerCredits: ArApGroup[] = rows
+    .filter((r) => receivableAccount(r.code) && r.close <= -0.5)
+    .map((r) => ({
+      code: r.code,
+      name: nameOf(r.code, chart, r.name),
+      balance: round2(-r.close),
+      aging: null,
+      note: norm(r.code).startsWith(PATIENTS) ? ("patientAdvances" as const) : ("customerCredit" as const),
+    }))
     .sort((a, b) => b.balance - a.balance);
   const allowanceRows = rows.filter((r) => norm(r.code).startsWith(ALLOWANCE) && Math.abs(r.close) >= 0.5);
   const allowance = round2(allowanceRows.reduce((s, r) => s + r.close, 0)); // credit: negative
@@ -303,12 +327,14 @@ export function arApView(statements: Statement[], file: TbFile | undefined, char
     asOf: file?.to,
     receivables: [...receivables, ...allowanceRows.map((r) => ({ code: r.code, name: nameOf(r.code, chart, r.name), balance: round2(r.close), aging: null, note: "allowance" as const }))],
     payables,
+    customerCredits,
     totals: {
       receivablesGross,
       allowance,
       receivables: net,
       payables: round2(payables.reduce((s, r) => s + r.balance, 0)),
       suppliers: suppliersTotal,
+      customerCredits: round2(customerCredits.reduce((s, r) => s + r.balance, 0)),
       arAging: sumAging(receivables),
       apAging: sumAging(payables),
     },
@@ -431,7 +457,8 @@ export type AlertKind =
   | "plVsTb"
   | "bsImbalance"
   | "financeCostMissing"
-  | "unclosedMonths";
+  | "unclosedMonths"
+  | "lastRunFailed";
 
 export type ReconRow = { month: string; pms: number | null; accounting: number | null; lab: number; diff: number | null; pct: number | null; flagged: boolean };
 export type AlertsView = {
@@ -493,8 +520,12 @@ export function buildAlerts(args: {
   fin: FinancingView;
   alerts: AlertsView;
   bankMinimums: Record<string, number>;
+  /** The robot's latest run (scheduled or «تحديث الآن»). */
+  lastRun?: { at: string; ok: boolean; reason?: string };
 }): Alert[] {
   const out: Alert[] = [];
+  // The latest update failed: the figures may be older than they look.
+  if (args.lastRun && !args.lastRun.ok) out.push({ kind: "lastRunFailed", detail: args.lastRun.at, items: [{ label: args.lastRun.reason ?? "other" }] });
   const { pnl, bs, cash, fin, alerts } = args;
   // An expense line more than 15% above its monthly average (the last full month against the closed months before it).
   const full = pnl.months.filter((m) => !m.missing && !m.partial);

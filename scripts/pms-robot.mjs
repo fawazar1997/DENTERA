@@ -28,15 +28,38 @@ const SITE = (process.env.SITE_URL || "https://dentera.com.sa").replace(/\/+$/, 
 const KEY = process.env.FINANCE_INGEST_KEY || "";
 const MODE = process.env.MODE || "yesterday";
 const MONTHS = Math.min(24, Math.max(1, Number(process.env.MONTHS) || 13));
+// «refresh»: the Control Panel's «تحديث الآن» (who pressed it: a role, never a person's name).
+const REQUESTED_BY = ["admin", "finance"].includes(process.env.REQUESTED_BY ?? "") ? process.env.REQUESTED_BY : undefined;
 
 const log = (step, ok = true) => console.log(`${ok ? "ok" : "FAILED"}: ${step}`);
 
+// The run's records sent (rows) and why steps failed (codes only, never figures).
+const RUN = { rows: 0, reasons: [] };
+
+/**
+ * A failure's reason as a code the site turns into a sentence:
+ * acct-login, acct-session, pms-login, network, timeout, export, site.
+ */
+function reasonOf(error, system) {
+  const text = `${error?.name ?? ""} ${error?.message ?? ""}`;
+  if (/^\s*login\b|\blogin$/.test(error?.message ?? "")) return system === "acct" ? "acct-session" : "pms-login";
+  if (/TimeoutError|Timeout \d+ms exceeded/i.test(text)) return "timeout";
+  if (/fetch failed|ECONN|ENOTFOUND|EAI_AGAIN|socket|net::ERR/i.test(text)) return "network";
+  if (/no download/i.test(text)) return "export";
+  if (/^site |check mismatch/i.test(error?.message ?? "")) return "site";
+  return "other";
+}
+const failedBecause = (error, system) => RUN.reasons.push(reasonOf(error, system));
+
 async function report(ok, note) {
+  // The most telling reason first (signing in, then the connection, then the rest).
+  const order = ["acct-login", "pms-login", "acct-session", "network", "timeout", "site", "export", "other"];
+  const reason = ok ? undefined : [...RUN.reasons].sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
   try {
     await fetch(`${SITE}/api/finance/run`, {
       method: "POST",
       headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ok, note }),
+      body: JSON.stringify({ ok, note, mode: MODE, requestedBy: REQUESTED_BY, rows: RUN.rows, reason }),
     });
   } catch {
     log("report run", false);
@@ -75,7 +98,7 @@ function ranges() {
     out.push([monthStart(today), today]);
     return out;
   }
-  // today: yesterday and today (yesterday's late edits), split at a month start.
+  // today / refresh: yesterday and today (yesterday's late edits), split at a month start.
   const y = addDays(today, -1);
   return y.slice(0, 7) === today.slice(0, 7) ? [[y, today]] : [[y, y], [today, today]];
 }
@@ -716,6 +739,7 @@ async function main() {
       log("login");
     } catch {
       log("login", false);
+      RUN.reasons.push("pms-login");
       await report(false, "login");
       process.exitCode = 1;
       return;
@@ -746,10 +770,12 @@ async function main() {
               if (!same) throw new Error("check mismatch");
             }
             sent++;
+            RUN.rows += csv.count ?? answer.rows ?? 0;
           }
           log(name);
         } catch (error) {
           failed++;
+          failedBecause(error, "pms");
           log(`${name} (${safe(error?.message, 200)})`, false);
         }
       }
@@ -829,7 +855,7 @@ function acctMonths() {
     for (let m = `${y.slice(0, 4)}-01-01`; m <= y; m = shiftMonth(m, 1)) out.push([m, upTo(m)]);
     return out;
   }
-  if (MODE === "month") return [[monthStart(y), y]];
+  if (MODE === "month" || MODE === "refresh") return [[monthStart(y), y]];
   // Every night: the month before in full (late postings) and this month so far.
   const prev = shiftMonth(monthStart(y), -1);
   return [[prev, monthEnd(prev)], [monthStart(y), y]];
@@ -863,8 +889,9 @@ async function syncAccounting(browser, dir) {
   try {
     await login(page, "acct");
     log("accounting login");
-  } catch {
+  } catch (error) {
     log("accounting login", false);
+    RUN.reasons.push(reasonOf(error, "acct") === "network" ? "network" : "acct-login");
     await context.close();
     return { failed: 1, sent: 0 };
   }
@@ -887,9 +914,11 @@ async function syncAccounting(browser, dir) {
         console.log(`check ${rep.name}: ${count} entries read, ${answer.rows ?? "?"} stored`);
         if (answer.rows !== count) throw new Error("check mismatch");
         sent++;
+        RUN.rows += count;
         log(rep.name);
       } catch (error) {
         failed++;
+        failedBecause(error, "acct");
         log(`${rep.name} (${safe(error?.message, 200)})`, false);
       }
       continue;
@@ -903,6 +932,7 @@ async function syncAccounting(browser, dir) {
       console.log(`${rep.name}: ${codes.length} accounts`);
     } catch (error) {
       failed++;
+      failedBecause(error, "acct");
       log(`${rep.name} list (${safe(error?.message, 200)})`, false);
     }
     for (const code of codes) {
@@ -916,13 +946,16 @@ async function syncAccounting(browser, dir) {
         console.log(`check ${rep.name} ${code}: rows ${answer.rows ?? "?"} read; stored ${same ? "match" : "MISMATCH"}`);
         if (!same) throw new Error("check mismatch");
         sent++;
+        RUN.rows += answer.rows ?? 0;
       } catch (error) {
         failed++;
+        failedBecause(error, "acct");
         log(`${rep.name} ${code} (${safe(error?.message, 200)})`, false);
       }
     }
   }
-  for (const rep of reports.filter((r) => r.kind !== "statement" && r.kind !== "unposted" && (MODE !== "accounting-2025" || r.kind === "tb"))) {
+  // «refresh» (the update button): trial balances only, the chart stays as last night's.
+  for (const rep of reports.filter((r) => r.kind !== "statement" && r.kind !== "unposted" && ((MODE !== "accounting-2025" && MODE !== "refresh") || r.kind === "tb"))) {
     const periods = rep.kind === "tb" ? acctMonths() : [[null, null]];
     for (const [from, to] of periods) {
       for (const branch of rep.branches ?? [null]) {
@@ -948,9 +981,11 @@ async function syncAccounting(browser, dir) {
           console.log(`check ${name}: rows ${answer.rows ?? "?"} read; stored ${same ? "match" : "MISMATCH"}${balanced}`);
           if (!same) throw new Error("check mismatch");
           sent++;
+          RUN.rows += answer.rows ?? 0;
           log(name);
         } catch (error) {
           failed++;
+          failedBecause(error, "acct");
           log(`${name} (${safe(error?.message, 200)})`, false);
         }
       }

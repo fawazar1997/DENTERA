@@ -30,6 +30,9 @@ import { partnerDoctors } from "@/lib/financeNames";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { LinkCard } from "@/components/admin/LinkCard";
+import { RefreshButton } from "@/components/finance/RefreshButton";
+import { refreshState } from "@/lib/financeRefresh";
+import { BY_TEXT, reasonText } from "@/lib/financeRefreshText";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +92,12 @@ export default async function AdminFinancePage({
   );
 }
 
+/** «تحديث الآن» (Control Panel only) and the robot's last successful run, for a tab's header. */
+async function freshness(locale: Locale) {
+  const state = await refreshState();
+  return { lastUpdate: state.lastSuccessAt, controls: <RefreshButton locale={locale} initial={state} /> };
+}
+
 const dateOr = (text: string | undefined, fallback: string) =>
   text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : fallback;
 
@@ -126,6 +135,7 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
       demo={demo}
       formAction={base}
       demoLinks={{ on: q(true), off: q(false) }}
+      controls={demo ? undefined : (await freshness(locale)).controls}
     />
   );
 }
@@ -145,7 +155,7 @@ async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searc
     if (searchParams.year) p.set("year", year);
     return `${base}?${p.toString()}`;
   };
-  return <IncomeStatementView pnl={pnl} locale={locale} href={href} showRates />;
+  return <IncomeStatementView pnl={pnl} locale={locale} href={href} showRates {...await freshness(locale)} />;
 }
 
 async function AcctTabView({ tab, locale, searchParams, base }: { tab: AcctTab; locale: Locale; searchParams: Record<string, string | undefined>; base: string }) {
@@ -161,7 +171,7 @@ async function AcctTabView({ tab, locale, searchParams, base }: { tab: AcctTab; 
     if (s !== "all") p.set("basis", s);
     return `${base}?${p.toString()}`;
   };
-  return <AcctView view={view} locale={locale} branch={branch} basis={basis} href={href} />;
+  return <AcctView view={view} locale={locale} branch={branch} basis={basis} href={href} {...await freshness(locale)} />;
 }
 
 async function SettingsTab({
@@ -390,18 +400,32 @@ async function SettingsTab({
         </form>
 
         <section className="card p-6">
+          <div className="mb-4 border-b border-ink-100 pb-4">
+            <RefreshButton locale={locale} initial={await refreshState()} block />
+          </div>
           <h2 className="font-bold text-ink-900">{t.runs}</h2>
           {status.runs.length ? (
             <ul className="mt-3 divide-y divide-ink-100 text-sm">
               {status.runs.slice(0, 20).map((r, i) => (
-                <li key={i} className="flex items-center gap-2 py-2">
+                <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2">
                   {r.ok ? <CheckCircle2 className="h-4 w-4 text-emerald-800" /> : <XCircle className="h-4 w-4 text-red-800" />}
                   <span className="font-bold text-ink-900">{r.ok ? t.ok : t.failed}</span>
-                  <span className="text-ink-500">{r.source === "robot" ? t.robot : t.manual}</span>
-                  {r.note && (
-                    <span className="truncate text-xs text-ink-400" dir="ltr">
-                      {r.note}
+                  <span className="text-ink-500">
+                    {r.source === "robot" ? t.robot : r.source === "manual" ? `${ar ? "يدوي" : "Manual"} — ${BY_TEXT[ar ? "ar" : "en"][r.by ?? "admin"]}` : t.manual}
+                  </span>
+                  {typeof r.rows === "number" && (
+                    <span className="text-xs text-ink-500">
+                      {r.rows.toLocaleString(numberLocale)} {ar ? "سجل" : "records"}
                     </span>
+                  )}
+                  {!r.ok && r.reason ? (
+                    <span className="text-xs font-bold text-red-800">{reasonText(r.reason, locale)}</span>
+                  ) : (
+                    r.note && (
+                      <span className="truncate text-xs text-ink-400" dir="ltr">
+                        {r.note}
+                      </span>
+                    )
                   )}
                   <span className="ms-auto whitespace-nowrap text-xs text-ink-500">{when.format(new Date(r.at))}</span>
                 </li>
