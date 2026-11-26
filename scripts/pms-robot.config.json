@@ -310,7 +310,6 @@
         "isconfirmed",
         "appointmentservice"
       ],
-      "dateFormat": "MM/dd/yyyy",
       "range": "month"
     },
     {
