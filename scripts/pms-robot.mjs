@@ -991,6 +991,9 @@ async function syncAccounting(browser, dir) {
         const answer = await sendAcct(csv.file, { kind: "statement", account: code, from, to: yesterday });
         const same = answer.rows >= 0 && answer.read?.rows === answer.stored?.rows && Math.abs((answer.read?.dr ?? 0) - (answer.stored?.dr ?? 0)) < 0.01 && Math.abs((answer.read?.cr ?? 0) - (answer.stored?.cr ?? 0)) < 0.01;
         console.log(`check ${rep.name} ${code}: rows ${answer.rows ?? "?"} read; stored ${same ? "match" : "MISMATCH"}`);
+        // Revenue accounts: the source modules of the entries (names and counts only).
+        if (answer.modules)
+          console.log(`  modules ${code}: ${Object.entries(answer.modules).map(([m, v]) => `${safe(m, 40)} ${v.lines} lines (${v.monthEnd} on a month-end)`).join(" | ") || "none"}`);
         if (!same) throw new Error("check mismatch");
         sent++;
         RUN.rows += answer.rows ?? 0;

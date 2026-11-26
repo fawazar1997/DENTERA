@@ -70,7 +70,19 @@ export async function POST(request: NextRequest) {
       const { opening, lines } = parseStatement(table, account);
       // An account with no movement this year is a valid, empty statement.
       const stored = await saveStatement({ code: account, from, to, opening, lines, importedAt: new Date().toISOString() });
-      return reply(200, { ok: true, kind, rows: lines.length, read: stTotals(lines), stored });
+      // Revenue accounts (the lab's 4103/4106/4109): how many lines each source module brings, and how
+      // many sit on a month's last day, to tell daily entries from monthly ones (names of modules only).
+      const modules: Record<string, { lines: number; monthEnd: number }> = {};
+      if (account.startsWith("41")) {
+        for (const l of lines) {
+          const m = (l.source || "(none)").replace(/[^\p{L}\p{N} &/-]/gu, "").slice(0, 40) || "(none)";
+          const last = new Date(Date.UTC(Number(l.date.slice(0, 4)), Number(l.date.slice(5, 7)), 0)).toISOString().slice(0, 10);
+          modules[m] ??= { lines: 0, monthEnd: 0 };
+          modules[m].lines++;
+          if (l.date === last) modules[m].monthEnd++;
+        }
+      }
+      return reply(200, { ok: true, kind, rows: lines.length, read: stTotals(lines), stored, ...(account.startsWith("41") ? { modules } : {}) });
     }
     if (kind === "unposted") {
       const to = String(form.get("to") ?? "");

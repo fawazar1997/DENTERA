@@ -223,7 +223,18 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
                 </span>
               </div>
             </section>
-            <Kpi icon={Receipt} title={t.invoices} value={<span className="text-3xl font-extrabold text-ink-950 tabular-nums">{fmt.n0(d.counts.invoices)}</span>}>
+            <Kpi
+              icon={Receipt}
+              title={
+                <>
+                  {t.invoices}
+                  <span className="ms-2 rounded-full bg-sand-50 px-2 py-0.5 text-[10px] font-bold text-ink-500 ring-1 ring-ink-100">
+                    {locale === "ar" ? "العيادات فقط" : "Clinics only"}
+                  </span>
+                </>
+              }
+              value={<span className="text-3xl font-extrabold text-ink-950 tabular-nums">{fmt.n0(d.counts.invoices)}</span>}
+            >
               <div className="mt-1 grid grid-cols-2 gap-2">
                 <Stat label={t.patients} value={fmt.n0(d.counts.patients)} />
                 <Stat label={t.avgInvoice} value={<Money v={d.counts.avg} fmt={fmt} />} />
@@ -299,8 +310,8 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
             {d.labFromAccounting && (
               <p className="text-xs text-ink-500 mt-3">
                 {locale === "ar"
-                  ? `إيراد المعمل في التوزيع من الحسابات (4103، 4106، 4109، شامل غير المرحّل) حتى ${d.labFromAccounting.to.split("-").reverse().join("-")}؛ نظام العيادة لا يسجّل مبيعات المعمل، والمؤشرات أعلاه من نظام العيادة.`
-                  : `Lab revenue in these splits is from accounting (4103, 4106, 4109, incl. unposted) up to ${d.labFromAccounting.to.split("-").reverse().join("-")}; the PMS records no lab sales, and the KPIs above are the PMS's.`}
+                  ? `إيراد المعمل من الحسابات (4103 − 4106 − 4109، شامل غير المرحّل) حتى ${d.labFromAccounting.to.split("-").reverse().join("-")}، داخل في الإيراد والمستهدف والتوزيع. القيد اليومي يُحتسب بتاريخه، والقيد المجمّع (الشهري) يدخل في أرقام الشهر والسنة فقط. الفواتير وعدد المرضى ومتوسط الفاتورة للعيادات فقط.`
+                  : `Lab revenue is from accounting (4103 − 4106 − 4109, incl. unposted) up to ${d.labFromAccounting.to.split("-").reverse().join("-")}, included in revenue, target and splits. Daily entries count on their date; lumped (monthly) entries count in month and year figures only. Invoices, patients and the average invoice are the clinics' only.`}
               </p>
             )}
           </Section>
@@ -435,7 +446,7 @@ function Kpi({
   children,
 }: {
   icon: Icon;
-  title: string;
+  title: ReactNode;
   value: ReactNode;
   hint?: string;
   spark?: number[];

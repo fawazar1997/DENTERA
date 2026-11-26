@@ -6,9 +6,8 @@ import type { Locale } from "./i18n";
 import { readPrivateFile, putPrivateFile } from "./privateBlob";
 import { aggregateMonth } from "./financeAgg";
 import { readReport, type ImportResult } from "./financeImport";
-import { readTbMonth } from "./acct";
-import { isLabRevenue } from "./acctRules";
-import { buildDashboard, monthOf, riyadhDate, sameDayIn, shiftMonth, type Aggs, type Dashboard, type MonthTotals } from "./financeMetrics";
+import { applyLabToAggs, readLabRevenue } from "./financeLab";
+import { buildDashboard, monthOf, riyadhDate, sameDayIn, shiftMonth, type Aggs, type MonthTotals } from "./financeMetrics";
 import {
   DEFAULT_PARTNERS,
   OLD_DEFAULT_PARTNERS,
@@ -224,31 +223,11 @@ export async function loadDashboard(date: string, branches: FinanceBranch[], loc
   [...needed].forEach((m, i) => (stored[m] = list[i] as MonthAgg | undefined));
   const doctors = await getDoctors().catch(() => []);
   const view = officialView(stored, settings, doctors, locale);
-  const dashboard = buildDashboard({ date, branches, aggs: view.aggs, settings: view.settings, history, installments });
-  if (branches.includes("lab")) await addLabFromAccounting(dashboard, date).catch(() => undefined);
+  // The lab's revenue comes from accounting only (4103 − 4106 − 4109, with unposted entries).
+  const lab = await readLabRevenue([...needed].map((m) => m.slice(0, 4))).catch(() => undefined);
+  if (lab) applyLabToAggs(view.aggs, lab);
+  const dashboard = buildDashboard({ date, branches, aggs: view.aggs, settings: view.settings, history, installments, lab });
   return { dashboard, settings, status };
-}
-
-/**
- * The PMS has no dental-lab sales: when its lab is empty for the month, the
- * branch and specialty splits take the lab's revenue (4103, 4106, 4109) from
- * the month's trial balance (with unposted entries), only when that trial
- * balance does not run past the chosen day. The KPIs stay the PMS's.
- */
-async function addLabFromAccounting(d: Dashboard, date: string) {
-  const lab = d.branches.find((b) => b.branch === "lab");
-  if (!lab || lab.net !== 0) return;
-  const file = (await readTbMonth(monthOf(date)))?.["all|all"];
-  if (!file || file.to > date) return;
-  const net = Math.round(file.rows.filter((r) => isLabRevenue(r.code)).reduce((s, r) => s + r.cr - r.dr, 0));
-  if (net <= 0) return;
-  lab.net = net;
-  const sum = d.branches.reduce((s, b) => s + b.net, 0) || 1;
-  d.branches.forEach((b) => (b.share = b.net / sum));
-  d.specialties.push({ specialty: "lab", net, share: 0 });
-  const sumS = d.specialties.reduce((s, x) => s + x.net, 0) || 1;
-  d.specialties.forEach((x) => (x.share = x.net / sumS));
-  d.labFromAccounting = { net, to: file.to };
 }
 
 // --- Keys ---

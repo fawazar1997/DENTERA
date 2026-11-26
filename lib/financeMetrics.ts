@@ -4,6 +4,7 @@
 // collections, quality lists and doctors. Pure.
 
 import { addInto } from "./financeAgg";
+import { lumpedBetween, type LabRevenue } from "./financeLab";
 import {
   MODEL_TARGETS,
   isPartner,
@@ -163,7 +164,7 @@ export type Dashboard = {
   trend: { date: string; net: number; target: number }[];
   branches: { branch: FinanceBranch; net: number; share: number }[];
   specialties: { specialty: Specialty | "lab"; net: number; share: number }[];
-  /** The lab's month revenue from the trial balance (the PMS has none), up to `to`. */
+  /** The lab's revenue from accounting, month to date (daily + lumped entries), up to `to`. */
   labFromAccounting?: { net: number; to: string };
   discounts: { total: number; pct: number; byBranch: { branch: FinanceBranch; total: number; pct: number }[] };
   invoices: { new: number; credit: { count: number; amount: number }; returns: { count: number; amount: number }; creditNotes: { count: number; amount: number } };
@@ -187,18 +188,26 @@ export function buildDashboard(input: {
   settings: FinanceSettings;
   history: MonthTotals;
   installments?: Installments;
+  /** The lab's revenue from accounting (its daily part is already in «aggs» as the lab branch). */
+  lab?: LabRevenue;
 }): Dashboard {
-  const { date, branches, aggs, settings, history } = input;
+  const { date, branches, aggs, settings, history, lab } = input;
   const month = monthOf(date);
   const first = `${month}-01`;
+  // The lab's lumped (monthly) entries count in month and year figures only, never in a day's.
+  const withLab = branches.includes("lab") && Boolean(lab?.accounts);
+  const lumped = (from: string, to: string) => (withLab ? lumpedBetween(lab, from, to) : 0);
 
   const today = dayTotal(aggs, date, branches) ?? emptyBranchDay();
   const lastWeek = dayTotal(aggs, addDays(date, -7), branches);
   const mtd = rangeTotal(aggs, first, date, branches);
+  mtd.net += lumped(first, date);
   const lmDate = sameDayIn(date, -1);
   const lastMonth = rangeTotal(aggs, `${monthOf(lmDate)}-01`, lmDate, branches);
+  lastMonth.net += lumped(`${monthOf(lmDate)}-01`, lmDate);
   const lyDate = sameDayIn(date, -12);
   const lastYear = rangeTotal(aggs, `${monthOf(lyDate)}-01`, lyDate, branches);
+  lastYear.net += lumped(`${monthOf(lyDate)}-01`, lyDate);
   const hasData = Object.values(aggs).some((a) => a && Object.keys(a.days).length > 0);
 
   // Targets (the company's: shown in full whatever the branch filter, scaled when filtered).
@@ -211,7 +220,11 @@ export function buildDashboard(input: {
   const year = month.slice(0, 4);
   const yTarget = (settings.yearTargets[year] ?? MODEL_TARGETS[year] ?? 0) * branchShare;
   let ytd = mtd.net;
-  for (let m = `${year}-01`; m < month; m = shiftMonth(m, 1)) ytd += (history[m] ?? 0) * branchShare;
+  // Earlier months: the clinics' totals (PMS), plus the lab's from accounting when the lab is shown.
+  const clinicShown = branches.some((b) => b !== "lab");
+  const clinicShare = allBranches ? 1 : withLab ? shareOfBranches(aggs, branches.filter((b) => b !== "lab")) : branchShare;
+  for (let m = `${year}-01`; m < month; m = shiftMonth(m, 1))
+    ytd += (clinicShown ? (history[m] ?? 0) * clinicShare : 0) + (withLab ? lab!.byMonth[m] ?? 0 : 0);
   let remainingDays = 0;
   for (let d = addDays(date, 1); monthOf(d) === month; d = addDays(d, 1)) if (weights[weekday(d)] > 0) remainingDays++;
 
@@ -226,9 +239,18 @@ export function buildDashboard(input: {
   }
 
   // Splits (month to date).
-  const byBranch = branches.map((b) => ({ branch: b, total: rangeTotal(aggs, first, date, [b]) }));
+  const byBranch = branches.map((b) => {
+    const total = rangeTotal(aggs, first, date, [b]);
+    if (b === "lab") total.net += lumped(first, date);
+    return { branch: b, total };
+  });
   const sumNet = mtd.net || 1;
-  const specialties = (Object.keys(mtd.bySpecialty) as Specialty[]).map((s) => ({ specialty: s, net: mtd.bySpecialty[s], share: mtd.bySpecialty[s] / sumNet }));
+  const specialties: Dashboard["specialties"] = (Object.keys(mtd.bySpecialty) as Specialty[]).map((s) => ({ specialty: s, net: mtd.bySpecialty[s], share: mtd.bySpecialty[s] / sumNet }));
+  // The lab is its own line in the specialty split (its revenue has no specialty).
+  const labMtd = byBranch.find((b) => b.branch === "lab")?.total.net ?? 0;
+  if (withLab && labMtd) specialties.push({ specialty: "lab", net: labMtd, share: labMtd / sumNet });
+  // Invoices, patients and the average invoice are the clinics' only (the lab has no PMS invoices).
+  const todayClinics = dayTotal(aggs, date, branches.filter((b) => b !== "lab")) ?? emptyBranchDay();
 
   // Doctors.
   const rows = (day: BranchDay) =>
@@ -333,8 +355,9 @@ export function buildDashboard(input: {
       requiredPerDay: remainingDays ? Math.max(0, mTarget - mtd.net) / remainingDays : 0,
     },
     collections,
-    counts: { invoices: today.invoices, patients: today.patients, avg: today.invoices ? today.net / today.invoices : 0 },
+    counts: { invoices: today.invoices, patients: today.patients, avg: today.invoices ? todayClinics.net / today.invoices : 0 },
     trend,
+    labFromAccounting: withLab ? { net: labMtd, to: lab!.asOf ?? date } : undefined,
     branches: byBranch.map(({ branch, total }) => ({ branch, net: total.net, share: total.net / sumNet })),
     specialties,
     discounts: {
