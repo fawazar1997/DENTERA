@@ -237,9 +237,6 @@
           "wait": 1500
         },
         {
-          "describe": "appointments — filters window"
-        },
-        {
           "fill": "#fromDate-txt",
           "value": "{from}"
         },
@@ -259,7 +256,19 @@
           "wait": 1000
         },
         {
-          "describe": "appointments — filters set"
+          "options": "#specialCase-select"
+        },
+        {
+          "options": "#showDeletedApps-select"
+        },
+        {
+          "options": "#status-select"
+        },
+        {
+          "options": "#reservationWay-select"
+        },
+        {
+          "options": "#source-select"
         },
         {
           "clickText": "Apply Filters"

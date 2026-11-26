@@ -16,6 +16,7 @@
 // export steps can be set up without anyone sending screenshots or files.
 
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHmac } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -438,7 +439,9 @@ async function toCsv(file, rep = {}) {
     const pad = (n) => String(n).padStart(2, "0");
     const table = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: "" });
     const key = (v) => String(v ?? "").toLowerCase().replace(/[\s_.\-/()]+/g, "");
-    const at = table.findIndex((r) => r.some((c) => key(c) === "invdate"));
+    // The header row: the one with the report's date column (Inv Date; «Date» for appointments).
+    const dateKey = rep.dateKey ?? "invdate";
+    const at = table.findIndex((r) => r.some((c) => key(c) === dateKey));
     let rows = table;
     let count = null;
     let total = null;
@@ -447,14 +450,17 @@ async function toCsv(file, rep = {}) {
       const keepList = rep.keep ?? DETAILED_KEEP;
       const keepRe = rep.keepPattern ? new RegExp(rep.keepPattern, "i") : null;
       const keep = head.map((h, i) => (keepList.includes(h) || (keepRe && keepRe.test(String(table[at][i]))) ? i : -1)).filter((i) => i >= 0);
-      const dateCol = head.indexOf("invdate");
+      const dateCol = head.indexOf(dateKey);
       const totalCol = head.indexOf(rep.totalColumn ?? "total");
       const idCol = head.indexOf("patientidnumber");
+      // A patient's file number replaced by a one-way code (same patient, same code; the number can't be read back).
+      const hashCols = (rep.hash ?? []).map((h) => head.indexOf(h)).filter((i) => i >= 0);
+      const code = (v) => (String(v ?? "").trim() ? createHmac("sha256", KEY || "dentera").update(String(v).trim()).digest("hex").slice(0, 16) : "");
       const body = table.slice(at + 1).filter((r) => r[dateCol] instanceof Date || /\d{1,4}[/-]\d{1,2}[/-]\d{1,4}/.test(String(r[dateCol] ?? "")));
       count = body.length;
       total = totalCol >= 0 ? body.reduce((sum, r) => sum + (Number(String(r[totalCol]).replace(/,/g, "")) || 0), 0) : null;
       rows = [table[at], ...body].map((r, n) =>
-        keep.map((i) => (n > 0 && i === idCol ? (/\d{6,}/.test(String(r[i] ?? "")) ? "0000000000" : "") : r[i]))
+        keep.map((i) => (n > 0 && i === idCol ? (/\d{6,}/.test(String(r[i] ?? "")) ? "0000000000" : "") : n > 0 && hashCols.includes(i) ? code(r[i]) : r[i]))
       );
     }
     const cell = (v) =>
@@ -775,6 +781,15 @@ async function runStep(page, step, vars) {
       })
       .catch(() => ({ message: "", rows: 0 }));
     console.log(`  ${step.say}: message «${safe(info.message, 160)}», ${info.rows} table rows shown`);
+  }
+  // Discover: a filter list's own option labels (fixed words of the page, digits masked) and which is chosen.
+  if (step.options && MODE === "discover") {
+    const info = await page
+      .locator(step.options)
+      .first()
+      .evaluate((sel) => ({ options: [...sel.options].map((o) => o.text.replace(/\s+/g, " ").trim()), chosen: sel.selectedIndex }))
+      .catch(() => null);
+    console.log(`  ${step.options}: ${info ? info.options.map((o, i) => `${i === info.chosen ? "*" : ""}${safe(o, 40)}`).join(" | ") : "not found"}`);
   }
   // Discover: every field, list and button shown at this point (e.g. inside an open filters window).
   if (step.describe && MODE === "discover") await describe(page, step.describe, false, true);
