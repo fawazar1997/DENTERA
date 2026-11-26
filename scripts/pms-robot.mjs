@@ -258,7 +258,7 @@ async function describe(page, title, navigation = false, strict = /accounting/.t
           }));
         const selects = [...document.querySelectorAll("select")]
           .filter(vis)
-          .map((el) => ({ name: el.name, id: el.id, label: labelOf(el), count: el.options.length, options: el.options.length <= 12 ? [...el.options].map((o) => o.text) : [] }));
+          .map((el) => ({ name: el.name, id: el.id, label: labelOf(el), count: el.options.length, options: el.options.length <= 12 ? [...el.options].map((o) => o.text) : [], chosen: el.selectedOptions?.[0]?.text ?? "" }));
         const buttons = [...document.querySelectorAll("button, a.btn, [role=button], input[type=image]")]
           .filter(vis)
           .map((el) => ({ text: el.textContent || el.getAttribute("title") || el.getAttribute("alt") || "", id: el.id, cls: el.className?.toString?.() ?? "" }))
@@ -299,7 +299,7 @@ async function describe(page, title, navigation = false, strict = /accounting/.t
     const SAFE_OPTION = /^(select.*|all.*|abha|khamis|main|posted.*|non-posted.*|.*view|summary.*|detailed.*|monthly.*|cost center.*|direct|indirect|#|\d{4}( \(selected\))?|\d+ - [a-z' &]+|group accounts|detail accounts|accounts with activity|eligible parent accounts|hidden accounts|needs review|25|50)$/i;
     for (const s of info.selects) {
       const show = s.options.length && (!strict || s.options.every((x) => SAFE_OPTION.test(String(x).trim())));
-      console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${show ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
+      console.log(`select name=${safe(s.name)} id=${safe(s.id)} label=${safe(s.label)} options=${s.count}${s.chosen && SAFE_OPTION.test(String(s.chosen).trim()) ? ` chosen=${safe(s.chosen)}` : ""}${show ? ` [${s.options.map((x) => safe(x)).join(" | ")}]` : ""}`);
     }
     for (const b of info.buttons.slice(0, 40)) console.log(`button "${safe(b.text)}" id=${safe(b.id)} class=${safe(b.cls)}`);
     for (const h of info.heads.slice(0, 12))
@@ -776,6 +776,8 @@ async function runStep(page, step, vars) {
       .catch(() => ({ message: "", rows: 0 }));
     console.log(`  ${step.say}: message «${safe(info.message, 160)}», ${info.rows} table rows shown`);
   }
+  // Discover: every field, list and button shown at this point (e.g. inside an open filters window).
+  if (step.describe && MODE === "discover") await describe(page, step.describe, false, true);
   if (step.wait) await page.waitForTimeout(Math.min(30_000, Number(step.wait)));
   if (step.waitFor) await page.locator(step.waitFor).first().waitFor({ timeout: 60_000 });
 }

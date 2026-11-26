@@ -237,6 +237,9 @@
           "wait": 1500
         },
         {
+          "describe": "appointments — filters window"
+        },
+        {
           "fill": "#fromDate-txt",
           "value": "{from}"
         },
@@ -254,6 +257,9 @@
         },
         {
           "wait": 1000
+        },
+        {
+          "describe": "appointments — filters set"
         },
         {
           "clickText": "Apply Filters"
