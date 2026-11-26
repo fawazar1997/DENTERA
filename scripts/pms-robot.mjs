@@ -84,11 +84,10 @@ function format(iso, pattern) {
   return pattern.replace("yyyy", y).replace("MM", m).replace("dd", d);
 }
 
-/** The date ranges to export: one per month (keeps each file small). */
-/** The Appointments Report's periods: this year's months on a backfill, else the month so far (to yesterday). */
+/** The Appointments Report's periods: this year's months on a backfill (or «appointments»), else the month so far (to yesterday). */
 function apptRanges() {
   const y = addDays(riyadh(), -1);
-  if (MODE === "backfill") {
+  if (MODE === "backfill" || MODE === "appointments") {
     const out = [];
     for (let m = `${y.slice(0, 4)}-01-01`; m < monthStart(y); m = shiftMonth(m, 1)) out.push([m, monthEnd(m)]);
     out.push([monthStart(y), y]);
@@ -97,6 +96,7 @@ function apptRanges() {
   return [[monthStart(y), y]];
 }
 
+/** The date ranges to export: one per month (keeps each file small). */
 function ranges() {
   const today = riyadh();
   // The daily run at 1 am: the whole of the day before.
@@ -899,7 +899,8 @@ async function main() {
       return;
     }
 
-    for (const [from, to] of ranges()) {
+    // «appointments»: this year's appointments only (no invoices, no accounting).
+    for (const [from, to] of MODE === "appointments" ? [] : ranges()) {
       const vars = { from: format(from, config.dateFormat), to: format(to, config.dateFormat) };
       for (const rep of reports) {
         // Appointments have their own periods (below).
@@ -965,7 +966,7 @@ async function main() {
       }
     }
     // Microchips Accounting: trial balances and the chart of accounts.
-    const acct = await syncAccounting(browser, dir);
+    const acct = MODE === "appointments" ? { failed: 0, sent: 0 } : await syncAccounting(browser, dir);
     failed += acct.failed;
     sent += acct.sent;
   } finally {

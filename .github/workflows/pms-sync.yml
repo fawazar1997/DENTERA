@@ -26,7 +26,7 @@ on:
         description: "yesterday, today, refresh (the site's «تحديث الآن»: PMS yesterday + today, statements, this month's trial balances), month, backfill, discover, accounting (recent months), accounting-backfill (from 1 January) or accounting-2025 (last year's trial balances)"
         default: yesterday
         type: choice
-        options: [yesterday, today, refresh, month, backfill, discover, accounting, accounting-backfill, accounting-2025]
+        options: [yesterday, today, refresh, month, backfill, appointments, discover, accounting, accounting-backfill, accounting-2025]
       months:
         description: "Backfill: how many past months"
         default: "13"

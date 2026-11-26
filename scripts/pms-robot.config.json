@@ -222,13 +222,13 @@
     {
       "name": "appointments",
       "strict": true,
-      "$comment": "Import ready (kind appointments → /api/finance/ops-ingest); kept off (enabled false) until the PMS shows the robot's account all doctors' appointments. Logs column titles and counts, never patient data.",
+      "$comment": "Attendance (الحضور والمواعيد): the month so far every night and on «تحديث الآن»; this year's months with mode «appointments». Only the keep-list columns leave the PMS; the file number is coded one way. Logs show counts only.",
       "menu": [
         "Reports",
         "Appointments Reports",
         "Appointments Report"
       ],
-      "enabled": false,
+      "enabled": true,
       "steps": [
         {
           "clickText": "Filters"
@@ -256,19 +256,10 @@
           "wait": 1000
         },
         {
-          "net": "start"
-        },
-        {
           "clickText": "Apply Filters"
         },
         {
           "wait": 12000
-        },
-        {
-          "say": "after apply"
-        },
-        {
-          "net": "print"
         },
         {
           "clickText": "Filters"
@@ -281,7 +272,8 @@
       "alternatives": [],
       "timeout": 60000,
       "branches": [
-        "Abha"
+        "Abha",
+        "Khamis"
       ],
       "valuesOf": [
         "Appointment Status",
