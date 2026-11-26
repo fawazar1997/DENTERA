@@ -85,6 +85,18 @@ function format(iso, pattern) {
 }
 
 /** The date ranges to export: one per month (keeps each file small). */
+/** The Appointments Report's periods: this year's months on a backfill, else the month so far (to yesterday). */
+function apptRanges() {
+  const y = addDays(riyadh(), -1);
+  if (MODE === "backfill") {
+    const out = [];
+    for (let m = `${y.slice(0, 4)}-01-01`; m < monthStart(y); m = shiftMonth(m, 1)) out.push([m, monthEnd(m)]);
+    out.push([monthStart(y), y]);
+    return out;
+  }
+  return [[monthStart(y), y]];
+}
+
 function ranges() {
   const today = riyadh();
   // The daily run at 1 am: the whole of the day before.
@@ -801,7 +813,18 @@ async function runStep(page, step, vars) {
             records = list ? ` records ${list.length}` : ` keys ${Object.keys(j ?? {}).slice(0, 8).map((k) => safe(k, 20)).join(",")}`;
           }
         } catch {}
-        NET.push(`${res.request().method()} ${safe(new URL(res.url()).pathname, 80)} → ${res.status()}${records}`);
+        // The request's own filter fields (what the robot chose; digits masked) and the answer's size and type.
+        const sentFields = (() => {
+          const body = res.request().postData() ?? "";
+          try {
+            const pairs = body.trim().startsWith("{") ? Object.entries(JSON.parse(body)) : [...new URLSearchParams(body).entries()];
+            return pairs.slice(0, 40).map(([k, v]) => `${safe(k, 30)}=${safe(typeof v === "object" ? JSON.stringify(v) : v, 24)}`).join("&");
+          } catch {
+            return `(${body.length} chars)`;
+          }
+        })();
+        const size = (await res.body().catch(() => Buffer.alloc(0))).length;
+        NET.push(`${res.request().method()} ${safe(new URL(res.url()).pathname, 80)} → ${res.status()} ${safe(res.headers()["content-type"] ?? "", 30)} ${size} bytes${records}${sentFields ? ` sent ${sentFields}` : ""}`);
       });
     } else for (const line of NET.splice(0)) console.log(`  net ${line}`);
   }
@@ -877,6 +900,8 @@ async function main() {
     for (const [from, to] of ranges()) {
       const vars = { from: format(from, config.dateFormat), to: format(to, config.dateFormat) };
       for (const rep of reports) {
+        // Appointments have their own periods (below).
+        if (rep.kind === "appointments") continue;
         // Installments are a snapshot: once per run, not per month.
         if (rep.snapshot && from !== ranges().at(-1)[0]) continue;
         const name = `${rep.name} ${from.slice(0, 7)}`;
@@ -906,6 +931,34 @@ async function main() {
           failed++;
           failedBecause(error, "pms");
           log(`${name} (${safe(error?.message, 200)})`, false);
+        }
+      }
+    }
+    // The Appointments Report (attendance): the month so far, every night and on «تحديث الآن»
+    // (statuses change after the day: a no-show marked the next morning); a backfill takes this
+    // year's months. One branch at a time; the site keeps no name, mobile or file number.
+    for (const rep of reports.filter((r) => r.kind === "appointments")) {
+      for (const [from, to] of apptRanges()) {
+        for (const branch of rep.branches ?? []) {
+          const name = `${rep.name} ${branch} ${from.slice(0, 7)}`;
+          try {
+            await ensureSignedIn(page);
+            if (rep.menu) await openMenu(page, rep.menu);
+            const file = await exportReport(latest(page), rep, { from: format(from, config.dateFormat), to: format(to, config.dateFormat), branch }, dir, `${branch}-${from}`);
+            await closeOthers(page);
+            const csv = await toCsv(file, rep);
+            const answer = await sendOps(csv.file, { kind: "appointments", branch: branch.toLowerCase(), from, to });
+            const same = csv.count !== null && answer.rows === csv.count && answer.stored === csv.count;
+            console.log(`check ${name}: rows ${csv.count ?? "?"} sent, ${answer.rows ?? "?"} read, ${answer.stored ?? "?"} stored — ${same ? "match" : "MISMATCH"}`);
+            if (!same) throw new Error("check mismatch");
+            sent++;
+            RUN.rows += csv.count ?? 0;
+            log(name);
+          } catch (error) {
+            failed++;
+            failedBecause(error, "pms");
+            log(`${name} (${safe(error?.message, 200)})`, false);
+          }
         }
       }
     }
@@ -988,6 +1041,13 @@ function acctMonths() {
   // Every night: the month before in full (late postings) and this month so far.
   const prev = shiftMonth(monthStart(y), -1);
   return [[prev, monthEnd(prev)], [monthStart(y), y]];
+}
+
+async function sendOps(path, fields) {
+  const res = await postFile(`${SITE}/api/finance/ops-ingest`, path, fields);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`site ${res.status} ${body?.error ?? ""}`.trim());
+  return body ?? {};
 }
 
 async function sendAcct(path, fields) {

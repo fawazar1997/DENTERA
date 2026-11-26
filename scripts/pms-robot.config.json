@@ -289,6 +289,26 @@
         "Is Confirmed",
         "Appointment Source",
         "Appointment Type"
+      ],
+      "kind": "appointments",
+      "dateKey": "date",
+      "hash": [
+        "fileno"
+      ],
+      "keep": [
+        "date",
+        "time",
+        "fileno",
+        "appointmenttype",
+        "appointmentsource",
+        "addedon",
+        "doctor",
+        "appointmentstatus",
+        "noshowcount",
+        "invoiceno",
+        "newold",
+        "isconfirmed",
+        "appointmentservice"
       ]
     },
     {
