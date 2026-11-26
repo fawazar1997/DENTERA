@@ -229,7 +229,6 @@
         "Appointments Report"
       ],
       "enabled": false,
-      "range": "month",
       "steps": [
         {
           "clickText": "Filters"
@@ -250,18 +249,51 @@
           "value": "{branch}"
         },
         {
-          "wait": 800
-        },
-        {
-          "clickText": "Apply Filters"
-        },
-        {
-          "wait": 15000
+          "wait": 1000
         }
       ],
       "export": "Excel",
-      "alternatives": [],
-      "timeout": 90000,
+      "alternatives": [
+        {
+          "steps": [
+            {
+              "clickText": "Filters"
+            },
+            {
+              "wait": 1500
+            },
+            {
+              "fill": "#fromDate-txt",
+              "value": "{from}"
+            },
+            {
+              "fill": "#toDate-txt",
+              "value": "{to}"
+            },
+            {
+              "select": "#branch-select",
+              "value": "{branch}"
+            },
+            {
+              "wait": 1000
+            },
+            {
+              "clickText": "Apply Filters"
+            },
+            {
+              "wait": 12000
+            },
+            {
+              "clickText": "Filters"
+            },
+            {
+              "wait": 1500
+            }
+          ],
+          "export": "Excel"
+        }
+      ],
+      "timeout": 60000,
       "branches": [
         "Abha",
         "Khamis"
