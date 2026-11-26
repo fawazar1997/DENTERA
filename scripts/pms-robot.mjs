@@ -730,6 +730,8 @@ async function discoverAccounting(browser) {
   }
 }
 
+const NET = [];
+
 async function runStep(page, step, vars) {
   const value = (text) => String(text ?? "").replace("{from}", vars.from).replace("{to}", vars.to).replace("{branch}", vars.branch ?? "").replace("{account}", vars.account ?? "").replace("{year}", vars.year ?? "");
   if (step.menu) await openMenu(page, step.menu);
@@ -777,10 +779,31 @@ async function runStep(page, step, vars) {
       .evaluate(() => {
         const box = [...document.querySelectorAll(".sweet-alert, .swal2-popup, .modal.in .modal-body, .alert, .bootbox-body")].find((el) => el.offsetWidth || el.offsetHeight);
         const rows = [...document.querySelectorAll("table tbody tr")].filter((tr) => tr.offsetWidth || tr.offsetHeight).length;
-        return { message: (box?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 160), rows };
+        const info = [...document.querySelectorAll(".dataTables_info, .dataTables_empty, .no-data, .empty")].map((el) => el.textContent).join(" / ");
+        return { message: `${(box?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 120)}${info ? ` [${info.replace(/\s+/g, " ").trim().slice(0, 80)}]` : ""}`, rows };
       })
       .catch(() => ({ message: "", rows: 0 }));
     console.log(`  ${step.say}: message «${safe(info.message, 160)}», ${info.rows} table rows shown`);
+  }
+  // Discover: the page's background requests between «net: start» and «net: print» (path, status,
+  // size and, for JSON, how many records: never what they hold).
+  if (step.net && MODE === "discover") {
+    if (step.net === "start") {
+      NET.length = 0;
+      page.on("response", async (res) => {
+        const type = res.request().resourceType();
+        if (type !== "xhr" && type !== "fetch" && type !== "document") return;
+        let records = "";
+        try {
+          if (/json/.test(res.headers()["content-type"] ?? "")) {
+            const j = await res.json();
+            const list = Array.isArray(j) ? j : Array.isArray(j?.data) ? j.data : Array.isArray(j?.Data) ? j.Data : Array.isArray(j?.aaData) ? j.aaData : null;
+            records = list ? ` records ${list.length}` : ` keys ${Object.keys(j ?? {}).slice(0, 8).map((k) => safe(k, 20)).join(",")}`;
+          }
+        } catch {}
+        NET.push(`${res.request().method()} ${safe(new URL(res.url()).pathname, 80)} → ${res.status()}${records}`);
+      });
+    } else for (const line of NET.splice(0)) console.log(`  net ${line}`);
   }
   // Discover: a filter list's own option labels (fixed words of the page, digits masked) and which is chosen.
   if (step.options && MODE === "discover") {

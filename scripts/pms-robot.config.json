@@ -256,19 +256,7 @@
           "wait": 1000
         },
         {
-          "options": "#specialCase-select"
-        },
-        {
-          "options": "#showDeletedApps-select"
-        },
-        {
-          "options": "#status-select"
-        },
-        {
-          "options": "#reservationWay-select"
-        },
-        {
-          "options": "#source-select"
+          "net": "start"
         },
         {
           "clickText": "Apply Filters"
@@ -278,6 +266,9 @@
         },
         {
           "say": "after apply"
+        },
+        {
+          "net": "print"
         },
         {
           "clickText": "Filters"
@@ -290,8 +281,7 @@
       "alternatives": [],
       "timeout": 60000,
       "branches": [
-        "Abha",
-        "Khamis"
+        "Abha"
       ],
       "valuesOf": [
         "Appointment Status",
