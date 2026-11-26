@@ -83,7 +83,7 @@ const TEXT = {
   },
   en: {
     title: "Income statement",
-    sub: "From the accounting system (trial balance) — actual only, no estimates",
+    sub: "From the accounting system (trial balance) — estimates in a separate column",
     all: "All",
     abha: "Abha",
     khamis: "Khamis Mushait",
@@ -200,7 +200,7 @@ export function IncomeStatementView({
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[28px] border border-ink-100 bg-white shadow-card">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
         <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 sm:p-7">
           <div className="min-w-0">
             <p className="text-sm font-bold text-primary-700">{t.sub}</p>
@@ -419,7 +419,7 @@ export function IncomeStatementView({
                 </Alert>
               )}
               {unbalanced.length > 0 && (
-                <Alert title={`${t.unbalanced}: ${unbalanced.map((m) => monthName.format(new Date(`${m.month}-15T00:00:00Z`))).join("، ")}`} hint={t.unbalancedHint} />
+                <Alert title={`${t.unbalanced}: ${unbalanced.map((m) => monthName.format(new Date(`${m.month}-15T00:00:00Z`))).join(locale === "ar" ? "، " : ", ")}`} hint={t.unbalancedHint} />
               )}
             </div>
           )}
@@ -449,7 +449,7 @@ function Chip({ icon: I }: { icon: Icon }) {
 function Kpi({ icon, title, value, children }: { icon: Icon; title: string; value: ReactNode; children?: ReactNode }) {
   return (
     <section className="card relative min-w-0 overflow-hidden p-5">
-      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />
+      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-ink-600">{title}</p>

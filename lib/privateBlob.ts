@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { BlobNotFoundError, del, get, head, list, put } from "@vercel/blob";
 
 // The private Blob store holds what must never be reachable by a link:
@@ -103,6 +104,19 @@ function filesOnBlob(): boolean {
   return Boolean(privateStore() || process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 }
 
+/** The cache tag of the built finance and operations views (cleared by any write under finance/, acct/ or ops/). */
+export const FINANCE_DATA_TAG = "finance-data";
+
+/** A finance, accounting or operations file changed: the cached views are rebuilt on their next view. */
+function dataChanged(pathname: string) {
+  if (!/^(finance|acct|ops)\//.test(pathname)) return;
+  try {
+    revalidateTag(FINANCE_DATA_TAG);
+  } catch {
+    // Outside a request (a local script): nothing is cached there.
+  }
+}
+
 /** Saves a private file at a fixed name (replacing it). */
 export async function putPrivateFile(pathname: string, bytes: Uint8Array, contentType: string): Promise<void> {
   if (!filesOnBlob()) {
@@ -111,15 +125,16 @@ export async function putPrivateFile(pathname: string, bytes: Uint8Array, conten
     const file = await localPath(pathname);
     await fs.mkdir(path.dirname(file), { recursive: true });
     await fs.writeFile(file, bytes);
-    return;
+  } else {
+    await put(pathname, Buffer.from(bytes), {
+      ...dataStore(),
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType,
+      cacheControlMaxAge: 60,
+    });
   }
-  await put(pathname, Buffer.from(bytes), {
-    ...dataStore(),
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType,
-    cacheControlMaxAge: 60,
-  });
+  dataChanged(pathname);
 }
 
 /** Reads a private file (null when it doesn't exist). */
@@ -139,6 +154,7 @@ export async function readPrivateFile(pathname: string): Promise<Uint8Array | nu
 
 /** Deletes every private file under a folder (e.g. "esign/<id>/"). */
 export async function deletePrivateFolder(prefix: string): Promise<void> {
+  dataChanged(prefix);
   if (!filesOnBlob()) {
     const fs = await import("node:fs/promises");
     await fs.rm(await localPath(prefix), { recursive: true, force: true });
@@ -155,6 +171,7 @@ export async function deletePrivateFolder(prefix: string): Promise<void> {
 
 /** Deletes one private file (no error if it isn't there). */
 export async function deletePrivateFile(pathname: string): Promise<void> {
+  dataChanged(pathname);
   if (!filesOnBlob()) {
     const fs = await import("node:fs/promises");
     await fs.rm(await localPath(pathname), { force: true });

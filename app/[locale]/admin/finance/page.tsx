@@ -1,11 +1,14 @@
+import { ActiveTabIntoView } from "@/components/finance/ActiveTabIntoView";
+import { loadDashboard, loadAcctTab, loadPnl } from "@/lib/financeCache";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, Suspense } from "react";
+import { TabSkeleton } from "@/components/finance/TabSkeleton";
 import { headers } from "next/headers";
 import { CheckCircle2, Link2, Upload, XCircle } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { requireAdminPage } from "@/lib/adminSession";
-import { FINANCE_BRANCHES, OPS_SHARE_TABS, SHARE_COPIES, SHARE_TABS, loadDashboard, officialView, readFinanceSettings, readFinanceStatus, type FinanceBranch, type ShareCopy, type ShareTab } from "@/lib/finance";
+import { FINANCE_BRANCHES, OPS_SHARE_TABS, SHARE_COPIES, SHARE_TABS, officialView, readFinanceSettings, readFinanceStatus, type FinanceBranch, type ShareCopy, type ShareTab } from "@/lib/finance";
 import { getDoctors } from "@/lib/db";
 import { addDays, buildDashboard, riyadhDate } from "@/lib/financeMetrics";
 import { demoData } from "@/lib/financeDemo";
@@ -23,8 +26,7 @@ import { FinanceView } from "@/components/finance/FinanceView";
 import { IncomeStatementView } from "@/components/finance/IncomeStatementView";
 import { AcctView } from "@/components/finance/AcctView";
 import { AcctSettings } from "@/components/finance/AcctSettings";
-import { ACCT_TABS, ACCT_TAB_NAMES, loadAcctTab, type AcctTab } from "@/lib/acctLoad";
-import { loadPnl } from "@/lib/acctPnl";
+import { ACCT_TABS, ACCT_TAB_NAMES, type AcctTab } from "@/lib/acctLoad";
 import type { AcctBasis, AcctBranch } from "@/lib/acct";
 import { PartnerPicker } from "@/components/finance/PartnerPicker";
 import { partnerDoctors } from "@/lib/financeNames";
@@ -76,7 +78,10 @@ export default async function AdminFinancePage({
           ))}
         </nav>
       </div>
+      <ActiveTabIntoView deps={tab} />
+      {/* The tab bar shows at once; the figures stream in (a skeleton until then). */}
       <div className="mt-6">
+        <Suspense key={JSON.stringify([tab, searchParams])} fallback={<TabSkeleton label={locale === "ar" ? "جارٍ تحميل الأرقام…" : "Loading the figures…"} />}>
         {tab === "dashboard" ? (
           <DashboardTab locale={locale} searchParams={searchParams} base={base} />
         ) : tab === "income" ? (
@@ -89,6 +94,7 @@ export default async function AdminFinancePage({
             <AcctSettings locale={locale} saved={searchParams.acctSaved === "1"} />
           </div>
         )}
+        </Suspense>
       </div>
     </div>
   );
@@ -108,6 +114,8 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
   const branch = FINANCE_BRANCHES.includes(searchParams.branch as FinanceBranch) ? (searchParams.branch as FinanceBranch) : "";
   const branches = branch ? [branch] : FINANCE_BRANCHES;
   const demo = searchParams.demo === "1";
+  // The update state (GitHub) is read while the figures load, not after.
+  const freshnessP = demo ? null : freshness(locale);
 
   let view;
   if (demo) {
@@ -118,6 +126,7 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
   } else {
     view = await loadDashboard(date, branches, locale);
   }
+  const fresh = demo ? null : await freshnessP;
 
   const q = (demoOn: boolean) => {
     const p = new URLSearchParams();
@@ -137,7 +146,7 @@ async function DashboardTab({ locale, searchParams, base }: { locale: Locale; se
       demo={demo}
       formAction={base}
       demoLinks={{ on: q(true), off: q(false) }}
-      controls={demo ? undefined : (await freshness(locale)).controls}
+      controls={fresh?.controls}
     />
   );
 }
@@ -147,7 +156,7 @@ async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searc
   const branch: AcctBranch = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
   const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
   const year = /^\d{4}$/.test(searchParams.year ?? "") ? searchParams.year! : upTo.slice(0, 4);
-  const pnl = await loadPnl(year, branch, basis, upTo);
+  const [pnl, fresh] = await Promise.all([loadPnl(year, branch, basis, upTo), freshness(locale)]);
   const href = (q: { branch?: AcctBranch; basis?: AcctBasis }) => {
     const p = new URLSearchParams({ tab: "income" });
     const b = q.branch ?? branch;
@@ -157,14 +166,14 @@ async function IncomeTab({ locale, searchParams, base }: { locale: Locale; searc
     if (searchParams.year) p.set("year", year);
     return `${base}?${p.toString()}`;
   };
-  return <IncomeStatementView pnl={pnl} locale={locale} href={href} showRates {...await freshness(locale)} />;
+  return <IncomeStatementView pnl={pnl} locale={locale} href={href} showRates {...fresh} />;
 }
 
 async function AcctTabView({ tab, locale, searchParams, base }: { tab: AcctTab; locale: Locale; searchParams: Record<string, string | undefined>; base: string }) {
   const upTo = addDays(riyadhDate(), -1);
   const branch: AcctBranch = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
   const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
-  const view = await loadAcctTab(tab, branch, basis, upTo);
+  const [view, fresh] = await Promise.all([loadAcctTab(tab, branch, basis, upTo, locale === "ar" ? "ar" : "en"), freshness(locale)]);
   const href = (q: { branch?: AcctBranch; basis?: AcctBasis }) => {
     const p = new URLSearchParams({ tab });
     const b = q.branch ?? branch;
@@ -173,7 +182,7 @@ async function AcctTabView({ tab, locale, searchParams, base }: { tab: AcctTab; 
     if (s !== "all") p.set("basis", s);
     return `${base}?${p.toString()}`;
   };
-  return <AcctView view={view} locale={locale} branch={branch} basis={basis} href={href} {...await freshness(locale)} />;
+  return <AcctView view={view} locale={locale} branch={branch} basis={basis} href={href} {...fresh} />;
 }
 
 async function SettingsTab({

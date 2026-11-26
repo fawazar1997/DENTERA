@@ -1,3 +1,7 @@
+import { ActiveTabIntoView } from "@/components/finance/ActiveTabIntoView";
+import { Suspense } from "react";
+import { TabSkeleton } from "@/components/finance/TabSkeleton";
+import { loadOps } from "@/lib/financeCache";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
@@ -6,7 +10,7 @@ import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { OpsView } from "@/components/finance/OpsView";
 import { RefreshButton } from "@/components/finance/RefreshButton";
 import { refreshState } from "@/lib/financeRefresh";
-import { OPS_TABS, OPS_TAB_NAMES, loadOps, readOpsSettings, type OpsTab } from "@/lib/opsData";
+import { OPS_TABS, OPS_TAB_NAMES, readOpsSettings, type OpsTab } from "@/lib/opsData";
 import { KPI_KEYS, type BranchFilter, type KpiKey } from "@/lib/opsMetrics";
 import { saveOpsSettingsAction } from "@/lib/opsActions";
 import { SubmitButton } from "@/components/admin/SubmitButton";
@@ -53,7 +57,13 @@ export default async function OperationsPage({
           ))}
         </nav>
       </div>
-      <div className="mt-6">{tab === "opsSettings" ? <Settings locale={locale} saved={searchParams.saved === "1"} /> : <OpsTabView tab={tab} locale={locale} searchParams={searchParams} base={base} />}</div>
+      <ActiveTabIntoView deps={tab} />
+      {/* The tab bar shows at once; the figures stream in (a skeleton until then). */}
+      <div className="mt-6">
+        <Suspense key={JSON.stringify([tab, searchParams])} fallback={<TabSkeleton label={ar ? "جارٍ تحميل الأرقام…" : "Loading the figures…"} />}>
+          {tab === "opsSettings" ? <Settings locale={locale} saved={searchParams.saved === "1"} /> : <OpsTabView tab={tab} locale={locale} searchParams={searchParams} base={base} />}
+        </Suspense>
+      </div>
     </div>
   );
 }
@@ -123,7 +133,7 @@ async function Settings({ locale, saved }: { locale: Locale; saved: boolean }) {
         <p className="mt-1 text-sm text-ink-500">
           {ar
             ? "عند «لا» تعرض نسخة المغربي مؤشرات الفروع فقط، وتُحجب منها جداول الأطباء وأكبر الخصومات والتنبيهات المرتبطة بهم (من الخادم نفسه)."
-            : "With «No», the Al-Maghrabi copy shows branch indicators only; doctors' tables, the top discounts and their alerts are left out by the server."}
+            : "With “No”, the Al-Maghrabi copy shows branch indicators only; doctors' tables, the top discounts and their alerts are left out by the server."}
         </p>
         <div className="mt-2 flex gap-4 text-sm">
           {(["yes", "no"] as const).map((v) => (

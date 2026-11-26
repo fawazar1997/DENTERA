@@ -226,7 +226,7 @@ const EN: typeof AR = {
     expenseSpike: (m: string) => `Expense lines more than 15% above their monthly average (${m})`,
     bankLow: () => "Bank accounts below their minimum",
     pmsGap: () => "PMS vs accounting revenue gap above the threshold",
-    unpostedOld: (n: string) => `${n} unposted entries older than 7 days`,
+    unpostedOld: (n: string) => `${n} unposted ${n === "1" ? "entry" : "entries"} older than 7 days`,
     signFlag: () => "Accounts on the unusual side (asset in credit or liability in debit)",
     unmapped: () => "Revenue or expense accounts not on any income-statement line",
     plVsTb: () => "The income statement does not add up to the trial balance",
@@ -245,7 +245,6 @@ const EN: typeof AR = {
     ga: "General & administrative",
   },
   bs: {
-    ...AR.bs,
     assets: "Assets",
     liabilities: "Liabilities",
     equity: "Equity",
@@ -253,7 +252,7 @@ const EN: typeof AR = {
     total: "Total",
     actual: "Actual",
     y2025: "End of 2025",
-    y2026: "End of 2026 target",
+    y2026: "2026 target",
     balanced: "The balance sheet balances",
     difference: "Out of balance by",
     differenceHint: "Assets − (liabilities + equity). The difference is shown as it is — no adjusting entry and no change to retained earnings.",
@@ -296,7 +295,7 @@ const EN: typeof AR = {
     date: "Date",
     desc: "Description",
     amount: "Amount",
-    internal: (n: number) => `${n} transfers between the company's own accounts left out.`,
+    internal: (n: number) => `${n} ${n === 1 ? "transfer" : "transfers"} between the company's own accounts left out.`,
     noStatements: "Bank statements have not arrived yet; balances are from the trial balance.",
   },
   arap: {
@@ -360,7 +359,6 @@ const EN: typeof AR = {
     overdueTag: "Due, not paid",
   },
   alerts: {
-    ...AR.alerts,
     unposted: "Unposted entries",
     overdue: "Unposted for more than 7 days",
     impactRev: "Unposted effect on revenue",
@@ -452,7 +450,7 @@ export function AcctView({
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-[28px] border border-ink-100 bg-white shadow-card">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
         <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 sm:p-7">
           <div className="min-w-0">
             <p className="text-sm font-bold text-primary-700">{t.sub}</p>
@@ -1117,7 +1115,7 @@ function Chip({ icon: I }: { icon: Icon }) {
 function Kpi({ icon, title, value, hint }: { icon: Icon; title: string; value: ReactNode; hint?: string }) {
   return (
     <section className="card relative min-w-0 overflow-hidden p-5">
-      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />
+      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-bold text-ink-600">{title}</p>

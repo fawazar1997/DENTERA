@@ -39,7 +39,8 @@ async function pmsRevenue(year: string, branch: AcctBranch): Promise<Record<stri
   return out;
 }
 
-export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctBasis, upTo: string) {
+/** A tab's data. Account names follow the locale: the chart's English name in English (else its Arabic one). */
+export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctBasis, upTo: string, locale: "ar" | "en" = "ar") {
   const year = upTo.slice(0, 4);
   const prevYear = String(Number(year) - 1);
   const [tb, prevTb, chartFile, mapping, statements, unposted, settings, pms, status] = await Promise.all([
@@ -53,7 +54,8 @@ export async function loadAcctTab(tab: AcctTab, branch: AcctBranch, basis: AcctB
     pmsRevenue(year, branch),
     readFinanceStatus(),
   ]);
-  const chartList = chartFile?.accounts ?? [];
+  // The views read «ar» first: in English it carries the English name.
+  const chartList = (chartFile?.accounts ?? []).map((a) => (locale === "en" ? { ...a, ar: a.en || a.ar } : a));
   const chart = new Map(chartList.map((a) => [a.code, a]));
   const map = mapping as Mapping;
   const pnlOf = (b: AcctBasis, br: AcctBranch = branch) => buildPnl({ year, branch: br, basis: b, tb, prevTb, chart: chartList, mapping: map, upTo });

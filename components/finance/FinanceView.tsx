@@ -98,7 +98,7 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
     <div className="space-y-6">
       {/* Header: the day, freshness, filters */}
       <section className="relative overflow-hidden rounded-[28px] border border-ink-100 bg-white shadow-card">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
         <div className="pointer-events-none absolute -top-24 end-[-6rem] h-72 w-72 rounded-full bg-primary-100/70 blur-3xl" aria-hidden="true" />
         <div className="pointer-events-none absolute -bottom-28 start-[-4rem] h-64 w-64 rounded-full bg-accent-100/80 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-wrap items-end justify-between gap-5 p-6 sm:p-7">
@@ -412,7 +412,7 @@ function Money({ v, fmt, big }: { v: number; fmt: Fmt; big?: boolean }) {
 }
 
 function Accent() {
-  return <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />;
+  return <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />;
 }
 
 function Section({ title, icon: I, children }: { title: string; icon: Icon; children: ReactNode }) {

@@ -122,9 +122,9 @@ const AR = {
     offers: "حسب نوع العرض: بانتظار استيراد Offers Report.",
   },
 };
+// Every key written out (no «...AR»), so a text added in Arabic and missing here fails the build.
 const EN: typeof AR = {
-  ...AR,
-  sub: "Operating performance — from the clinic system's invoices (Abha and Khamis; lab excluded)",
+  sub: "Operating performance — from the clinic system (Abha and Khamis Mushait; lab excluded)",
   all: "All branches",
   branches: { abha: "Abha", khamis: "Khamis Mushait" },
   month: "Month",
@@ -135,10 +135,105 @@ const EN: typeof AR = {
   target: "Target",
   noTarget: "No target",
   tones: { good: "On target", warn: "Near target", bad: "Below target" },
-  cards: { newPct: "New patients", attendance: "Attendance", noShow: "No-show", perChairDay: "Revenue per chair-day", perDay: "Revenue per working day", discountPct: "Discounts" },
+  cards: {
+    newPct: "New patients",
+    attendance: "Attendance rate",
+    noShow: "No-show rate",
+    perChairDay: "Revenue per chair per day",
+    perDay: "Revenue per working day",
+    discountPct: "Discount rate",
+  },
+  defs: {
+    newPct: "New patient: their first invoice in the branch this year. Returning: they already had an invoice in the branch. “All branches”: each person counts once, and as new if they were new in a branch they visited this month. Rate = new ÷ (new + returning).",
+    attendance: "Appointments whose time has passed: attendance = attended ÷ (booked − cancellations made ≥ 24 hours ahead). Late cancellations (< 24 hours) stay in the base.",
+    noShow: "No-show: an appointment whose time has passed, not cancelled and with no attendance recorded. Rate = no-shows ÷ (booked − early cancellations).",
+    perChairDay: "Net revenue ÷ (chairs × working days). A working day is a date with at least one invoice in the branch. “All branches”: total revenue ÷ the sum of (chairs × days) of each branch.",
+    perDay: "Net revenue ÷ working days (dates with invoices).",
+    discountPct: "Discounts ÷ revenue before discount, both totals taken over the same scope.",
+  },
   apptMissing: "Waiting for the clinic system's appointments report",
-  chairsMissing: "Enter the chairs in «Operating settings»",
+  chairsMissing: "Enter the number of chairs in “Operating settings”",
   noData: "No invoices stored for this month yet.",
+  patients: {
+    groups: "New and returning",
+    group: "Group",
+    newG: "New",
+    retG: "Returning",
+    count: "Patients",
+    invoices: "Invoices",
+    revenue: "Revenue",
+    avg: "Average invoice",
+    definition: (year: string) => `New patient: their first invoice in the branch within ${year}'s records; returning: an earlier invoice in the branch in the same year.`,
+    trend: "New patients rate — months of the year",
+    byBranch: "New patients rate by branch",
+    cohort: "Returned within 90 days",
+    cohortHead: ["Month", "New", "Returned within 90 days", "Rate", ""],
+    incomplete: "Follow-up not complete",
+    byDoctor: "By doctor",
+    doctorHead: ["Doctor", "New", "Returning", "New rate", "Revenue", "Average invoice"],
+  },
+  appt: {
+    title: "Attendance & appointments",
+    states: "States",
+    list: [
+      "Booked: every appointment scheduled in the period, including cancelled ones the report shows were booked, counted once.",
+      "Early cancellation: 24 hours or more before the appointment.",
+      "Late cancellation: less than 24 hours before the appointment.",
+      "Attended: an appointment with attendance recorded.",
+      "No-show: an appointment whose time has passed, not cancelled and with no attendance recorded. Future appointments stay in booked and are left out of the rates.",
+      "When the cancellation time is missing, it shows as “Can't be classified” rather than being assumed.",
+    ],
+    summary: "This month's appointments",
+    head: ["", "Count"],
+    rows: {
+      booked: "Booked",
+      future: "Not yet due",
+      early: "Early cancellation (≥ 24 h)",
+      late: "Late cancellation (< 24 h)",
+      unknownCancel: "Cancellation — can't be classified",
+      attended: "Attended",
+      noShow: "No-show",
+      base: "Base (booked − future − early and unclassified cancellations)",
+    },
+    cancelNote: "The clinic system's appointments report has no cancellation time, so every cancellation shows as “can't be classified” and is left out of the base rather than guessing when it happened.",
+    byBranch: "By branch",
+    byShift: "By shift",
+    shifts: { morning: "Morning (before 3 pm)", evening: "Evening (from 3 pm)" },
+    byDoctor: "By doctor",
+    rateHead: (first: string) => [first, "Booked", "Attended", "No-show", "Cancellations", "Attendance rate", "No-show rate"],
+    trend: "Attendance rate — months of the year",
+    statuses: "Clinic system statuses and how they count",
+    statusHead: ["Status in the system", "Counted as", "Count"],
+    stateNames: { attended: "Attended", noShow: "No-show", cancelled: "Cancelled", open: "No status (a no-show once its time has passed)" },
+    newOld: (n: number, o: number, c: number) => `As marked on the appointment in the system: new ${n} — returning ${o}; confirmed appointments ${c}.`,
+    noMonth: "No appointments stored for this month yet.",
+  },
+  prod: {
+    branches: "Branches",
+    head: ["Branch", "Net revenue", "Working days", "Per working day", "Chairs", "Per chair per day", "Per working day — last month"],
+    trend: "Revenue per working day — months of the year",
+    byDoctor: "Revenue per doctor per working day",
+    doctorHead: ["Doctor", "Net revenue", "Working days", "Per working day"],
+    occupancy: "Chair occupancy: not available — the clinics schedule (Clinics Schedule) isn't visible to the robot's account in the clinic system.",
+  },
+  disc: {
+    totals: "Discounts",
+    gross: "Revenue before discount",
+    discount: "Discounts",
+    pct: "Rate",
+    byBranch: "By branch",
+    byGroup: "By service group",
+    groups: { implant: "Implants", ortho: "Orthodontics & Invisalign", cosmetic: "Cosmetic", general: "General" },
+    byDoctor: "By doctor",
+    top: "Top 10 discounts this month",
+    topHead: ["Invoice", "Date", "Branch", "Doctor", "Service", "Discount", "Rate"],
+    trend: "Discount rate — months of the year",
+    tb: "Check against the trial balance",
+    tbHead: ["Branch", "Account", "Clinic system", "Trial balance", "Difference"],
+    tbMissing: "This month's trial balance isn't stored",
+    over: (pct: string) => `Above the discount limit (${pct})`,
+    offers: "By offer type: waiting for the Offers Report import.",
+  },
 };
 
 const nl = (locale: Locale) => (locale === "ar" ? "ar-SA-u-nu-latn" : "en-US");
@@ -178,7 +273,7 @@ export function OpsView({
     <div className="space-y-6">
       {/* Header: what, which month, which branch */}
       <section className="relative overflow-hidden rounded-[28px] border border-ink-100 bg-white shadow-card">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 via-primary-300 to-primary-900" aria-hidden="true" />
         <div className="relative flex flex-wrap items-end justify-between gap-4 p-6 sm:p-7">
           <div className="min-w-0">
             <p className="text-sm font-bold text-primary-700">{t.sub}</p>
@@ -190,13 +285,13 @@ export function OpsView({
               {controls}
             </div>
           </div>
-          <form method="get" className="flex flex-wrap items-center gap-2">
+          <form method="get" className="flex w-full items-center gap-2 sm:w-auto">
             <input type="hidden" name="tab" value={tab} />
             {data.branch !== "all" && <input type="hidden" name="branch" value={data.branch} />}
             <label className="text-xs font-bold text-ink-600" htmlFor="ops-month">
               {t.month}
             </label>
-            <select id="ops-month" name="month" defaultValue={data.month} className="input h-10 w-auto py-1 text-sm">
+            <select id="ops-month" name="month" defaultValue={data.month} className="input h-10 min-w-0 flex-1 py-1 text-sm sm:w-auto sm:flex-none">
               {[...data.months].reverse().map((m) => (
                 <option key={m} value={m}>
                   {monthName(m)}
@@ -204,7 +299,7 @@ export function OpsView({
               ))}
               {!data.months.includes(data.month) && <option value={data.month}>{monthName(data.month)}</option>}
             </select>
-            <button type="submit" className="btn-outline h-10 px-4 text-sm">
+            <button type="submit" className="btn-outline h-10 shrink-0 px-4 text-sm">
               {t.show}
             </button>
           </form>
@@ -264,7 +359,7 @@ function KpiCard({ k, t, pct, M }: { k: Kpi; t: T; pct: (v: number | null) => st
   const dot = { good: "bg-emerald-600", warn: "bg-amber-500", bad: "bg-red-600" };
   return (
     <section className="card relative min-w-0 p-5">
-      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />
+      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l ltr:bg-gradient-to-r from-primary-500 to-primary-900 opacity-80" aria-hidden="true" />
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-bold text-ink-600">{t.cards[k.key]}</p>
         <details className="group relative">
@@ -309,8 +404,8 @@ function PatientsBody({ d, t, pct, M, monthName, branchName }: { d: OpsData; t: 
   const row = (label: string, g: typeof p.newPatients) => (
     <tr>
       <Td>{label}</Td>
-      <Td num>{g.patients.toLocaleString()}</Td>
-      <Td num>{g.invoices.toLocaleString()}</Td>
+      <Td num>{g.patients.toLocaleString("en-US")}</Td>
+      <Td num>{g.invoices.toLocaleString("en-US")}</Td>
       <Td num>
         <M v={g.revenue} />
       </Td>
@@ -348,8 +443,8 @@ function PatientsBody({ d, t, pct, M, monthName, branchName }: { d: OpsData; t: 
           {d.patients.cohorts.map((c) => (
             <tr key={c.month}>
               <Td>{monthName(c.month)}</Td>
-              <Td num>{c.cohort.toLocaleString()}</Td>
-              <Td num>{c.returned.toLocaleString()}</Td>
+              <Td num>{c.cohort.toLocaleString("en-US")}</Td>
+              <Td num>{c.returned.toLocaleString("en-US")}</Td>
               <Td num muted={!c.complete}>{pct(c.rate)}</Td>
               <Td>{!c.complete && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900 ring-1 ring-amber-200">{t.patients.incomplete}</span>}</Td>
             </tr>
@@ -403,7 +498,7 @@ function ProductivityBody({ d, t, M, monthName, branchName }: { d: OpsData; t: T
           </Table>
         </div>
         <p className="mt-3 text-xs text-ink-500">{t.prod.occupancy}</p>
-        <Columns title={t.prod.trend} points={d.productivity.trend.map((x) => ({ label: monthName(x.month), value: x.perDay }))} fmt={(v) => (v === null ? "—" : Math.round(v).toLocaleString())} />
+        <Columns title={t.prod.trend} points={d.productivity.trend.map((x) => ({ label: monthName(x.month), value: x.perDay }))} fmt={(v) => (v === null ? "—" : Math.round(v).toLocaleString("en-US"))} />
       </Card>
       {d.productivity.byDoctor && (
         <Card title={t.prod.byDoctor} icon={Stethoscope}>
@@ -512,22 +607,24 @@ function DiscountsBody({ d, t, M, pct, monthName, branchName }: { d: OpsData; t:
     <>
       <div className="grid gap-6 xl:grid-cols-2">
         <Card title={t.disc.byBranch} icon={BadgePercent} aside={pct(x.total.pct)}>
-          <Table head={["", t.disc.gross, t.disc.discount, t.disc.pct]}>
-            {x.byBranch.map((b) => (
-              <tr key={b.key}>
-                <Td>{branchName(b.key)}</Td>
-                <Td num>
-                  <M v={b.gross} />
-                </Td>
-                <Td num>
-                  <M v={b.discount} />
-                </Td>
-                <Td num>
-                  <span className={over(b.pct) ? "font-bold text-red-800" : ""}>{pct(b.pct)}</span>
-                </Td>
-              </tr>
-            ))}
-          </Table>
+          <div className="overflow-x-auto">
+            <Table head={["", t.disc.gross, t.disc.discount, t.disc.pct]}>
+              {x.byBranch.map((b) => (
+                <tr key={b.key}>
+                  <Td>{branchName(b.key)}</Td>
+                  <Td num>
+                    <M v={b.gross} />
+                  </Td>
+                  <Td num>
+                    <M v={b.discount} />
+                  </Td>
+                  <Td num>
+                    <span className={over(b.pct) ? "font-bold text-red-800" : ""}>{pct(b.pct)}</span>
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          </div>
           {x.over.length > 0 && (
             <p className="mt-3 rounded-xl bg-red-50 p-2 text-xs font-bold text-red-800 ring-1 ring-red-200">
               {t.disc.over(pct(d.settings.discountThreshold))}: {x.over.map((o) => `${o.level === "branch" ? branchName(o.name) : o.name} ${pct(o.pct)}`).join(" · ")}
@@ -536,39 +633,43 @@ function DiscountsBody({ d, t, M, pct, monthName, branchName }: { d: OpsData; t:
           <Columns title={t.disc.trend} points={x.trend.map((p) => ({ label: monthName(p.month), value: p.pct }))} fmt={pct} />
         </Card>
         <Card title={t.disc.byGroup} icon={BadgePercent}>
-          <Table head={["", t.disc.gross, t.disc.discount, t.disc.pct]}>
-            {Object.entries(x.byGroup).map(([g, v]) => (
-              <tr key={g}>
-                <Td>{t.disc.groups[g] ?? g}</Td>
-                <Td num>
-                  <M v={v!.gross} />
-                </Td>
-                <Td num>
-                  <M v={v!.discount} />
-                </Td>
-                <Td num>{pct(v!.pct)}</Td>
-              </tr>
-            ))}
-          </Table>
+          <div className="overflow-x-auto">
+            <Table head={["", t.disc.gross, t.disc.discount, t.disc.pct]}>
+              {Object.entries(x.byGroup).map(([g, v]) => (
+                <tr key={g}>
+                  <Td>{t.disc.groups[g] ?? g}</Td>
+                  <Td num>
+                    <M v={v!.gross} />
+                  </Td>
+                  <Td num>
+                    <M v={v!.discount} />
+                  </Td>
+                  <Td num>{pct(v!.pct)}</Td>
+                </tr>
+              ))}
+            </Table>
+          </div>
           <p className="mt-3 text-xs text-ink-500">{t.disc.offers}</p>
           <h4 className="mt-5 text-sm font-extrabold text-ink-900">{t.disc.tb}</h4>
-          <Table head={t.disc.tbHead}>
-            {x.tbCheck.map((c) => (
-              <tr key={c.branch}>
-                <Td>{branchName(c.branch)}</Td>
-                <Td>
-                  <span dir="ltr" className="font-mono text-xs">
-                    {c.account}
-                  </span>
-                </Td>
-                <Td num>
-                  <M v={c.pms} />
-                </Td>
-                <Td num>{c.tb === null ? <span className="text-ink-400">{t.disc.tbMissing}</span> : <M v={c.tb} />}</Td>
-                <Td num>{c.diff === null ? "—" : <M v={c.diff} />}</Td>
-              </tr>
-            ))}
-          </Table>
+          <div className="overflow-x-auto">
+            <Table head={t.disc.tbHead}>
+              {x.tbCheck.map((c) => (
+                <tr key={c.branch}>
+                  <Td>{branchName(c.branch)}</Td>
+                  <Td>
+                    <span dir="ltr" className="font-mono text-xs">
+                      {c.account}
+                    </span>
+                  </Td>
+                  <Td num>
+                    <M v={c.pms} />
+                  </Td>
+                  <Td num>{c.tb === null ? <span className="text-ink-400">{t.disc.tbMissing}</span> : <M v={c.tb} />}</Td>
+                  <Td num>{c.diff === null ? "—" : <M v={c.diff} />}</Td>
+                </tr>
+              ))}
+            </Table>
+          </div>
         </Card>
       </div>
       {x.byDoctor && (

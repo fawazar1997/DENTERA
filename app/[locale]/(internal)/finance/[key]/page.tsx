@@ -1,31 +1,36 @@
+import { ActiveTabIntoView } from "@/components/finance/ActiveTabIntoView";
+import { Suspense } from "react";
+import { TabSkeleton } from "@/components/finance/TabSkeleton";
+import { loadAcctTab, loadDashboard, loadOps, loadPnl } from "@/lib/financeCache";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Eye } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
-import { FINANCE_BRANCHES, SHARE_TABS, loadDashboard, readFinanceSettings, readFinanceStatus, sameKey, type FinanceBranch, type ShareCopy } from "@/lib/finance";
+import { FINANCE_BRANCHES, SHARE_TABS, readFinanceSettings, readFinanceStatus, sameKey, type FinanceBranch, type ShareCopy } from "@/lib/finance";
 import { addDays, riyadhDate } from "@/lib/financeMetrics";
 import { financeText } from "@/lib/financeText";
 import Link from "next/link";
 import { FinanceView } from "@/components/finance/FinanceView";
 import { IncomeStatementView } from "@/components/finance/IncomeStatementView";
 import { AcctView } from "@/components/finance/AcctView";
-import { loadPnl } from "@/lib/acctPnl";
-import { ACCT_TABS, ACCT_TAB_NAMES, loadAcctTab } from "@/lib/acctLoad";
+import { ACCT_TABS, ACCT_TAB_NAMES } from "@/lib/acctLoad";
 import type { AcctBasis, AcctBranch } from "@/lib/acct";
 import { Logo } from "@/components/Logo";
 import { OpsView } from "@/components/finance/OpsView";
-import { OPS_TABS, OPS_TAB_NAMES, loadOps, readOpsSettings, type OpsTab } from "@/lib/opsData";
+import { OPS_TABS, OPS_TAB_NAMES, readOpsSettings, type OpsTab } from "@/lib/opsData";
 import type { BranchFilter } from "@/lib/opsMetrics";
 
 const isOpsTab = (k: string): k is OpsTab => (OPS_TABS as readonly string[]).includes(k);
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Dentera — الأداء المالي",
-  robots: { index: false, follow: false, nocache: true },
-  referrer: "no-referrer",
-};
+export function generateMetadata({ params }: { params: { locale: string } }): Metadata {
+  return {
+    title: params.locale === "en" ? "Dentera — Performance" : "Dentera — الأداء المالي والتشغيلي",
+    robots: { index: false, follow: false, nocache: true },
+    referrer: "no-referrer",
+  };
+}
 
 /**
  * The financial dashboard through its private view link (created in Control
@@ -79,38 +84,6 @@ export default async function FinanceSharePage({
     return `${base}?${p.toString()}`;
   };
 
-  // «آخر تحديث» only: the update button is the Control Panel's, never a share link's.
-  const lastUpdate = (await readFinanceStatus()).lastSuccessAt;
-  let body;
-  if (isOpsTab(tab)) {
-    // The operating tabs: doctor level in the management copy, and in Al-Maghrabi's only when allowed (built on the server).
-    const ops = await readOpsSettings();
-    const doctorLevel = copy === "management" || ops.maghrabiDoctorLevel;
-    const month = /^\d{4}-\d{2}$/.test(searchParams.month ?? "") ? searchParams.month! : upTo.slice(0, 7);
-    const opsBranch: BranchFilter = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
-    const opsHref = (q: { month?: string; branch?: BranchFilter }) => {
-      const p = new URLSearchParams({ tab });
-      const m = q.month ?? month;
-      const b = q.branch ?? opsBranch;
-      if (m !== upTo.slice(0, 7)) p.set("month", m);
-      if (b !== "all") p.set("branch", b);
-      return `${base}?${p.toString()}`;
-    };
-    body = <OpsView data={await loadOps({ month, branch: opsBranch, doctorLevel, locale, upTo })} tab={tab} locale={locale} href={opsHref} lastUpdate={lastUpdate} />;
-  } else if (tab === "income") {
-    const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
-    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} showRates={copy === "management"} lastUpdate={lastUpdate} />;
-  } else if (tab !== "dashboard") {
-    const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
-    body = <AcctView view={await loadAcctTab(tab, acctBranch, basis, upTo)} locale={locale} branch={acctBranch} basis={basis} href={href("all")} lastUpdate={lastUpdate} />;
-  } else {
-    const text = searchParams.date;
-    const date = text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : upTo;
-    const branch = FINANCE_BRANCHES.includes(searchParams.branch as FinanceBranch) ? (searchParams.branch as FinanceBranch) : "";
-    const { dashboard, status } = await loadDashboard(date, branch ? [branch] : FINANCE_BRANCHES, locale);
-    body = <FinanceView dashboard={dashboard} status={status} locale={locale} branch={branch} demo={false} formAction={base} shared />;
-  }
-
   return (
     <main className="container-x py-8">
       <header className="mb-6 flex flex-wrap items-center gap-4">
@@ -149,7 +122,66 @@ export default async function FinanceSharePage({
           </Link>
         ))}
       </nav>
-      {body}
+      <ActiveTabIntoView deps={tab} />
+      {/* The tab bars show at once; the figures stream in (a skeleton until then). */}
+      <Suspense key={JSON.stringify([tab, searchParams])} fallback={<TabSkeleton label={locale === "ar" ? "جارٍ تحميل الأرقام…" : "Loading the figures…"} />}>
+        <TabBody tab={tab} copy={copy} locale={locale} searchParams={searchParams} base={base} upTo={upTo} acctBranch={acctBranch} href={href} />
+      </Suspense>
     </main>
   );
+}
+
+/** A tab's figures (streamed below the tab bars). */
+async function TabBody({
+  tab,
+  copy,
+  locale,
+  searchParams,
+  base,
+  upTo,
+  acctBranch,
+  href,
+}: {
+  tab: (typeof SHARE_TABS)[number];
+  copy: ShareCopy;
+  locale: Locale;
+  searchParams: Record<string, string | undefined>;
+  base: string;
+  upTo: string;
+  acctBranch: AcctBranch;
+  href: (defaultBasis: AcctBasis) => (q: { branch?: AcctBranch; basis?: AcctBasis }) => string;
+}) {
+  // «آخر تحديث» only: the update button is the Control Panel's, never a share link's.
+  const [status, ops] = await Promise.all([readFinanceStatus(), readOpsSettings()]);
+  const lastUpdate = status.lastSuccessAt;
+  let body;
+  if (isOpsTab(tab)) {
+    // The operating tabs: doctor level in the management copy, and in Al-Maghrabi's only when allowed (built on the server).
+    const doctorLevel = copy === "management" || ops.maghrabiDoctorLevel;
+    const month = /^\d{4}-\d{2}$/.test(searchParams.month ?? "") ? searchParams.month! : upTo.slice(0, 7);
+    const opsBranch: BranchFilter = searchParams.branch === "abha" || searchParams.branch === "khamis" ? searchParams.branch : "all";
+    const opsHref = (q: { month?: string; branch?: BranchFilter }) => {
+      const p = new URLSearchParams({ tab });
+      const m = q.month ?? month;
+      const b = q.branch ?? opsBranch;
+      if (m !== upTo.slice(0, 7)) p.set("month", m);
+      if (b !== "all") p.set("branch", b);
+      return `${base}?${p.toString()}`;
+    };
+    body = <OpsView data={await loadOps({ month, branch: opsBranch, doctorLevel, locale, upTo })} tab={tab} locale={locale} href={opsHref} lastUpdate={lastUpdate} />;
+  } else if (tab === "income") {
+    const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
+    body = <IncomeStatementView pnl={await loadPnl(upTo.slice(0, 4), acctBranch, basis, upTo)} locale={locale} href={href("all")} showRates={copy === "management"} lastUpdate={lastUpdate} />;
+  } else if (tab !== "dashboard") {
+    const basis: AcctBasis = searchParams.basis === "posted" ? "posted" : "all";
+    body = <AcctView view={await loadAcctTab(tab, acctBranch, basis, upTo, locale === "ar" ? "ar" : "en")} locale={locale} branch={acctBranch} basis={basis} href={href("all")} lastUpdate={lastUpdate} />;
+  } else {
+    const text = searchParams.date;
+    const date = text && /^\d{4}-\d{2}-\d{2}$/.test(text) && !Number.isNaN(Date.parse(text)) ? text : upTo;
+    const branch = FINANCE_BRANCHES.includes(searchParams.branch as FinanceBranch) ? (searchParams.branch as FinanceBranch) : "";
+    const { dashboard, status } = await loadDashboard(date, branch ? [branch] : FINANCE_BRANCHES, locale);
+    body = <FinanceView dashboard={dashboard} status={status} locale={locale} branch={branch} demo={false} formAction={base} shared />;
+  }
+
+  return body;
 }
