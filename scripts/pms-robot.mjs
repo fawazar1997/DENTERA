@@ -84,16 +84,26 @@ function format(iso, pattern) {
   return pattern.replace("yyyy", y).replace("MM", m).replace("dd", d);
 }
 
-/** The Appointments Report's periods: this year's months on a backfill (or «appointments»), else the month so far (to yesterday). */
+/**
+ * The Appointments Report's periods: this year's months on a backfill (or «appointments»), else the
+ * month so far (to yesterday); each cut into 1–10, 11–20, 21–end (the PMS shows at most 10 days at a time).
+ */
 function apptRanges() {
   const y = addDays(riyadh(), -1);
+  const months = [];
   if (MODE === "backfill" || MODE === "appointments") {
-    const out = [];
-    for (let m = `${y.slice(0, 4)}-01-01`; m < monthStart(y); m = shiftMonth(m, 1)) out.push([m, monthEnd(m)]);
-    out.push([monthStart(y), y]);
-    return out;
+    for (let m = `${y.slice(0, 4)}-01-01`; m < monthStart(y); m = shiftMonth(m, 1)) months.push([m, monthEnd(m)]);
   }
-  return [[monthStart(y), y]];
+  months.push([monthStart(y), y]);
+  const out = [];
+  for (const [from, to] of months) {
+    const ym = from.slice(0, 7);
+    for (const [a, b] of [[`${ym}-01`, `${ym}-10`], [`${ym}-11`, `${ym}-20`], [`${ym}-21`, monthEnd(from)]]) {
+      if (a > to) break;
+      out.push([a, b < to ? b : to]);
+    }
+  }
+  return out;
 }
 
 /** The date ranges to export: one per month (keeps each file small). */
@@ -943,7 +953,7 @@ async function main() {
     for (const rep of reports.filter((r) => r.kind === "appointments")) {
       for (const [from, to] of apptRanges()) {
         for (const branch of rep.branches ?? []) {
-          const name = `${rep.name} ${branch} ${from.slice(0, 7)}`;
+          const name = `${rep.name} ${branch} ${from}..${to.slice(8)}`;
           try {
             await ensureSignedIn(page);
             if (rep.menu) await openMenu(page, rep.menu);

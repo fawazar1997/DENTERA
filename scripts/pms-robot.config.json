@@ -262,9 +262,6 @@
           "wait": 12000
         },
         {
-          "say": "after apply"
-        },
-        {
           "clickText": "Filters"
         },
         {
@@ -275,7 +272,8 @@
       "alternatives": [],
       "timeout": 60000,
       "branches": [
-        "Abha"
+        "Abha",
+        "Khamis"
       ],
       "valuesOf": [
         "Appointment Status",
@@ -303,8 +301,7 @@
         "newold",
         "isconfirmed",
         "appointmentservice"
-      ],
-      "range": "month"
+      ]
     },
     {
       "name": "appointments-statistics",
