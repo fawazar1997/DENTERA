@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/finance/cron-sync?slot=night", "schedule": "17 22 * * *" },
+    { "path": "/api/finance/cron-sync?slot=morning", "schedule": "7 7 * * *" }
+  ]
+}

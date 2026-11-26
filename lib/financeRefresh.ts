@@ -107,16 +107,42 @@ export async function startRefresh(by: RefreshBy): Promise<StartResult> {
   // Hold the gap first (a second press in the same moment sees it), then start.
   const at = new Date(now).toISOString();
   await saveRefreshRequest({ at, by });
-  try {
-    const res = await gh(`/actions/workflows/${WORKFLOW}/dispatches`, {
-      method: "POST",
-      body: JSON.stringify({ ref: REF, inputs: { mode: "refresh", requested_by: by } }),
-    });
-    if (res.status !== 204) throw new Error(String(res.status));
-  } catch {
+  if (!(await dispatchRobot("refresh", by))) {
     // Not started: give the gap back.
     await saveRefreshRequest(request ?? null);
     return { ok: false, error: "dispatch" };
   }
   return { ok: true, state: await refreshState() };
+}
+
+/** Starts the robot workflow in a mode (a dispatched run starts within seconds, unlike GitHub's own schedule). */
+async function dispatchRobot(mode: "refresh" | "yesterday", by?: RefreshBy): Promise<boolean> {
+  try {
+    const res = await gh(`/actions/workflows/${WORKFLOW}/dispatches`, {
+      method: "POST",
+      body: JSON.stringify({ ref: REF, inputs: by ? { mode, requested_by: by } : { mode } }),
+    });
+    return res.status === 204;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The nightly and morning runs, started by Vercel Cron at 1:17 am and 10:07 am Riyadh (GitHub's own
+ * schedule can start hours late and stays as a backup). Skipped when a run is going, or when a run
+ * already succeeded since this slot's start (midnight Riyadh for the night slot, 10:00 for the morning one).
+ */
+export async function startScheduledRun(slot: "night" | "morning"): Promise<"started" | "skipped-running" | "skipped-done" | "no-token" | "failed"> {
+  if (!refreshConfigured()) return "no-token";
+  const runs = await latestRuns();
+  if (runs === null) return "failed";
+  if (runs.some(active)) return "skipped-running";
+  const status = await readFinanceStatus();
+  const riyadhToday = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
+  // The slot's start in UTC: 00:00 or 10:00 Riyadh = 21:00 the day before or 07:00 UTC.
+  const slotStart = new Date(Date.parse(`${riyadhToday}T00:00:00Z`) - 3 * 3600_000 + (slot === "morning" ? 10 * 3600_000 : 0)).toISOString();
+  const done = status.runs.some((r) => r.ok && r.source !== "upload" && r.at >= slotStart && (r.mode === undefined || r.mode === "yesterday" || r.mode === "refresh"));
+  if (done) return "skipped-done";
+  return (await dispatchRobot("yesterday")) ? "started" : "failed";
 }
