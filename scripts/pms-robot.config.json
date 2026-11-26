@@ -309,7 +309,9 @@
         "newold",
         "isconfirmed",
         "appointmentservice"
-      ]
+      ],
+      "dateFormat": "MM/dd/yyyy",
+      "range": "month"
     },
     {
       "name": "appointments-statistics",

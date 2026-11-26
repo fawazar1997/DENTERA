@@ -944,7 +944,7 @@ async function main() {
           try {
             await ensureSignedIn(page);
             if (rep.menu) await openMenu(page, rep.menu);
-            const file = await exportReport(latest(page), rep, { from: format(from, config.dateFormat), to: format(to, config.dateFormat), branch }, dir, `${branch}-${from}`);
+            const file = await exportReport(latest(page), rep, { from: format(from, rep.dateFormat ?? config.dateFormat), to: format(to, rep.dateFormat ?? config.dateFormat), branch }, dir, `${branch}-${from}`);
             await closeOthers(page);
             const csv = await toCsv(file, rep);
             const answer = await sendOps(csv.file, { kind: "appointments", branch: branch.toLowerCase(), from, to });
