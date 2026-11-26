@@ -27,6 +27,8 @@ import {
   type OpsInvoice,
 } from "./opsMetrics";
 import type { Specialty } from "./financeTypes";
+import { readAppointmentsMonth, type StoredAppt } from "./opsAppointments";
+import { appointmentStates, type Appointment } from "./opsMetrics";
 
 // --- Settings ---
 
@@ -143,6 +145,59 @@ async function tbDiscounts(month: string): Promise<Partial<Record<OpsBranch, num
   return { abha: sum("4107"), khamis: sum("4108") };
 }
 
+/** Now in Riyadh, YYYY-MM-DDTHH:mm (appointments after it are still to come). */
+const riyadhNow = () => {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Riyadh", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value])
+  );
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+};
+
+/** Before 15:00: the morning shift; from 15:00: the evening shift. */
+const shiftOf = (at: string) => (at.slice(11, 16) < "15:00" ? "morning" : "evening");
+
+/** The appointments part of «الحضور والمواعيد» (no patient code leaves this function). */
+function appointmentsView(stored: StoredAppt[], month: string, branch: BranchFilter, doctorLevel: boolean, official: (pms: string) => string, months: string[]) {
+  const now = riyadhNow();
+  const inScope = stored.filter((a) => branch === "all" || a.branch === branch);
+  const asAppt = (a: StoredAppt, i: number): Appointment => ({ id: String(i), at: a.at, branch: a.branch, doctor: a.doctor, attended: a.state === "attended", cancelled: a.state === "cancelled" });
+  const of = (list: StoredAppt[]) => appointmentStates(list.map(asAppt), now);
+  const monthRows = inScope.filter((a) => a.at.startsWith(month));
+  const prev = shiftMonth(month, -1);
+  const prevRows = inScope.filter((a) => a.at.startsWith(prev));
+  const groupBy = <K extends string>(list: StoredAppt[], keyOf: (a: StoredAppt) => K) => {
+    const map = new Map<K, StoredAppt[]>();
+    for (const a of list) {
+      const k = keyOf(a);
+      const l = map.get(k);
+      if (l) l.push(a);
+      else map.set(k, [a]);
+    }
+    return map;
+  };
+  const statusWords = [...groupBy(monthRows, (a) => `${a.status || "—"}|${a.state}`).entries()]
+    .map(([k, l]) => ({ status: k.split("|")[0], state: l[0].state, count: l.length }))
+    .sort((a, b) => b.count - a.count);
+  const newOld = { new: monthRows.filter((a) => a.newOld === "new").length, old: monthRows.filter((a) => a.newOld === "old").length };
+  return {
+    has: stored.length > 0,
+    hasMonth: monthRows.length > 0,
+    now: of(monthRows),
+    prev: prevRows.length ? of(prevRows) : null,
+    byBranch: OPS_BRANCHES.filter((b) => branch === "all" || b === branch).map((b) => ({ branch: b, ...of(monthRows.filter((a) => a.branch === b)) })),
+    byShift: (["morning", "evening"] as const).map((s) => ({ shift: s, ...of(monthRows.filter((a) => shiftOf(a.at) === s)) })),
+    byDoctor: doctorLevel
+      ? [...groupBy(monthRows, (a) => official(a.doctor)).entries()].map(([name, l]) => ({ name, ...of(l) })).sort((a, b) => b.booked - a.booked)
+      : null,
+    trend: months.map((m) => ({ month: m, ...of(inScope.filter((a) => a.at.startsWith(m))) })),
+    statusWords,
+    newOld,
+    confirmed: monthRows.filter((a) => a.confirmed).length,
+  };
+}
+
 export async function loadOps(args: { month: string; branch: BranchFilter; doctorLevel: boolean; locale: Locale; upTo: string }) {
   const { month, branch, doctorLevel, locale, upTo } = args;
   const [settings, allMonths] = await Promise.all([readOpsSettings(), storedMonths()]);
@@ -151,7 +206,15 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
   const months = allMonths.filter((m) => m.startsWith(year));
   const historyStart = `${year}-01`;
   const wanted = months.filter((m) => m <= month);
-  const invoices = await readInvoices(wanted, locale);
+  const [invoices, apptFiles, doctorsList] = await Promise.all([
+    readInvoices(wanted, locale),
+    Promise.all(wanted.map((m) => readAppointmentsMonth(m))),
+    getDoctors().catch(() => []),
+  ]);
+  const officialName = (pms: string) => {
+    const d = officialDoctor(pms, doctorsList);
+    return d ? shownName(d, locale) : pms;
+  };
   const prev = shiftMonth(month, -1);
   const hasMonth = (m: string) => months.includes(m);
 
@@ -163,13 +226,16 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
   const disc = discounts(invoices, month, branch);
   const discPrev = hasMonth(prev) ? discounts(invoices, prev, branch) : null;
   const t = settings.targets;
+  const trendMonthsAll = last12(month).filter((m) => m.startsWith(year) && m <= month);
+  const appts = appointmentsView(apptFiles.flat(), month, branch, doctorLevel, officialName, trendMonthsAll);
   const cards = KPI_KEYS.map((key) => {
     switch (key) {
       case "newPct":
         return kpi(key, pat.newPct, patPrev?.newPct ?? null, t.newPct ?? null);
       case "attendance":
+        return kpi(key, appts.hasMonth ? appts.now.attendance : null, appts.prev?.attendance ?? null, t.attendance ?? null);
       case "noShow":
-        return kpi(key, null, null, t[key] ?? null); // the appointments report isn't imported yet
+        return kpi(key, appts.hasMonth ? appts.now.noShowRate : null, appts.prev?.noShowRate ?? null, t.noShow ?? null);
       case "perChairDay":
         return kpi(key, prod.perChairDay, prodPrev?.perChairDay ?? null, t.perChairDay ?? null);
       case "perDay":
@@ -239,7 +305,7 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
       tbCheck,
       over,
     },
-    appointments: null as null,
+    appointments: appts,
     year,
     /** Months that can be chosen: every stored month (the indicators of a month use its year's records). */
     months: allMonths.slice(-24),

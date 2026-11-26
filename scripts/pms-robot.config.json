@@ -222,7 +222,7 @@
     {
       "name": "appointments",
       "strict": true,
-      "$comment": "Being set up: discover only (enabled false, so scheduled runs skip it). Logs column titles and counts, never patient data.",
+      "$comment": "Import ready (kind appointments → /api/finance/ops-ingest); kept off (enabled false) until the PMS shows the robot's account all doctors' appointments. Logs column titles and counts, never patient data.",
       "menu": [
         "Reports",
         "Appointments Reports",
@@ -309,8 +309,7 @@
         "newold",
         "isconfirmed",
         "appointmentservice"
-      ],
-      "range": "month"
+      ]
     },
     {
       "name": "appointments-statistics",

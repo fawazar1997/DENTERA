@@ -70,6 +70,30 @@ const AR = {
       "عدم الحضور: موعد مضى وقته ولم يُلغَ ولم يُسجَّل حضوره. المواعيد المستقبلية تبقى في المحجوز وتُستبعد من النسب.",
       "إذا غاب توقيت الإلغاء يظهر «تعذّر التصنيف» بدل الافتراض.",
     ],
+    summary: "مواعيد الشهر",
+    head: ["", "العدد"],
+    rows: {
+      booked: "المحجوزة",
+      future: "لم يحن وقتها بعد",
+      early: "إلغاء مسبق (≥ 24 ساعة)",
+      late: "إلغاء متأخر (< 24 ساعة)",
+      unknownCancel: "إلغاء — تعذّر التصنيف",
+      attended: "الحضور",
+      noShow: "عدم الحضور",
+      base: "المقام (المحجوزة − المستقبلية − الإلغاءات المسبقة وغير المصنفة)",
+    } as Record<string, string>,
+    cancelNote: "تقرير المواعيد في نظام العيادة لا يحمل وقت الإلغاء، فتظهر الإلغاءات كلها في «تعذّر التصنيف» وتُستبعد من المقام حتى لا يُفترض توقيتها.",
+    byBranch: "حسب الفرع",
+    byShift: "حسب الفترة",
+    shifts: { morning: "صباحية (قبل 3 م)", evening: "مسائية (من 3 م)" } as Record<string, string>,
+    byDoctor: "حسب الطبيب",
+    rateHead: (first: string) => [first, "المحجوزة", "الحضور", "عدم الحضور", "الإلغاءات", "نسبة الحضور", "نسبة عدم الحضور"],
+    trend: "نسبة الحضور — أشهر السنة",
+    statuses: "حالات نظام العيادة وتصنيفها",
+    statusHead: ["الحالة في النظام", "التصنيف", "العدد"],
+    stateNames: { attended: "حضور", noShow: "عدم حضور", cancelled: "إلغاء", open: "بلا حالة (يُعد عدم حضور إذا مضى وقته)" } as Record<string, string>,
+    newOld: (n: number, o: number, c: number) => `حسب علامة الموعد في النظام: جدد ${n} — عائدون ${o}؛ المواعيد المؤكدة ${c}.`,
+    noMonth: "لا توجد مواعيد مخزنة لهذا الشهر بعد.",
   },
   prod: {
     branches: "الفروع",
@@ -210,7 +234,8 @@ export function OpsView({
       {!data.hasData && <Note text={t.noData} />}
 
       {tab === "opsPatients" && <PatientsBody d={data} t={t} pct={pct} M={M} monthName={monthName} branchName={branchName} />}
-      {tab === "opsAppointments" && (
+      {tab === "opsAppointments" && data.appointments.has && <ApptBody d={data} t={t} pct={pct} monthName={monthName} branchName={branchName} />}
+      {tab === "opsAppointments" && !data.appointments.has && (
         <Card title={t.appt.title} icon={CalendarCheck}>
           <Note text={t.apptMissing} />
           <h4 className="mt-4 text-sm font-extrabold text-ink-900">{t.appt.states}</h4>
@@ -398,6 +423,83 @@ function ProductivityBody({ d, t, M, monthName, branchName }: { d: OpsData; t: T
           </div>
         </Card>
       )}
+    </>
+  );
+}
+
+function ApptBody({ d, t, pct, monthName, branchName }: { d: OpsData; t: T; pct: (v: number | null) => string; monthName: (m: string) => string; branchName: (b: string) => string }) {
+  const a = d.appointments;
+  const rateRow = (name: string, r: (typeof a)["now"]) => (
+    <tr key={name}>
+      <Td>{name}</Td>
+      <Td num>{r.booked}</Td>
+      <Td num>{r.attended}</Td>
+      <Td num>{r.noShow}</Td>
+      <Td num>{r.early + r.late + r.unknownCancel}</Td>
+      <Td num>{pct(r.attendance)}</Td>
+      <Td num>{pct(r.noShowRate)}</Td>
+    </tr>
+  );
+  if (!a.hasMonth)
+    return (
+      <Card title={t.appt.title} icon={CalendarCheck}>
+        <Note text={t.appt.noMonth} />
+      </Card>
+    );
+  return (
+    <>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card title={t.appt.summary} icon={CalendarCheck}>
+          <Table head={t.appt.head}>
+            {(["booked", "future", "early", "late", "unknownCancel", "attended", "noShow", "base"] as const).map((k) => (
+              <tr key={k}>
+                <Td wrap>{t.appt.rows[k]}</Td>
+                <Td num>{a.now[k]}</Td>
+              </tr>
+            ))}
+          </Table>
+          {a.now.unknownCancel > 0 && <p className="mt-3 text-xs text-ink-500">{t.appt.cancelNote}</p>}
+          <p className="mt-2 text-xs text-ink-500">{t.appt.newOld(a.newOld.new, a.newOld.old, a.confirmed)}</p>
+        </Card>
+        <Card title={t.appt.byBranch} icon={Users}>
+          <div className="overflow-x-auto">
+            <Table head={t.appt.rateHead(t.appt.byBranch)}>{a.byBranch.map((b) => rateRow(branchName(b.branch), b))}</Table>
+          </div>
+          <h4 className="mt-5 text-sm font-extrabold text-ink-900">{t.appt.byShift}</h4>
+          <div className="overflow-x-auto">
+            <Table head={t.appt.rateHead(t.appt.byShift)}>{a.byShift.map((b) => rateRow(t.appt.shifts[b.shift], b))}</Table>
+          </div>
+          <Columns
+            title={t.appt.trend}
+            points={a.trend.filter((x) => x.booked > 0).map((x) => ({ label: monthName(x.month), value: x.attendance === null ? null : x.attendance * 100 }))}
+            fmt={(v) => (v === null ? "—" : `${v.toFixed(1)}%`)}
+          />
+        </Card>
+      </div>
+      {a.byDoctor && (
+        <Card title={t.appt.byDoctor} icon={Stethoscope}>
+          <div className="max-h-[480px] overflow-auto">
+            <Table head={t.appt.rateHead(t.appt.byDoctor)}>{a.byDoctor.map((r) => rateRow(r.name, r))}</Table>
+          </div>
+        </Card>
+      )}
+      <Card title={t.appt.statuses} icon={Info}>
+        <Table head={t.appt.statusHead}>
+          {a.statusWords.map((w) => (
+            <tr key={`${w.status}-${w.state}`}>
+              <Td>{w.status}</Td>
+              <Td wrap>{t.appt.stateNames[w.state]}</Td>
+              <Td num>{w.count}</Td>
+            </tr>
+          ))}
+        </Table>
+        <h4 className="mt-4 text-sm font-extrabold text-ink-900">{t.appt.states}</h4>
+        <ul className="mt-2 list-disc space-y-1.5 ps-5 text-sm text-ink-700">
+          {t.appt.list.map((x) => (
+            <li key={x}>{x}</li>
+          ))}
+        </ul>
+      </Card>
     </>
   );
 }
