@@ -251,6 +251,12 @@
         },
         {
           "wait": 800
+        },
+        {
+          "clickText": "Apply Filters"
+        },
+        {
+          "wait": 15000
         }
       ],
       "export": "Excel",
@@ -762,9 +768,6 @@
     "dateFormat": "dd/MM/yyyy"
   },
   "discoverOnly": [
-    "appointments",
-    "new-old-patients",
-    "appointments-statistics",
-    "doctor-statistics"
+    "appointments"
   ]
 }
