@@ -50,8 +50,8 @@ const AR = {
     invoices: "الفواتير",
     revenue: "الإيراد",
     avg: "متوسط الفاتورة",
-    partial: (start: string) => `السجل المخزن يبدأ من ${start}؛ قد يُحتسب بعض العائدين جددًا في الأشهر الأولى حتى يُستكمل السجل الأقدم.`,
-    trend: "نسبة الجدد — آخر 12 شهرًا",
+    definition: (year: string) => `المريض الجديد: أول فاتورة له في الفرع ضمن سجلات سنة ${year}؛ العائد: له فاتورة سابقة في الفرع خلال السنة نفسها.`,
+    trend: "نسبة الجدد — أشهر السنة",
     byBranch: "نسبة الجدد حسب الفرع",
     cohort: "العودة خلال 90 يومًا",
     cohortHead: ["الشهر", "جدد", "عادوا خلال 90 يومًا", "النسبة", ""],
@@ -73,8 +73,8 @@ const AR = {
   },
   prod: {
     branches: "الفروع",
-    head: ["الفرع", "صافي الإيراد", "أيام العمل", "لكل يوم عمل", "الكراسي", "لكل كرسي/يوم", "الشهر السابق", "نفس الشهر العام الماضي"],
-    trend: "الإيراد لكل يوم عمل — آخر 12 شهرًا",
+    head: ["الفرع", "صافي الإيراد", "أيام العمل", "لكل يوم عمل", "الكراسي", "لكل كرسي/يوم", "لكل يوم عمل — الشهر السابق"],
+    trend: "الإيراد لكل يوم عمل — أشهر السنة",
     byDoctor: "الإيراد لكل طبيب في يوم العمل",
     doctorHead: ["الطبيب", "صافي الإيراد", "أيام العمل", "لكل يوم عمل"],
     occupancy: "نسبة إشغال الكراسي: غير متاحة — جدول العيادات (Clinics Schedule) غير ظاهر لحساب الروبوت في نظام العيادة.",
@@ -90,7 +90,7 @@ const AR = {
     byDoctor: "حسب الطبيب",
     top: "أكبر 10 خصومات في الشهر",
     topHead: ["الفاتورة", "التاريخ", "الفرع", "الطبيب", "الخدمة", "الخصم", "النسبة"],
-    trend: "نسبة الخصومات — آخر 12 شهرًا",
+    trend: "نسبة الخصومات — أشهر السنة",
     tb: "المطابقة مع ميزان المراجعة",
     tbHead: ["الفرع", "الحساب", "نظام العيادة", "ميزان المراجعة", "الفرق"],
     tbMissing: "ميزان الشهر غير مخزن",
@@ -300,8 +300,8 @@ function PatientsBody({ d, t, pct, M, monthName, branchName }: { d: OpsData; t: 
             {row(t.patients.newG, p.newPatients)}
             {row(t.patients.retG, p.returning)}
           </Table>
-          {p.partialHistory && <p className="mt-3 text-xs text-amber-800">{t.patients.partial(monthName(d.historyStart))}</p>}
-          <Columns title={t.patients.trend} points={d.patients.trend.map((x) => ({ label: monthName(x.month), value: x.newPct, muted: x.partial }))} fmt={pct} />
+          <p className="mt-3 text-xs text-ink-500">{t.patients.definition(d.year)}</p>
+          <Columns title={t.patients.trend} points={d.patients.trend.map((x) => ({ label: monthName(x.month), value: x.newPct }))} fmt={pct} />
         </Card>
         <Card title={t.patients.byBranch} icon={Activity}>
           <Table head={[t.month, ...d.patients.trendByBranch.map((b) => branchName(b.branch))]}>
@@ -373,7 +373,6 @@ function ProductivityBody({ d, t, M, monthName, branchName }: { d: OpsData; t: T
                 <Td num>{d.settings.chairs[b.branch] ?? <span className="text-ink-400">{t.na}</span>}</Td>
                 <Td num>{money(b.now.perChairDay)}</Td>
                 <Td num>{money(b.prev?.perDay ?? null)}</Td>
-                <Td num>{money(b.lastYear?.perDay ?? null)}</Td>
               </tr>
             ))}
           </Table>

@@ -145,12 +145,14 @@ async function tbDiscounts(month: string): Promise<Partial<Record<OpsBranch, num
 
 export async function loadOps(args: { month: string; branch: BranchFilter; doctorLevel: boolean; locale: Locale; upTo: string }) {
   const { month, branch, doctorLevel, locale, upTo } = args;
-  const [settings, months] = await Promise.all([readOpsSettings(), storedMonths()]);
-  const historyStart = months[0] ?? month;
+  const [settings, allMonths] = await Promise.all([readOpsSettings(), storedMonths()]);
+  // This year's records only (the management's choice): «new» = first invoice in the branch this year.
+  const year = month.slice(0, 4);
+  const months = allMonths.filter((m) => m.startsWith(year));
+  const historyStart = `${year}-01`;
   const wanted = months.filter((m) => m <= month);
   const invoices = await readInvoices(wanted, locale);
   const prev = shiftMonth(month, -1);
-  const lastYear = shiftMonth(month, -12);
   const hasMonth = (m: string) => months.includes(m);
 
   // Cards: this month and the one before.
@@ -158,7 +160,6 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
   const patPrev = hasMonth(prev) ? patientsForMonth(invoices, prev, branch, historyStart) : null;
   const prod = productivity(invoices, month, branch, settings.chairs);
   const prodPrev = hasMonth(prev) ? productivity(invoices, prev, branch, settings.chairs) : null;
-  const prodLy = hasMonth(lastYear) ? productivity(invoices, lastYear, branch, settings.chairs) : null;
   const disc = discounts(invoices, month, branch);
   const discPrev = hasMonth(prev) ? discounts(invoices, prev, branch) : null;
   const t = settings.targets;
@@ -178,7 +179,7 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
     }
   });
 
-  const trendMonths = last12(month).filter(hasMonth);
+  const trendMonths = last12(month).filter((m) => m.startsWith(year) && hasMonth(m));
   const patientsTrend = trendMonths.map((m) => {
     const p = patientsForMonth(invoices, m, branch, historyStart);
     return { month: m, newPatients: p.newPatients.patients, returning: p.returning.patients, newPct: p.newPct, partial: p.partialHistory };
@@ -193,7 +194,6 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
     branch: b,
     now: productivity(invoices, month, b, settings.chairs),
     prev: hasMonth(prev) ? productivity(invoices, prev, b, settings.chairs) : null,
-    lastYear: hasMonth(lastYear) ? productivity(invoices, lastYear, b, settings.chairs) : null,
   }));
   const discountTrend = trendMonths.map((m) => ({ month: m, ...discounts(invoices, m, branch).total }));
   const tb = await tbDiscounts(month);
@@ -224,7 +224,6 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
     },
     productivity: {
       now: prod,
-      lastYear: prodLy,
       prev: prodPrev,
       byBranch: productivityByBranch,
       trend: productivityTrend,
@@ -241,7 +240,9 @@ export async function loadOps(args: { month: string; branch: BranchFilter; docto
       over,
     },
     appointments: null as null,
-    months: months.slice(-24),
+    year,
+    /** Months that can be chosen: every stored month (the indicators of a month use its year's records). */
+    months: allMonths.slice(-24),
   };
 }
 

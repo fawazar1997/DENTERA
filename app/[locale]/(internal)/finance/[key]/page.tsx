@@ -53,6 +53,11 @@ export default async function FinanceSharePage({
   const TABS = ALL_TABS.filter((k) => !hidden.has(k));
   if (!TABS.length) notFound();
   const tab = TABS.find((k) => k === searchParams.tab) ?? TABS[0];
+  const groups = [
+    { key: "finance", name: locale === "ar" ? "الأداء المالي" : "Financial performance", tabs: TABS.filter((k) => !isOpsTab(k)) },
+    { key: "operations", name: locale === "ar" ? "الأداء التشغيلي" : "Operating performance", tabs: TABS.filter((k) => isOpsTab(k)) },
+  ].filter((g) => g.tabs.length > 0);
+  const activeGroup = isOpsTab(tab) ? "operations" : "finance";
   const tabName = (k: (typeof ALL_TABS)[number]) =>
     k === "dashboard"
       ? t.tabDashboard
@@ -119,13 +124,26 @@ export default async function FinanceSharePage({
           {t.readOnly}
         </span>
       </header>
-      <nav className="mb-6 flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-card">
-        {TABS.map((k) => (
+      {/* Two main tabs (financial / operating), each with its sub-tabs; a group with no visible sub-tab is left out. */}
+      <nav className="mb-3 flex max-w-full gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-card" aria-label={locale === "ar" ? "الأقسام الرئيسية" : "Main sections"}>
+        {groups.map((g) => (
+          <Link
+            key={g.key}
+            href={g.tabs[0] === TABS[0] ? base : `${base}?tab=${g.tabs[0]}`}
+            aria-current={g.key === activeGroup ? "page" : undefined}
+            className={`whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-extrabold ${g.key === activeGroup ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-ink-50"}`}
+          >
+            {g.name}
+          </Link>
+        ))}
+      </nav>
+      <nav className="mb-6 flex max-w-full gap-1 overflow-x-auto px-1" aria-label={groups.find((g) => g.key === activeGroup)?.name}>
+        {(groups.find((g) => g.key === activeGroup)?.tabs ?? []).map((k) => (
           <Link
             key={k}
             href={k === TABS[0] ? base : `${base}?tab=${k}`}
             aria-current={tab === k ? "page" : undefined}
-            className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold ${tab === k ? "bg-ink-900 text-white" : "text-ink-700 hover:bg-ink-50"}`}
+            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-bold ring-1 ${tab === k ? "bg-primary-50 text-primary-900 ring-primary-300" : "bg-white text-ink-700 ring-ink-100 hover:bg-ink-50"}`}
           >
             {tabName(k)}
           </Link>

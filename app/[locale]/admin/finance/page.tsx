@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { headers } from "next/headers";
 import { CheckCircle2, Link2, Upload, XCircle } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
@@ -211,7 +212,7 @@ async function SettingsTab({
           ? "قائمة الدخل"
           : "Income statement"
         : (OPS_SHARE_TABS as readonly string[]).includes(k)
-          ? `${ar ? "تشغيلي" : "Operating"} — ${OPS_TAB_NAMES[ar ? "ar" : "en"][k as OpsTab]}`
+          ? OPS_TAB_NAMES[ar ? "ar" : "en"][k as OpsTab]
           : ACCT_TAB_NAMES[ar ? "ar" : "en"][k as AcctTab];
 
   const imported = searchParams.imported?.split(",").filter(Boolean) ?? [];
@@ -386,9 +387,17 @@ async function SettingsTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100/70">
-                {SHARE_TABS.map((k) => (
-                  <tr key={k}>
-                    <td className="px-3 py-2 font-bold text-ink-800">{shareTabName(k)}</td>
+                {SHARE_TABS.map((k, i) => (
+                  <Fragment key={k}>
+                    {(i === 0 || k === OPS_SHARE_TABS[0]) && (
+                      <tr className="bg-sand-50">
+                        <td colSpan={SHARE_COPIES.length + 1} className="px-3 py-2 text-xs font-extrabold text-primary-800">
+                          {k === OPS_SHARE_TABS[0] ? (ar ? "الأداء التشغيلي" : "Operating performance") : ar ? "الأداء المالي" : "Financial performance"}
+                        </td>
+                      </tr>
+                    )}
+                  <tr>
+                    <td className="px-3 py-2 ps-6 font-bold text-ink-800">{shareTabName(k)}</td>
                     {SHARE_COPIES.map((c) => (
                       <td key={c} className="px-3 py-2 text-center">
                         <input
@@ -401,6 +410,7 @@ async function SettingsTab({
                       </td>
                     ))}
                   </tr>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
