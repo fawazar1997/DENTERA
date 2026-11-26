@@ -310,8 +310,8 @@ export function FinanceView({ dashboard: d, locale, branch, status, demo, formAc
             {d.labFromAccounting && (
               <p className="text-xs text-ink-500 mt-3">
                 {locale === "ar"
-                  ? `إيراد المعمل من الحسابات (4103 − 4106 − 4109، شامل غير المرحّل) حتى ${d.labFromAccounting.to.split("-").reverse().join("-")}، داخل في الإيراد والمستهدف والتوزيع. القيد اليومي يُحتسب بتاريخه، والقيد المجمّع (الشهري) يدخل في أرقام الشهر والسنة فقط. الفواتير وعدد المرضى ومتوسط الفاتورة للعيادات فقط.`
-                  : `Lab revenue is from accounting (4103 − 4106 − 4109, incl. unposted) up to ${d.labFromAccounting.to.split("-").reverse().join("-")}, included in revenue, target and splits. Daily entries count on their date; lumped (monthly) entries count in month and year figures only. Invoices, patients and the average invoice are the clinics' only.`}
+                  ? `إيراد المعمل من الحسابات (4103 − 4106 − 4109، شامل غير المرحّل) حتى ${d.labFromAccounting.to.split("-").reverse().join("-")}، داخل في الإيراد والمستهدف والتوزيع. القيد يُحتسب بتاريخه، وقيد آخر يوم في الشهر (القيد الشهري المجمّع) يدخل في أرقام الشهر والسنة فقط. الفواتير وعدد المرضى ومتوسط الفاتورة للعيادات فقط.`
+                  : `Lab revenue is from accounting (4103 − 4106 − 4109, incl. unposted) up to ${d.labFromAccounting.to.split("-").reverse().join("-")}, included in revenue, target and splits. Entries count on their date; an entry on a month's last day (the lumped monthly entry) counts in month and year figures only. Invoices, patients and the average invoice are the clinics' only.`}
               </p>
             )}
           </Section>

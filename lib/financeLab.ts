@@ -2,17 +2,19 @@
 // 4103 − 4106 − 4109 (net of returns and discounts: credit − debit over the three
 // accounts), from their account statements, which include unposted entries.
 //
-// A line booked per day (a sales invoice or receipt) counts on its date, in the
-// daily figures and the daily chart. A lumped entry (a manual or monthly journal
-// entry covering several days) counts in the monthly figures only.
+// Every lab entry is a manual journal entry, so the entry type can't tell daily
+// from monthly ones: an entry dated on a month's last day is taken as the
+// month's lumped entry (monthly figures only); any other counts on its date, in
+// the daily figures and the daily chart.
 
 import { readStatements } from "./acct";
 import { isLabRevenue } from "./acctRules";
 import type { Aggs } from "./financeMetrics";
 import { emptyBranchDay } from "./financeTypes";
 
-/** Source modules of entries booked per day; anything else is a lumped entry. */
-export const DAILY_SOURCE = /invoice|sales|receipt|pos|point of sale|فاتور|مبيعات|قبض/i;
+/** A month's last day (YYYY-MM-DD): entries dated on it are the month's lumped entries. */
+export const isMonthEnd = (date: string) =>
+  date === new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)), 0)).toISOString().slice(0, 10);
 
 export type LabRevenue = {
   /** Daily entries by date. */
@@ -40,7 +42,7 @@ export async function readLabRevenue(years: string[]): Promise<LabRevenue> {
         const v = l.cr - l.dr;
         const month = l.date.slice(0, 7);
         out.byMonth[month] = round2((out.byMonth[month] ?? 0) + v);
-        const into = DAILY_SOURCE.test(l.source) ? out.daily : out.lumped;
+        const into = isMonthEnd(l.date) ? out.lumped : out.daily;
         into[l.date] = round2((into[l.date] ?? 0) + v);
       }
     }
