@@ -802,8 +802,5 @@
     ],
     "explore": [],
     "dateFormat": "dd/MM/yyyy"
-  },
-  "discoverOnly": [
-    "appointments"
-  ]
+  }
 }
