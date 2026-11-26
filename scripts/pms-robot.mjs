@@ -789,7 +789,9 @@ async function runStep(page, step, vars) {
   if (step.say && MODE === "discover") {
     const info = await page
       .evaluate(() => {
-        const box = [...document.querySelectorAll(".sweet-alert, .swal2-popup, .modal.in .modal-body, .alert, .bootbox-body")].find((el) => el.offsetWidth || el.offsetHeight);
+        const shown = (sel) => [...document.querySelectorAll(sel)].find((el) => el.offsetWidth || el.offsetHeight);
+        // An alert first (e.g. a period too long), then any other message, never the filters form itself.
+        const box = shown(".sweet-alert, .swal2-popup, .bootbox-body") ?? shown(".alert");
         const rows = [...document.querySelectorAll("table tbody tr")].filter((tr) => tr.offsetWidth || tr.offsetHeight).length;
         const info = [...document.querySelectorAll(".dataTables_info, .dataTables_empty, .no-data, .empty")].map((el) => el.textContent).join(" / ");
         return { message: `${(box?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 120)}${info ? ` [${info.replace(/\s+/g, " ").trim().slice(0, 80)}]` : ""}`, rows };
