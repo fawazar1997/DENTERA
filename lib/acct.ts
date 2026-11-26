@@ -198,6 +198,7 @@ export function isoDate(text: unknown): string {
  */
 export function keepText(code: string, dr: number, cr: number): boolean {
   if (/^11(0[3-9]|[1-9])/.test(code)) return false; // receivables and other current assets
+  if (code.startsWith("41")) return false; // revenue (the lab's 4103/4106/4109): the source module only, never a name
   if (code.startsWith("1102")) return cr > 0 && dr === 0;
   return true;
 }

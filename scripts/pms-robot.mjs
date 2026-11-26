@@ -200,6 +200,27 @@ async function openMenu(page, path, system = "pms") {
   await dismissDialogs(page);
 }
 
+/**
+ * Opens a report by the text of its menu link (exact, any case), going to the link's address.
+ * Returns false when no such link (or it has no address).
+ */
+async function openByLink(page, text) {
+  await dismissDialogs(page);
+  const href = await page
+    .evaluate((wanted) => {
+      const norm = (t) => (t || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const a = [...document.querySelectorAll("a[href]")].find((el) => norm(el.textContent) === norm(wanted));
+      const h = a?.getAttribute("href") || "";
+      return h && !/^javascript:|^#$/.test(h) ? new URL(h, location.href).href : "";
+    }, text)
+    .catch(() => "");
+  if (!href) return false;
+  await page.goto(href, { waitUntil: "networkidle" });
+  await page.waitForTimeout(2000);
+  await dismissDialogs(page);
+  return true;
+}
+
 // --- Discover: the shape of each report page, never its data ---
 
 /** Digits runs (dates, amounts, IDs) are masked, long texts cut. */
@@ -292,7 +313,7 @@ async function describe(page, title, navigation = false, strict = /accounting/.t
  * Every link of the page's menus (names and page paths only, never data),
  * hidden submenu items included, so a report's address can be used directly.
  */
-async function listLinks(page, title, visibleOnly = false) {
+async function listLinks(page, title, visibleOnly = false, only = null) {
   console.log(`\n=== ${title} ===`);
   const links = await page
     .evaluate((visibleOnly) => {
@@ -318,6 +339,7 @@ async function listLinks(page, title, visibleOnly = false) {
   for (const l of links) {
     const line = `${safe(l.parent, 40) ? safe(l.parent, 40) + " > " : ""}${safe(l.text)}${l.path ? ` -> ${safe(l.path, 90)}` : ""}`;
     if (seen.has(line)) continue;
+    if (only && !only.test(l.text)) continue;
     seen.add(line);
     if (++n > 400) break;
     console.log(`link ${line}`);
@@ -451,7 +473,7 @@ async function toCsv(file, rep = {}) {
  * No, Date…): short, words only, from a fixed list. Anything else (customer,
  * supplier or account names, amounts) is never printed for accounting.
  */
-const TITLE_WORDS = /^(account|accounts|no\.?|number|name|code|id|level|opening|closing|final|balance|balances|transactions|movement|debit|credit|total|totals|date|reference|ref\.?|description|notes|source|status|module|branch|type|nature|parent|month|amount|journal|entry|#|year|specific|payment|method|transaction|count|section|customer|supplier|group|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|مدين|دائن|رصيد|الرصيد|حساب|الحساب|رقم|اسم|تاريخ|التاريخ|البيان|المبلغ|افتتاحي|الافتتاحي|ختامي|الختامي|الحركة|إجمالي|الإجمالي|الفرع|الحالة|القيد)$/i;
+const TITLE_WORDS = /^(account|accounts|no\.?|number|name|code|id|level|opening|closing|final|balance|balances|transactions|movement|debit|credit|total|totals|date|reference|ref\.?|description|notes|source|status|module|branch|type|nature|parent|month|amount|journal|entry|#|year|specific|payment|method|transaction|count|section|customer|supplier|group|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|مدين|دائن|رصيد|الرصيد|حساب|الحساب|رقم|اسم|تاريخ|التاريخ|البيان|المبلغ|افتتاحي|الافتتاحي|ختامي|الختامي|الحركة|إجمالي|الإجمالي|الفرع|الحالة|القيد|patient|patients|file|appointment|appointments|doctor|doctors|clinic|clinics|chair|chairs|time|start|end|from|to|duration|minutes|mins|hours|visit|visits|new|old|service|services|offer|offers|discount|discounts|gross|net|invoice|invoices|cancel|cancelled|canceled|cancellation|deleted|delete|by|reason|created|booked|booking|attended|attendance|show|never|day|days|schedule|shift|room|user|specialty|speciality|procedure|price|qty|quantity|vat|paid|remaining|category|statistics|percentage|%|morning|evening|period|first|last|arrival|arrived|check|in|out|confirmed|pending|value|before|after|on|of|the|at|and|per|average|avg|rate|working|work|available|occupied|slot|slots)$/i;
 const isTitle = (cell) => {
   const words = String(cell ?? "").replace(/[()\-_/:.,]+/g, " ").trim().split(/\s+/).filter(Boolean);
   return words.length > 0 && words.length <= 4 && words.every((w) => TITLE_WORDS.test(w));
@@ -545,13 +567,32 @@ async function discover() {
       return;
     }
     await describe(page, "after login", true);
+    // The report links of the menus (names and page paths only; never a link to a patient).
+    await listLinks(page, "PMS — report links", false, /report|appointment|patient|clinic|visit|offer|schedule|sales|statistic|never show/i);
     for (const rep of config.reports ?? []) {
       try {
         await ensureSignedIn(page);
-        if (rep.menu) await openMenu(page, rep.menu);
+        if (rep.link) {
+          await page.goto(config.baseUrl, { waitUntil: "networkidle" });
+          await ensureSignedIn(page);
+          if (!(await openByLink(page, rep.link))) {
+            log(`open ${rep.name}: no menu link named «${rep.link}»`, false);
+            continue;
+          }
+        } else if (rep.menu) await openMenu(page, rep.menu);
         log(`open ${rep.name}`);
         const report = latest(page);
-        await describe(report, report === page ? rep.name : `${rep.name} (opened in a new tab)`);
+        // Reports that list patients: only column titles and counts are printed.
+        const strict = Boolean(rep.strict);
+        await describe(report, report === page ? rep.name : `${rep.name} (opened in a new tab)`, false, strict);
+        if (rep.look) {
+          for (const step of rep.look) await runStep(report, step, { from: "", to: "", branch: "" }).catch(() => undefined);
+          await describe(latest(report), `${rep.name} — after ${rep.look.map((x) => x.clickText ?? "step").join(", ")}`, false, strict);
+        }
+        if (!rep.export) {
+          await closeOthers(page);
+          continue;
+        }
         const dir = await mkdtemp(join(tmpdir(), "probe-"));
         try {
           await probe(report, rep, dir);

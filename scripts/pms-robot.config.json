@@ -126,6 +126,116 @@
         }
       ],
       "export": "Excel (SP)"
+    },
+    {
+      "name": "new-old-patients",
+      "link": "New-Old Patients",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "new-old-patients-details",
+      "link": "New-Old Patients Details",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "appointments",
+      "link": "Appointments Report",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "appointments-statistics",
+      "link": "Appointments Statistics Report",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "deleted-appointments",
+      "link": "Deleted Appointments Report",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "patients-never-show",
+      "link": "Patients Never Show Report",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "daily-visits",
+      "link": "Daily Visits Report",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "clinics-management",
+      "link": "Clinics Management",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "clinics-schedule",
+      "link": "Clinics Schedule",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
+    },
+    {
+      "name": "offers",
+      "link": "Offers Report",
+      "strict": true,
+      "look": [
+        {
+          "clickText": "Filters"
+        }
+      ],
+      "$comment": "Discovery only (no export yet): column titles and counts are logged, never patient data."
     }
   ],
   "accounting": {
@@ -268,7 +378,7 @@
         ],
         "export": "Excel",
         "kind": "statement",
-        "accounts": "^(1101|1102|1105|2101|2102|2103|2201|2202)|doctor comm|technicians comm",
+        "accounts": "^(1101|1102|1105|2101|2102|2103|2201|2202|4103|4106|4109)|doctor comm|technicians comm",
         "listFrom": [
           {
             "clickText": "Filters"
