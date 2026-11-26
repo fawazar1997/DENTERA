@@ -473,9 +473,15 @@ async function toCsv(file, rep = {}) {
  * No, Date…): short, words only, from a fixed list. Anything else (customer,
  * supplier or account names, amounts) is never printed for accounting.
  */
-const TITLE_WORDS = /^(account|accounts|no\.?|number|name|code|id|level|opening|closing|final|balance|balances|transactions|movement|debit|credit|total|totals|date|reference|ref\.?|description|notes|source|status|module|branch|type|nature|parent|month|amount|journal|entry|#|year|specific|payment|method|transaction|count|section|customer|supplier|group|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|مدين|دائن|رصيد|الرصيد|حساب|الحساب|رقم|اسم|تاريخ|التاريخ|البيان|المبلغ|افتتاحي|الافتتاحي|ختامي|الختامي|الحركة|إجمالي|الإجمالي|الفرع|الحالة|القيد|patient|patients|file|appointment|appointments|doctor|doctors|clinic|clinics|chair|chairs|time|start|end|from|to|duration|minutes|mins|hours|visit|visits|new|old|service|services|offer|offers|discount|discounts|gross|net|invoice|invoices|cancel|cancelled|canceled|cancellation|deleted|delete|by|reason|created|booked|booking|attended|attendance|show|never|day|days|schedule|shift|room|user|specialty|speciality|procedure|price|qty|quantity|vat|paid|remaining|category|statistics|percentage|%|morning|evening|period|first|last|arrival|arrived|check|in|out|confirmed|pending|value|before|after|on|of|the|at|and|per|average|avg|rate|working|work|available|occupied|slot|slots)$/i;
+const TITLE_WORDS = /^(account|accounts|no\.?|number|name|code|id|level|opening|closing|final|balance|balances|transactions|movement|debit|credit|total|totals|date|reference|ref\.?|description|notes|source|status|module|branch|type|nature|parent|month|amount|journal|entry|#|year|specific|payment|method|transaction|count|section|customer|supplier|group|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|مدين|دائن|رصيد|الرصيد|حساب|الحساب|رقم|اسم|تاريخ|التاريخ|البيان|المبلغ|افتتاحي|الافتتاحي|ختامي|الختامي|الحركة|إجمالي|الإجمالي|الفرع|الحالة|القيد|patient|patients|file|appointment|appointments|doctor|doctors|clinic|clinics|chair|chairs|time|start|end|from|to|duration|minutes|mins|hours|visit|visits|new|old|service|services|offer|offers|discount|discounts|gross|net|invoice|invoices|cancel|cancelled|canceled|cancellation|deleted|delete|by|reason|created|booked|booking|attended|attendance|show|never|day|days|schedule|shift|room|user|specialty|speciality|procedure|price|qty|quantity|vat|paid|remaining|category|statistics|percentage|%|morning|evening|period|first|last|arrival|arrived|check|in|out|confirmed|pending|value|before|after|on|of|the|at|and|per|average|avg|rate|working|work|available|occupied|slot|slots|full|mobile|phone|national|nationality|seq|company|sub|desc|sold|age|gender|email|notes|reservation|way|total|grand|single|on|app|leave|technician|added|contacted|contact|actions|actions|old|returning|returned|count|counts|visit|statuses|percent|ratio|clinic|branch|area|resident|city|is)$/i;
 const isTitle = (cell) => {
-  const words = String(cell ?? "").replace(/[()\-_/:.,]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  // «PatientFileNo» reads as «Patient File No» (column names written as one word).
+  const words = String(cell ?? "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[()\-_/:.,]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   return words.length > 0 && words.length <= 4 && words.every((w) => TITLE_WORDS.test(w));
 };
 
@@ -568,7 +574,7 @@ async function discover() {
     }
     await describe(page, "after login", true);
     // The report links of the menus (names and page paths only; never a link to a patient).
-    await listLinks(page, "PMS — report links", false, /report|appointment|patient|clinic|visit|offer|schedule|sales|statistic|never show/i);
+    await listLinks(page, "PMS — report links", false, /report|appointment|patient|clinic|visit|offer|schedule|sales|statistic|never show|setting|setup|management|working|shift|hours|room|chair/i);
     for (const rep of config.reports ?? []) {
       try {
         await ensureSignedIn(page);
