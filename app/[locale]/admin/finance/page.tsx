@@ -4,7 +4,7 @@ import { CheckCircle2, Link2, Upload, XCircle } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { requireAdminPage } from "@/lib/adminSession";
-import { FINANCE_BRANCHES, SHARE_COPIES, SHARE_TABS, loadDashboard, officialView, readFinanceSettings, readFinanceStatus, type FinanceBranch, type ShareCopy, type ShareTab } from "@/lib/finance";
+import { FINANCE_BRANCHES, OPS_SHARE_TABS, SHARE_COPIES, SHARE_TABS, loadDashboard, officialView, readFinanceSettings, readFinanceStatus, type FinanceBranch, type ShareCopy, type ShareTab } from "@/lib/finance";
 import { getDoctors } from "@/lib/db";
 import { addDays, buildDashboard, riyadhDate } from "@/lib/financeMetrics";
 import { demoData } from "@/lib/financeDemo";
@@ -30,6 +30,7 @@ import { partnerDoctors } from "@/lib/financeNames";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { LinkCard } from "@/components/admin/LinkCard";
+import { OPS_TAB_NAMES, type OpsTab } from "@/lib/opsData";
 import { RefreshButton } from "@/components/finance/RefreshButton";
 import { refreshState } from "@/lib/financeRefresh";
 import { BY_TEXT, reasonText } from "@/lib/financeRefreshText";
@@ -203,7 +204,15 @@ async function SettingsTab({
   const ar = locale === "ar";
   const copyName: Record<ShareCopy, string> = ar ? { management: "نسخة الإدارة", maghrabi: "نسخة إدارة المغربي" } : { management: "Management copy", maghrabi: "Al-Maghrabi copy" };
   const shareTabName = (k: ShareTab) =>
-    k === "dashboard" ? t.tabDashboard : k === "income" ? (ar ? "قائمة الدخل" : "Income statement") : ACCT_TAB_NAMES[ar ? "ar" : "en"][k];
+    k === "dashboard"
+      ? t.tabDashboard
+      : k === "income"
+        ? ar
+          ? "قائمة الدخل"
+          : "Income statement"
+        : (OPS_SHARE_TABS as readonly string[]).includes(k)
+          ? `${ar ? "تشغيلي" : "Operating"} — ${OPS_TAB_NAMES[ar ? "ar" : "en"][k as OpsTab]}`
+          : ACCT_TAB_NAMES[ar ? "ar" : "en"][k as AcctTab];
 
   const imported = searchParams.imported?.split(",").filter(Boolean) ?? [];
   const kindName = (k: string) => (k === "invoices" ? t.invoices : k === "payments" ? t.paymentsReport : k === "installments" ? t.installments : k);

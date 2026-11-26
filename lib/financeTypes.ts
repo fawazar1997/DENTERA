@@ -123,7 +123,9 @@ export type FinanceSettings = {
 /** The two view-link copies. */
 export type ShareCopy = "management" | "maghrabi";
 export const SHARE_COPIES: ShareCopy[] = ["management", "maghrabi"];
-export const SHARE_TABS = ["dashboard", "income", "balance", "cash", "arap", "financing", "alerts"] as const;
+export const SHARE_TABS = ["dashboard", "income", "balance", "cash", "arap", "financing", "alerts", "opsPatients", "opsAppointments", "opsProductivity", "opsDiscounts"] as const;
+/** The operating tabs (Control Panel → الأداء التشغيلي), shown in the same share links. */
+export const OPS_SHARE_TABS = ["opsPatients", "opsAppointments", "opsProductivity", "opsDiscounts"] as const;
 export type ShareTab = (typeof SHARE_TABS)[number];
 
 export type FinanceRun = {

@@ -27,7 +27,8 @@ const config = JSON.parse(await readFile(join(here, "pms-robot.config.json"), "u
 const SITE = (process.env.SITE_URL || "https://dentera.com.sa").replace(/\/+$/, "");
 const KEY = process.env.FINANCE_INGEST_KEY || "";
 const MODE = process.env.MODE || "yesterday";
-const MONTHS = Math.min(24, Math.max(1, Number(process.env.MONTHS) || 13));
+// Up to 5 years back: the operating indicators need each patient's first visit in the branch.
+const MONTHS = Math.min(60, Math.max(1, Number(process.env.MONTHS) || 13));
 // «refresh»: the Control Panel's «تحديث الآن» (who pressed it: a role, never a person's name).
 const REQUESTED_BY = ["admin", "finance"].includes(process.env.REQUESTED_BY ?? "") ? process.env.REQUESTED_BY : undefined;
 
@@ -551,7 +552,7 @@ async function probe(page, rep, dir) {
       } catch (error) {
         log(`export ${tag} (${safe(error?.message, 200)})`, false);
         const tabs = page.context().pages().length;
-        await describe(latest(page), `${tag} — after the attempt (${tabs} tab${tabs > 1 ? "s" : ""} open)`);
+        await describe(latest(page), `${tag} — after the attempt (${tabs} tab${tabs > 1 ? "s" : ""} open)`, false, Boolean(rep.strict) || /accounting/.test(tag));
       }
     }
     if (!done) log(`probe ${rep.name}${branch ? ` ${branch}` : ""}: no way worked`, false);

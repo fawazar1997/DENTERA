@@ -25,7 +25,7 @@ const MARKETING_SECTIONS = [
 const HR_SECTIONS = ["", "/documents", "/esign", "/careers"];
 
 /** Finance: the financial performance dashboard only. */
-const FINANCE_SECTIONS = ["", "/finance"];
+const FINANCE_SECTIONS = ["", "/finance", "/operations"];
 
 export function canUseSection(user: AdminUser | null, section: string): boolean {
   if (user === "admin") return true;

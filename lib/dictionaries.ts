@@ -297,6 +297,7 @@ export const dictionaries = {
       hintEsign: "Contracts and documents signed online, step by step, saved to Google Drive.",
       hintCareers: "Job applications from the website: screening, stages, analytics and exclusion.",
       hintFinance: "Daily revenue, targets, collections, invoices and doctors, from the clinic system.",
+      hintOperations: "New and returning patients, attendance, productivity per chair and per working day, and discounts.",
       hintDoctors: "Add a doctor, or edit their photo, title, CV, branches and hours.",
       hintDepartments: "The clinic's departments, their icons and descriptions.",
       hintHome: "Order the home page sections and show or hide each one.",
@@ -486,6 +487,7 @@ export const dictionaries = {
       esign: "E-signature",
       careers: "Hiring",
       finance: "Financial performance",
+      operations: "Operating performance",
       pricesSubtitle:
         "The clinic's internal price list for staff. It's kept private (not on the website) and opened only through its private link.",
       pricesLinkHint:
@@ -943,6 +945,7 @@ export const dictionaries = {
       hintEsign: "توقيع العقود والمستندات إلكترونيًا حسب الإجراء، وحفظها في Google Drive.",
       hintCareers: "طلبات التوظيف من الموقع: فرز ومراحل وتحليل واستبعاد.",
       hintFinance: "الإيراد اليومي والمستهدف والتحصيل والفواتير والأطباء، من نظام العيادة.",
+      hintOperations: "المرضى الجدد والعائدون، والحضور، والإنتاجية لكل كرسي ولكل يوم عمل، والخصومات.",
       hintDoctors: "إضافة طبيب، أو تعديل صورته ولقبه وسيرته وفروعه وأوقاته.",
       hintDepartments: "أقسام العيادة وأيقوناتها ونصوصها.",
       hintHome: "ترتيب أقسام الصفحة الرئيسية وإظهار أو إخفاء كل قسم.",
@@ -1126,6 +1129,7 @@ export const dictionaries = {
       esign: "التوقيع الإلكتروني",
       careers: "التوظيف",
       finance: "الأداء المالي",
+      operations: "الأداء التشغيلي",
       pricesSubtitle:
         "قائمة الأسعار الداخلية للموظفين. محفوظة بشكل خاص (لا تظهر في الموقع) وتُفتح فقط عبر رابطها الخاص.",
       pricesLinkHint:

@@ -36,7 +36,7 @@ export * from "./financeTypes";
 //   finance/status.json            the robot's / uploads' last runs
 
 /** A month's stored reports: detailed lines, payments, and the Sales Report's invoices. */
-type MonthData = { lines: FinLine[]; payments: FinPayment[]; sales?: SalesInvoice[] };
+export type MonthData = { lines: FinLine[]; payments: FinPayment[]; sales?: SalesInvoice[] };
 
 async function readJson<T>(path: string): Promise<T | null> {
   const bytes = await readPrivateFile(path).catch(() => null);
@@ -89,6 +89,9 @@ export async function recordRun(run: FinanceRun): Promise<void> {
 
 export const readRefreshRequest = () => readJson<RefreshRequest>("finance/refresh.json");
 export const saveRefreshRequest = (r: RefreshRequest | null) => writeJson("finance/refresh.json", r);
+
+/** A month's stored invoice lines (private): for the operating indicators. */
+export const readMonthLines = (month: string) => readJson<MonthData>(`finance/lines/${month}.json`);
 
 export async function readMonthAgg(month: string): Promise<MonthAgg | undefined> {
   return (await readJson<MonthAgg>(`finance/days/${month}.json`)) ?? undefined;

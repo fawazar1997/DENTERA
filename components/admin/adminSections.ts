@@ -1,4 +1,4 @@
-import {
+import { Activity,
   Archive,
   BookUser,
   Briefcase,
@@ -73,7 +73,10 @@ export const ADMIN_SECTION_GROUPS: AdminSectionGroup[] = [
   },
   {
     label: "navGroupFinance",
-    sections: [{ path: "/finance", label: "finance", hint: "hintFinance", icon: LineChart }],
+    sections: [
+      { path: "/finance", label: "finance", hint: "hintFinance", icon: LineChart },
+      { path: "/operations", label: "operations", hint: "hintOperations", icon: Activity },
+    ],
   },
   {
     label: "navGroupHr",
