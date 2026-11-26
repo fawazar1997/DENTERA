@@ -519,6 +519,33 @@ async function inspect(file, strict = false) {
   if (columns.length) console.log(`file columns: ${columns.join(" | ")}`);
 }
 
+/**
+ * The distinct values of a few status columns (e.g. «Appointment Status», «New / Old»), with counts:
+ * labels from a fixed set, never people. A value with digits is masked; more than 30 values are cut.
+ */
+async function listValues(file, columns) {
+  try {
+    const XLSX = (await import("xlsx")).default;
+    const table = XLSX.utils.sheet_to_json(XLSX.read(await readFile(file), { type: "buffer" }).Sheets[XLSX.read(await readFile(file), { type: "buffer" }).SheetNames[0]], { header: 1, raw: false, defval: "" });
+    const key = (v) => String(v ?? "").toLowerCase().replace(/[\s_./()-]+/g, "");
+    const at = table.findIndex((r) => columns.some((c) => r.some((x) => key(x) === key(c))));
+    if (at < 0) return console.log("values: columns not found");
+    for (const c of columns) {
+      const i = table[at].findIndex((x) => key(x) === key(c));
+      if (i < 0) continue;
+      const counts = new Map();
+      for (const r of table.slice(at + 1)) {
+        const v = String(r[i] ?? "").trim();
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+      }
+      const shown = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([v, n]) => `${/\d/.test(v) || v.length > 30 ? "·" : v || "(empty)"} ${n}`);
+      console.log(`values ${c}: ${shown.join(" | ")}`);
+    }
+  } catch {
+    console.log("values: not readable");
+  }
+}
+
 /** Exports a report for yesterday and prints the file's shape; the file is deleted. */
 async function probe(page, rep, dir) {
   if (!rep.export) {
@@ -545,6 +572,7 @@ async function probe(page, rep, dir) {
         const file = await exportReport(page, way, { from, to: y, branch, account: rep.sampleAccount }, dir, `probe-${n}`);
         log(`export ${tag}`);
         await inspect(file, rep.strict);
+        if (rep.valuesOf) await listValues(file, rep.valuesOf);
         await rm(file, { force: true });
         done = true;
         break;

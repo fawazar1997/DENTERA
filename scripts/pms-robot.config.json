@@ -265,6 +265,13 @@
       "branches": [
         "Abha",
         "Khamis"
+      ],
+      "valuesOf": [
+        "Appointment Status",
+        "New / Old",
+        "Is Confirmed",
+        "Appointment Source",
+        "Appointment Type"
       ]
     },
     {
