@@ -575,7 +575,10 @@ async function discover() {
     await describe(page, "after login", true);
     // The report links of the menus (names and page paths only; never a link to a patient).
     await listLinks(page, "PMS — report links", false, /report|appointment|patient|clinic|visit|offer|schedule|sales|statistic|never show|setting|setup|management|working|shift|hours|room|chair/i);
+    // «discoverOnly» in the config: only those reports, and no accounting pages (a short run).
+    const only = Array.isArray(config.discoverOnly) && config.discoverOnly.length ? config.discoverOnly : null;
     for (const rep of config.reports ?? []) {
+      if (only && !only.includes(rep.name)) continue;
       try {
         await ensureSignedIn(page);
         if (rep.link) {
@@ -615,7 +618,7 @@ async function discover() {
       }
       await closeOthers(page);
     }
-    await discoverAccounting(browser);
+    if (!only) await discoverAccounting(browser);
   } finally {
     await browser.close();
   }

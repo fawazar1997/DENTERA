@@ -153,37 +153,11 @@
           "clickText": "Apply Filters"
         },
         {
-          "wait": 6000
+          "wait": 15000
         }
       ],
       "export": "Excel",
-      "alternatives": [
-        {
-          "steps": [
-            {
-              "clickText": "Filters"
-            },
-            {
-              "wait": 1500
-            },
-            {
-              "fill": "#fromDate-txt",
-              "value": "{from}"
-            },
-            {
-              "fill": "#toDate-txt",
-              "value": "{to}"
-            },
-            {
-              "clickText": "Apply Filters"
-            },
-            {
-              "wait": 6000
-            }
-          ],
-          "export": "Excel"
-        }
-      ],
+      "alternatives": [],
       "timeout": 60000
     },
     {
@@ -264,45 +238,28 @@
           "wait": 1500
         },
         {
-          "fill": "#date-txt",
-          "value": "{from} - {to}"
+          "fill": "#fromDate-txt",
+          "value": "{from}"
         },
         {
-          "clickText": "Apply Filters"
+          "fill": "#toDate-txt",
+          "value": "{to}"
         },
         {
-          "wait": 6000
+          "select": "#branch-select",
+          "value": "{branch}"
+        },
+        {
+          "wait": 800
         }
       ],
       "export": "Excel",
-      "alternatives": [
-        {
-          "steps": [
-            {
-              "clickText": "Filters"
-            },
-            {
-              "wait": 1500
-            },
-            {
-              "fill": "#fromDate-txt",
-              "value": "{from}"
-            },
-            {
-              "fill": "#toDate-txt",
-              "value": "{to}"
-            },
-            {
-              "clickText": "Apply Filters"
-            },
-            {
-              "wait": 6000
-            }
-          ],
-          "export": "Excel"
-        }
-      ],
-      "timeout": 60000
+      "alternatives": [],
+      "timeout": 90000,
+      "branches": [
+        "Abha",
+        "Khamis"
+      ]
     },
     {
       "name": "appointments-statistics",
@@ -323,8 +280,12 @@
           "wait": 1500
         },
         {
-          "fill": "#date-txt",
-          "value": "{from} - {to}"
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
         },
         {
           "clickText": "Apply Filters"
@@ -334,33 +295,7 @@
         }
       ],
       "export": "Excel",
-      "alternatives": [
-        {
-          "steps": [
-            {
-              "clickText": "Filters"
-            },
-            {
-              "wait": 1500
-            },
-            {
-              "fill": "#fromDate-txt",
-              "value": "{from}"
-            },
-            {
-              "fill": "#toDate-txt",
-              "value": "{to}"
-            },
-            {
-              "clickText": "Apply Filters"
-            },
-            {
-              "wait": 6000
-            }
-          ],
-          "export": "Excel"
-        }
-      ],
+      "alternatives": [],
       "timeout": 60000
     },
     {
@@ -382,8 +317,12 @@
           "wait": 1500
         },
         {
-          "fill": "#date-txt",
-          "value": "{from} - {to}"
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
         },
         {
           "clickText": "Apply Filters"
@@ -393,33 +332,7 @@
         }
       ],
       "export": "Excel",
-      "alternatives": [
-        {
-          "steps": [
-            {
-              "clickText": "Filters"
-            },
-            {
-              "wait": 1500
-            },
-            {
-              "fill": "#fromDate-txt",
-              "value": "{from}"
-            },
-            {
-              "fill": "#toDate-txt",
-              "value": "{to}"
-            },
-            {
-              "clickText": "Apply Filters"
-            },
-            {
-              "wait": 6000
-            }
-          ],
-          "export": "Excel"
-        }
-      ],
+      "alternatives": [],
       "timeout": 60000
     },
     {
@@ -478,8 +391,12 @@
           "wait": 1500
         },
         {
-          "fill": "#date-txt",
-          "value": "{from} - {to}"
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
         },
         {
           "clickText": "Apply Filters"
@@ -489,33 +406,7 @@
         }
       ],
       "export": "Excel",
-      "alternatives": [
-        {
-          "steps": [
-            {
-              "clickText": "Filters"
-            },
-            {
-              "wait": 1500
-            },
-            {
-              "fill": "#fromDate-txt",
-              "value": "{from}"
-            },
-            {
-              "fill": "#toDate-txt",
-              "value": "{to}"
-            },
-            {
-              "clickText": "Apply Filters"
-            },
-            {
-              "wait": 6000
-            }
-          ],
-          "export": "Excel"
-        }
-      ],
+      "alternatives": [],
       "timeout": 60000
     },
     {
@@ -536,8 +427,12 @@
           "wait": 1500
         },
         {
-          "fill": "#date-txt",
-          "value": "{from} - {to}"
+          "fill": "#fromDate-txt",
+          "value": "{from}"
+        },
+        {
+          "fill": "#toDate-txt",
+          "value": "{to}"
         },
         {
           "clickText": "Apply Filters"
@@ -547,33 +442,7 @@
         }
       ],
       "export": "Excel",
-      "alternatives": [
-        {
-          "steps": [
-            {
-              "clickText": "Filters"
-            },
-            {
-              "wait": 1500
-            },
-            {
-              "fill": "#fromDate-txt",
-              "value": "{from}"
-            },
-            {
-              "fill": "#toDate-txt",
-              "value": "{to}"
-            },
-            {
-              "clickText": "Apply Filters"
-            },
-            {
-              "wait": 6000
-            }
-          ],
-          "export": "Excel"
-        }
-      ],
+      "alternatives": [],
       "$comment": "Being set up: discover only (enabled false, so scheduled runs skip it). Logs column titles and counts, never patient data.",
       "timeout": 60000
     },
@@ -891,5 +760,11 @@
     ],
     "explore": [],
     "dateFormat": "dd/MM/yyyy"
-  }
+  },
+  "discoverOnly": [
+    "appointments",
+    "new-old-patients",
+    "appointments-statistics",
+    "doctor-statistics"
+  ]
 }
