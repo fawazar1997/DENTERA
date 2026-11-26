@@ -249,6 +249,10 @@
           "value": "{branch}"
         },
         {
+          "select": "#doctorsL-select",
+          "value": "All"
+        },
+        {
           "wait": 1000
         },
         {
@@ -256,6 +260,9 @@
         },
         {
           "wait": 12000
+        },
+        {
+          "say": "after apply"
         },
         {
           "clickText": "Filters"

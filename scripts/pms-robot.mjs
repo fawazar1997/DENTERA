@@ -765,6 +765,17 @@ async function runStep(page, step, vars) {
     if (isForbidden((await el.textContent().catch(() => "")) ?? "")) throw new Error("refused");
     await el.click();
   }
+  // Discover: the text of an open message box (e.g. «Please select a doctor»), digits masked; and the rows shown.
+  if (step.say && MODE === "discover") {
+    const info = await page
+      .evaluate(() => {
+        const box = [...document.querySelectorAll(".sweet-alert, .swal2-popup, .modal.in .modal-body, .alert, .bootbox-body")].find((el) => el.offsetWidth || el.offsetHeight);
+        const rows = [...document.querySelectorAll("table tbody tr")].filter((tr) => tr.offsetWidth || tr.offsetHeight).length;
+        return { message: (box?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 160), rows };
+      })
+      .catch(() => ({ message: "", rows: 0 }));
+    console.log(`  ${step.say}: message «${safe(info.message, 160)}», ${info.rows} table rows shown`);
+  }
   if (step.wait) await page.waitForTimeout(Math.min(30_000, Number(step.wait)));
   if (step.waitFor) await page.locator(step.waitFor).first().waitFor({ timeout: 60_000 });
 }
