@@ -25,11 +25,17 @@ export async function getDirectoryData(
   { includeExcluded = false }: { includeExcluded?: boolean } = {}
 ) {
   const dict = getDictionary(locale);
-  const [doctors, departments, branches] = await Promise.all([
+  const [doctors, departments, branches, settings] = await Promise.all([
     getDoctors(),
     getDepartments(),
     getBranches(),
+    getSettings(),
   ]);
+  // Working hours: only those set for the doctor in a branch, when the directory shows hours
+  // (control panel → coordination directory) and the doctor's own switch is on.
+  const showHours = settings.directoryShowHours !== false;
+  const ownHours = (d: (typeof doctors)[number]) =>
+    (d.branchIds ?? []).filter((id) => d.hours?.[id]?.length === 7).map((branchId) => ({ branchId, schedule: d.hours![branchId] }));
 
   const list: DirectoryDoctor[] = doctors
     .filter((d) => includeExcluded || d.showInDirectory !== false)
@@ -45,6 +51,9 @@ export async function getDirectoryData(
     photoUrl: d.photoUrl,
     active: d.active,
     inDirectory: d.showInDirectory !== false,
+    hours: showHours && d.showHoursInDirectory !== false ? ownHours(d) : [],
+    // Control panel copy only: the doctor has hours of their own, hidden from the directory by their switch.
+    hoursHidden: includeExcluded && showHours && d.showHoursInDirectory === false && ownHours(d).length > 0,
   }));
 
   const labels: DirectoryLabels = {
@@ -65,6 +74,12 @@ export async function getDirectoryData(
     notSet: dict.admin.notSet,
     hiddenOnSite: dict.admin.hiddenOnSite,
     notInDirectory: dict.admin.notInDirectory,
+    workingHours: dict.admin.directoryWorkingHours,
+    today: dict.admin.directoryToday,
+    availableNow: dict.doctorProfile.availableNow,
+    notAvailableNow: dict.doctorProfile.notAvailableNow,
+    offDay: dict.doctorProfile.offDay,
+    hoursHidden: dict.admin.hoursHiddenBadge,
   };
 
   return {

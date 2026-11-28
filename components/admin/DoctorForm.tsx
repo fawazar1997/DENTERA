@@ -292,6 +292,16 @@ export function DoctorForm({
       <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
         <input
           type="checkbox"
+          name="showHoursInDirectory"
+          defaultChecked={doctor?.showHoursInDirectory ?? true}
+          className="h-4 w-4 rounded border-ink-300"
+        />
+        {dict.admin.showHoursInDirectory}
+      </label>
+
+      <label className="flex items-center gap-2 text-sm font-medium text-ink-700">
+        <input
+          type="checkbox"
           name="showCoordinationOnSite"
           defaultChecked={doctor?.showCoordinationOnSite ?? true}
           className="h-4 w-4 rounded border-ink-300"

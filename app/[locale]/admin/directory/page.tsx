@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
-import { ExternalLink, Link2 } from "lucide-react";
+import { Clock, ExternalLink, Link2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSettings } from "@/lib/db";
 import { getDirectoryData } from "@/lib/directory";
-import { generateDirectoryKeyAction } from "@/lib/actions";
+import { generateDirectoryKeyAction, setDirectoryHoursVisibilityAction } from "@/lib/actions";
+import { ToggleSwitch } from "@/components/admin/ToggleSwitch";
 import { CopyField } from "@/components/admin/CopyField";
 import { ConfirmSubmit } from "@/components/admin/ConfirmSubmit";
 import { DoctorDirectory } from "@/components/DoctorDirectory";
@@ -24,7 +25,8 @@ export default async function AdminDirectoryPage({
     : defaultLocale;
   const data = await getDirectoryData(locale, { includeExcluded: true });
   const { dict } = data;
-  const key = (await getSettings()).directoryKey;
+  const settings = await getSettings();
+  const key = settings.directoryKey;
 
   // Absolute link for sharing, based on the address this page was opened on.
   const h = headers();
@@ -77,6 +79,24 @@ export default async function AdminDirectoryPage({
                 {dict.admin.openDirectory}
               </a>
             )}
+          </div>
+        </section>
+
+        <section className="card mt-6 max-w-3xl p-6">
+          <h2 className="flex items-center gap-2 font-bold text-ink-900">
+            <Clock className="h-5 w-5 text-primary-600" />
+            {dict.admin.directoryHoursTitle}
+          </h2>
+          <p className="mt-1 text-sm text-ink-500">{dict.admin.directoryHoursHint}</p>
+          <div className="mt-4 rounded-xl2 bg-primary-50 px-4 py-3">
+            <ToggleSwitch
+              action={setDirectoryHoursVisibilityAction}
+              name="visible"
+              defaultChecked={settings.directoryShowHours !== false}
+              label={dict.admin.directoryShowHours}
+              onLabel={dict.admin.hoursShown}
+              offLabel={dict.admin.hoursHidden}
+            />
           </div>
         </section>
 

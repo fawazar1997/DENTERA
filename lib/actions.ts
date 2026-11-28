@@ -173,6 +173,7 @@ function doctorFields(formData: FormData) {
     extensions: doctorExtensions(formData),
     showInDirectory: formData.get("showInDirectory") === "on",
     showCoordinationOnSite: formData.get("showCoordinationOnSite") === "on",
+    showHoursInDirectory: formData.get("showHoursInDirectory") === "on",
     active: formData.get("active") === "on",
   };
 }
@@ -523,6 +524,14 @@ export async function generateDirectoryKeyAction() {
   const user = await requireAdmin();
   await updateSettings({ directoryKey: randomKey() });
   await logActivity(user, "/directory", "link", undefined);
+  revalidateAll();
+}
+
+/** Shows or hides doctors' working hours in the coordination directory (all doctors). */
+export async function setDirectoryHoursVisibilityAction(formData: FormData) {
+  const user = await requireAdmin();
+  await updateSettings({ directoryShowHours: formData.get("visible") === "on" });
+  await logActivity(user, "/directory", "settings", "hours");
   revalidateAll();
 }
 
