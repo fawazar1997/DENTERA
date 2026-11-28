@@ -89,8 +89,9 @@ export default async function FinanceSharePage({
       <header className="mb-6 flex flex-wrap items-center gap-4">
         <Logo className="h-9 w-auto" />
         <div className="flex-1">
-          <h1 className="text-2xl font-extrabold text-ink-950">{t.title}</h1>
-          <p className="text-sm text-ink-500">{t.subtitle}</p>
+          {/* Neutral: the two main tabs below name the financial and operating parts. */}
+          <h1 className="text-2xl font-extrabold text-ink-950">{locale === "ar" ? "أداء العيادة" : "Clinic performance"}</h1>
+          <p className="text-sm text-ink-500">{locale === "ar" ? "دنتيرا — أبها وخميس مشيط" : "Dentera — Abha and Khamis Mushait"}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink-700 shadow-card">
           <Eye className="h-4 w-4" />

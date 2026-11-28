@@ -11,7 +11,7 @@ import { LastUpdate } from "./LastUpdate";
 type Icon = ComponentType<{ className?: string }>;
 
 const AR = {
-  sub: "الأداء التشغيلي — من فواتير نظام العيادة (أبها وخميس مشيط؛ المعمل مستبعد)",
+  sub: "من نظام العيادة — أبها وخميس مشيط؛ المعمل مستبعد",
   all: "كل الفروع",
   branches: { abha: "أبها", khamis: "خميس مشيط" } as Record<string, string>,
   month: "الشهر",
@@ -31,7 +31,7 @@ const AR = {
     discountPct: "نسبة الخصومات",
   } as Record<KpiKey, string>,
   defs: {
-    newPct: "المريض الجديد: أول فاتورة له في الفرع خلال الشهر. العائد: له فاتورة سابقة في الفرع. «كل الفروع»: يُحتسب الشخص مرة واحدة، ويُعد جديدًا إذا كان جديدًا في فرع زاره خلال الشهر. النسبة = الجدد ÷ (الجدد + العائدون).",
+    newPct: "المريض الجديد: أول فاتورة له في الفرع ضمن سجلات السنة. العائد: له فاتورة سابقة في الفرع خلال السنة نفسها. «كل الفروع»: يُحتسب الشخص مرة واحدة، ويُعد جديدًا إذا كان جديدًا في فرع زاره خلال الشهر. النسبة = الجدد ÷ (الجدد + العائدون).",
     attendance: "المواعيد التي حان وقتها: نسبة الحضور = الحضور ÷ (المحجوزة − الإلغاءات المسبقة ≥ 24 ساعة). الإلغاء المتأخر (< 24 ساعة) يبقى في المقام.",
     noShow: "عدم الحضور: موعد مضى وقته ولم يُلغَ ولم يُسجَّل حضوره. النسبة = عدم الحضور ÷ (المحجوزة − الإلغاءات المسبقة).",
     perChairDay: "صافي الإيراد ÷ (عدد الكراسي × أيام العمل). يوم العمل: تاريخ صدرت فيه فاتورة للفرع. «كل الفروع»: مجموع الإيراد ÷ مجموع (الكراسي × الأيام) لكل فرع.",
@@ -50,7 +50,6 @@ const AR = {
     invoices: "الفواتير",
     revenue: "الإيراد",
     avg: "متوسط الفاتورة",
-    definition: (year: string) => `المريض الجديد: أول فاتورة له في الفرع ضمن سجلات سنة ${year}؛ العائد: له فاتورة سابقة في الفرع خلال السنة نفسها.`,
     trend: "نسبة الجدد — أشهر السنة",
     byBranch: "نسبة الجدد حسب الفرع",
     cohort: "العودة خلال 90 يومًا",
@@ -61,15 +60,6 @@ const AR = {
   },
   appt: {
     title: "الحضور والمواعيد",
-    states: "الحالات",
-    list: [
-      "المحجوزة: كل المواعيد المجدولة في الفترة، بما فيها الملغاة التي يثبت التقرير أنها كانت محجوزة، دون تكرار.",
-      "الإلغاء المسبق: قبل وقت الموعد بـ24 ساعة أو أكثر.",
-      "الإلغاء المتأخر: قبل وقت الموعد بأقل من 24 ساعة.",
-      "الحضور: موعد سُجّل له حضور.",
-      "عدم الحضور: موعد مضى وقته ولم يُلغَ ولم يُسجَّل حضوره. المواعيد المستقبلية تبقى في المحجوز وتُستبعد من النسب.",
-      "إذا غاب توقيت الإلغاء يظهر «تعذّر التصنيف» بدل الافتراض.",
-    ],
     summary: "مواعيد الشهر",
     head: ["", "العدد"],
     rows: {
@@ -97,7 +87,7 @@ const AR = {
   },
   prod: {
     branches: "الفروع",
-    head: ["الفرع", "صافي الإيراد", "أيام العمل", "لكل يوم عمل", "الكراسي", "لكل كرسي/يوم", "لكل يوم عمل — الشهر السابق"],
+    head: ["الفرع", "صافي الإيراد", "أيام العمل", "لكل يوم عمل", "الكراسي", "لكل كرسي/يوم"],
     trend: "الإيراد لكل يوم عمل — أشهر السنة",
     byDoctor: "الإيراد لكل طبيب في يوم العمل",
     doctorHead: ["الطبيب", "صافي الإيراد", "أيام العمل", "لكل يوم عمل"],
@@ -124,7 +114,7 @@ const AR = {
 };
 // Every key written out (no «...AR»), so a text added in Arabic and missing here fails the build.
 const EN: typeof AR = {
-  sub: "Operating performance — from the clinic system (Abha and Khamis Mushait; lab excluded)",
+  sub: "From the clinic system — Abha and Khamis Mushait; lab excluded",
   all: "All branches",
   branches: { abha: "Abha", khamis: "Khamis Mushait" },
   month: "Month",
@@ -144,7 +134,7 @@ const EN: typeof AR = {
     discountPct: "Discount rate",
   },
   defs: {
-    newPct: "New patient: their first invoice in the branch this year. Returning: they already had an invoice in the branch. “All branches”: each person counts once, and as new if they were new in a branch they visited this month. Rate = new ÷ (new + returning).",
+    newPct: "New patient: their first invoice in the branch within this year's records. Returning: an earlier invoice in the branch in the same year. “All branches”: each person counts once, and as new if they were new in a branch they visited this month. Rate = new ÷ (new + returning).",
     attendance: "Appointments whose time has passed: attendance = attended ÷ (booked − cancellations made ≥ 24 hours ahead). Late cancellations (< 24 hours) stay in the base.",
     noShow: "No-show: an appointment whose time has passed, not cancelled and with no attendance recorded. Rate = no-shows ÷ (booked − early cancellations).",
     perChairDay: "Net revenue ÷ (chairs × working days). A working day is a date with at least one invoice in the branch. “All branches”: total revenue ÷ the sum of (chairs × days) of each branch.",
@@ -163,7 +153,6 @@ const EN: typeof AR = {
     invoices: "Invoices",
     revenue: "Revenue",
     avg: "Average invoice",
-    definition: (year: string) => `New patient: their first invoice in the branch within ${year}'s records; returning: an earlier invoice in the branch in the same year.`,
     trend: "New patients rate — months of the year",
     byBranch: "New patients rate by branch",
     cohort: "Returned within 90 days",
@@ -174,15 +163,6 @@ const EN: typeof AR = {
   },
   appt: {
     title: "Attendance & appointments",
-    states: "States",
-    list: [
-      "Booked: every appointment scheduled in the period, including cancelled ones the report shows were booked, counted once.",
-      "Early cancellation: 24 hours or more before the appointment.",
-      "Late cancellation: less than 24 hours before the appointment.",
-      "Attended: an appointment with attendance recorded.",
-      "No-show: an appointment whose time has passed, not cancelled and with no attendance recorded. Future appointments stay in booked and are left out of the rates.",
-      "When the cancellation time is missing, it shows as “Can't be classified” rather than being assumed.",
-    ],
     summary: "This month's appointments",
     head: ["", "Count"],
     rows: {
@@ -210,7 +190,7 @@ const EN: typeof AR = {
   },
   prod: {
     branches: "Branches",
-    head: ["Branch", "Net revenue", "Working days", "Per working day", "Chairs", "Per chair per day", "Per working day — last month"],
+    head: ["Branch", "Net revenue", "Working days", "Per working day", "Chairs", "Per chair per day"],
     trend: "Revenue per working day — months of the year",
     byDoctor: "Revenue per doctor per working day",
     doctorHead: ["Doctor", "Net revenue", "Working days", "Per working day"],
@@ -234,6 +214,14 @@ const EN: typeof AR = {
     over: (pct: string) => `Above the discount limit (${pct})`,
     offers: "By offer type: waiting for the Offers Report import.",
   },
+};
+
+/** The cards each tab shows. */
+const TAB_CARDS: Record<OpsTab, KpiKey[]> = {
+  opsPatients: ["newPct"],
+  opsAppointments: ["attendance", "noShow"],
+  opsProductivity: ["perChairDay", "perDay"],
+  opsDiscounts: ["discountPct"],
 };
 
 const nl = (locale: Locale) => (locale === "ar" ? "ar-SA-u-nu-latn" : "en-US");
@@ -319,9 +307,9 @@ export function OpsView({
         </nav>
       </section>
 
-      {/* The 6 cards */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {data.cards.map((c) => (
+      {/* Only this tab's own cards: no card repeats across tabs. */}
+      <div className={`grid gap-4 ${TAB_CARDS[tab].length > 1 ? "sm:grid-cols-2" : "sm:max-w-xl"}`}>
+        {data.cards.filter((c) => TAB_CARDS[tab].includes(c.key)).map((c) => (
           <KpiCard key={c.key} k={c} t={t} pct={pct} M={M} />
         ))}
       </div>
@@ -333,12 +321,6 @@ export function OpsView({
       {tab === "opsAppointments" && !data.appointments.has && (
         <Card title={t.appt.title} icon={CalendarCheck}>
           <Note text={t.apptMissing} />
-          <h4 className="mt-4 text-sm font-extrabold text-ink-900">{t.appt.states}</h4>
-          <ul className="mt-2 list-disc space-y-1.5 ps-5 text-sm text-ink-700">
-            {t.appt.list.map((x) => (
-              <li key={x}>{x}</li>
-            ))}
-          </ul>
         </Card>
       )}
       {tab === "opsProductivity" && <ProductivityBody d={data} t={t} M={M} monthName={monthName} branchName={branchName} />}
@@ -414,15 +396,16 @@ function PatientsBody({ d, t, pct, M, monthName, branchName }: { d: OpsData; t: 
   );
   return (
     <>
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className={`grid gap-6 ${d.branch === "all" ? "xl:grid-cols-2" : ""}`}>
         <Card title={t.patients.groups} icon={Users}>
           <Table head={[t.patients.group, t.patients.count, t.patients.invoices, t.patients.revenue, t.patients.avg]}>
             {row(t.patients.newG, p.newPatients)}
             {row(t.patients.retG, p.returning)}
           </Table>
-          <p className="mt-3 text-xs text-ink-500">{t.patients.definition(d.year)}</p>
           <Columns title={t.patients.trend} points={d.patients.trend.map((x) => ({ label: monthName(x.month), value: x.newPct }))} fmt={pct} />
         </Card>
+        {/* Per branch only for «all branches» (for one branch it would repeat the chart). */}
+        {d.branch === "all" && (
         <Card title={t.patients.byBranch} icon={Activity}>
           <Table head={[t.month, ...d.patients.trendByBranch.map((b) => branchName(b.branch))]}>
             {d.patients.trend.map((x, i) => (
@@ -437,6 +420,7 @@ function PatientsBody({ d, t, pct, M, monthName, branchName }: { d: OpsData; t: 
             ))}
           </Table>
         </Card>
+        )}
       </div>
       <Card title={t.patients.cohort} icon={CalendarDays}>
         <Table head={t.patients.cohortHead}>
@@ -479,24 +463,39 @@ function ProductivityBody({ d, t, M, monthName, branchName }: { d: OpsData; t: T
   const money = (v: number | null) => (v === null ? <span className="text-ink-400">{t.na}</span> : <M v={v} />);
   return (
     <>
-      <Card title={t.prod.branches} icon={Wallet}>
-        <div className="overflow-x-auto">
-          <Table head={t.prod.head}>
-            {d.productivity.byBranch.map((b) => (
-              <tr key={b.branch}>
-                <Td>{branchName(b.branch)}</Td>
-                <Td num>
-                  <M v={b.now.net} />
-                </Td>
-                <Td num>{b.now.workingDays}</Td>
-                <Td num>{money(b.now.perDay)}</Td>
-                <Td num>{d.settings.chairs[b.branch] ?? <span className="text-ink-400">{t.na}</span>}</Td>
-                <Td num>{money(b.now.perChairDay)}</Td>
-                <Td num>{money(b.prev?.perDay ?? null)}</Td>
-              </tr>
+      <Card title={d.branch === "all" ? t.prod.branches : branchName(d.branch)} icon={Wallet}>
+        {d.branch === "all" ? (
+          <div className="overflow-x-auto">
+            <Table head={t.prod.head}>
+              {d.productivity.byBranch.map((b) => (
+                <tr key={b.branch}>
+                  <Td>{branchName(b.branch)}</Td>
+                  <Td num>
+                    <M v={b.now.net} />
+                  </Td>
+                  <Td num>{b.now.workingDays}</Td>
+                  <Td num>{money(b.now.perDay)}</Td>
+                  <Td num>{d.settings.chairs[b.branch] ?? <span className="text-ink-400">{t.na}</span>}</Td>
+                  <Td num>{money(b.now.perChairDay)}</Td>
+                </tr>
+              ))}
+            </Table>
+          </div>
+        ) : (
+          // One branch: only what the cards don't show (the rates are on the cards above).
+          <dl className="grid grid-cols-3 gap-3 text-center">
+            {[
+              [t.prod.head[1], <M key="n" v={d.productivity.now.net} />],
+              [t.prod.head[2], d.productivity.now.workingDays],
+              [t.prod.head[4], d.settings.chairs[d.branch] ?? <span className="text-ink-400">{t.na}</span>],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="rounded-xl bg-sand-50 p-3 ring-1 ring-ink-100">
+                <dt className="text-xs text-ink-500">{label}</dt>
+                <dd className="mt-1 font-extrabold text-ink-950">{value}</dd>
+              </div>
             ))}
-          </Table>
-        </div>
+          </dl>
+        )}
         <p className="mt-3 text-xs text-ink-500">{t.prod.occupancy}</p>
         <Columns title={t.prod.trend} points={d.productivity.trend.map((x) => ({ label: monthName(x.month), value: x.perDay }))} fmt={(v) => (v === null ? "—" : Math.round(v).toLocaleString("en-US"))} />
       </Card>
@@ -556,11 +555,16 @@ function ApptBody({ d, t, pct, monthName, branchName }: { d: OpsData; t: T; pct:
           {a.now.unknownCancel > 0 && <p className="mt-3 text-xs text-ink-500">{t.appt.cancelNote}</p>}
           <p className="mt-2 text-xs text-ink-500">{t.appt.newOld(a.newOld.new, a.newOld.old, a.confirmed)}</p>
         </Card>
-        <Card title={t.appt.byBranch} icon={Users}>
-          <div className="overflow-x-auto">
-            <Table head={t.appt.rateHead(t.appt.byBranch)}>{a.byBranch.map((b) => rateRow(branchName(b.branch), b))}</Table>
-          </div>
-          <h4 className="mt-5 text-sm font-extrabold text-ink-900">{t.appt.byShift}</h4>
+        <Card title={d.branch === "all" ? t.appt.byBranch : t.appt.byShift} icon={Users}>
+          {/* Per branch only for «all branches» (for one branch it would repeat the summary). */}
+          {d.branch === "all" && (
+            <>
+              <div className="overflow-x-auto">
+                <Table head={t.appt.rateHead(t.appt.byBranch)}>{a.byBranch.map((b) => rateRow(branchName(b.branch), b))}</Table>
+              </div>
+              <h4 className="mt-5 text-sm font-extrabold text-ink-900">{t.appt.byShift}</h4>
+            </>
+          )}
           <div className="overflow-x-auto">
             <Table head={t.appt.rateHead(t.appt.byShift)}>{a.byShift.map((b) => rateRow(t.appt.shifts[b.shift], b))}</Table>
           </div>
@@ -588,12 +592,6 @@ function ApptBody({ d, t, pct, monthName, branchName }: { d: OpsData; t: T; pct:
             </tr>
           ))}
         </Table>
-        <h4 className="mt-4 text-sm font-extrabold text-ink-900">{t.appt.states}</h4>
-        <ul className="mt-2 list-disc space-y-1.5 ps-5 text-sm text-ink-700">
-          {t.appt.list.map((x) => (
-            <li key={x}>{x}</li>
-          ))}
-        </ul>
       </Card>
     </>
   );
@@ -606,25 +604,42 @@ function DiscountsBody({ d, t, M, pct, monthName, branchName }: { d: OpsData; t:
   return (
     <>
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card title={t.disc.byBranch} icon={BadgePercent} aside={pct(x.total.pct)}>
-          <div className="overflow-x-auto">
-            <Table head={["", t.disc.gross, t.disc.discount, t.disc.pct]}>
-              {x.byBranch.map((b) => (
-                <tr key={b.key}>
-                  <Td>{branchName(b.key)}</Td>
-                  <Td num>
-                    <M v={b.gross} />
-                  </Td>
-                  <Td num>
-                    <M v={b.discount} />
-                  </Td>
-                  <Td num>
-                    <span className={over(b.pct) ? "font-bold text-red-800" : ""}>{pct(b.pct)}</span>
-                  </Td>
-                </tr>
+        <Card title={d.branch === "all" ? t.disc.byBranch : branchName(d.branch)} icon={BadgePercent}>
+          {d.branch === "all" ? (
+            <div className="overflow-x-auto">
+              <Table head={["", t.disc.gross, t.disc.discount, t.disc.pct]}>
+                {x.byBranch.map((b) => (
+                  <tr key={b.key}>
+                    <Td>{branchName(b.key)}</Td>
+                    <Td num>
+                      <M v={b.gross} />
+                    </Td>
+                    <Td num>
+                      <M v={b.discount} />
+                    </Td>
+                    <Td num>
+                      <span className={over(b.pct) ? "font-bold text-red-800" : ""}>{pct(b.pct)}</span>
+                    </Td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
+          ) : (
+            // One branch: the amounts behind the rate (the rate itself is on the card above).
+            <dl className="grid grid-cols-2 gap-3 text-center">
+              {[
+                [t.disc.gross, x.total.gross],
+                [t.disc.discount, x.total.discount],
+              ].map(([label, value]) => (
+                <div key={String(label)} className="rounded-xl bg-sand-50 p-3 ring-1 ring-ink-100">
+                  <dt className="text-xs text-ink-500">{label}</dt>
+                  <dd className="mt-1 font-extrabold text-ink-950">
+                    <M v={Number(value)} />
+                  </dd>
+                </div>
               ))}
-            </Table>
-          </div>
+            </dl>
+          )}
           {x.over.length > 0 && (
             <p className="mt-3 rounded-xl bg-red-50 p-2 text-xs font-bold text-red-800 ring-1 ring-red-200">
               {t.disc.over(pct(d.settings.discountThreshold))}: {x.over.map((o) => `${o.level === "branch" ? branchName(o.name) : o.name} ${pct(o.pct)}`).join(" · ")}
