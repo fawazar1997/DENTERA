@@ -154,7 +154,8 @@ export async function ingestReport(result: ImportResult): Promise<IngestResult> 
     await writeJson("finance/installments.json", result.installments);
     return { ok: true, kind: "installments", rows: result.rows, months: [] };
   }
-  if (!result.from) return { ok: true, kind: result.kind, rows: 0, months: [] };
+  // An empty report (no sales that day): nothing stored, and nothing to compare.
+  if (!result.from) return { ok: true, kind: result.kind, rows: 0, months: [], readNet: 0, storedNet: 0 };
   const settings = await readFinanceSettings();
   const months: string[] = [];
   for (let m = monthOf(result.from); m <= monthOf(result.to); m = shiftMonth(m, 1)) months.push(m);

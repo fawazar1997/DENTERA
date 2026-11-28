@@ -932,8 +932,10 @@ async function main() {
             // compared here, never printed).
             if (csv.count !== null) {
               const near = (a, b) => typeof a === "number" && typeof b === "number" && Math.abs(a - b) < 1;
-              const same = answer.rows === csv.count && (csv.total === null || near(answer.readNet, csv.total)) && near(answer.readNet, answer.storedNet);
-              console.log(`check ${rep.name} ${from}..${to}: rows ${csv.count} sent, ${answer.rows ?? "?"} read; totals ${same ? "match" : "MISMATCH"}`);
+              // A day with no sales (a Friday, a holiday) sends an empty report: nothing to compare.
+              const empty = csv.count === 0 && answer.rows === 0;
+              const same = empty || (answer.rows === csv.count && (csv.total === null || near(answer.readNet, csv.total)) && near(answer.readNet, answer.storedNet));
+              console.log(`check ${rep.name} ${from}..${to}: rows ${csv.count} sent, ${answer.rows ?? "?"} read; ${empty ? "no rows that day" : `totals ${same ? "match" : "MISMATCH"}`}`);
               if (!same) throw new Error("check mismatch");
             }
             sent++;
