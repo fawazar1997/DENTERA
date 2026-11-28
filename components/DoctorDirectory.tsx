@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, Copy, Check, X, EyeOff, Clock, ChevronDown } from "lucide-react";
+import { Search, Copy, Check, X, EyeOff, CalendarDays } from "lucide-react";
 import type { Locale } from "@/lib/i18n";
-import type { WeekSchedule } from "@/lib/types";
-import { DAY_NAMES, WEEK_ORDER, formatPeriods, isOpenNow, saudiNow } from "@/lib/hours";
+import { DAY_NAMES, WEEK_ORDER, saudiNow } from "@/lib/hours";
 import { whatsappHref } from "@/lib/phone";
 import { SOCIAL_ICON_PATHS } from "@/lib/socialIconPaths";
 import { DoctorPhoto } from "./DoctorPhoto";
@@ -23,10 +22,10 @@ export type DirectoryDoctor = {
   active: boolean;
   /** False when the doctor is set not to show in the staff directory. */
   inDirectory: boolean;
-  /** The doctor's own working hours per branch (empty when none are set or they're hidden). */
-  hours: { branchId: string; schedule: WeekSchedule }[];
-  /** Control panel copy: the doctor's hours exist but are hidden from the directory. */
-  hoursHidden?: boolean;
+  /** The doctor's working days per branch, for the directory (empty when none are set or they're hidden). */
+  days: { branchId: string; days: number[] }[];
+  /** Control panel copy: the doctor's working days are set but hidden from the directory. */
+  daysHidden?: boolean;
 };
 
 type Option = { id: string; nameEn: string; nameAr: string };
@@ -50,58 +49,47 @@ export type DirectoryLabels = {
   hiddenOnSite: string;
   notInDirectory: string;
   workingHours: string;
-  today: string;
-  availableNow: string;
-  notAvailableNow: string;
-  offDay: string;
-  hoursHidden: string;
+  inToday: string;
+  notInToday: string;
+  daysHidden: string;
 };
 
 /**
- * A doctor's hours in one branch: today's periods and whether they're in now (Saudi time),
- * with the whole week on opening. "Now" is worked out in the browser after the page shows,
- * so the server's and the browser's first render are the same.
+ * A doctor's working days in one branch (the directory's own days, no times), Saturday first,
+ * with today marked. "Today" is worked out in the browser after the page shows, so the server's
+ * and the browser's first render are the same.
  */
-function HoursRow({ branchName, schedule, locale, labels }: { branchName: string; schedule: WeekSchedule; locale: Locale; labels: DirectoryLabels }) {
-  const [now, setNow] = useState<{ day: number; minutes: number } | null>(null);
+function DaysRow({ branchName, days, locale, labels }: { branchName: string; days: number[]; locale: Locale; labels: DirectoryLabels }) {
+  const [today, setToday] = useState<number | null>(null);
   useEffect(() => {
-    setNow(saudiNow());
-    const id = setInterval(() => setNow(saudiNow()), 60_000);
+    setToday(saudiNow().day);
+    const id = setInterval(() => setToday(saudiNow().day), 60_000);
     return () => clearInterval(id);
   }, []);
-  const periods = (day: number) => {
-    const list = formatPeriods(schedule[day], locale);
-    return list.length ? list.join(" · ") : labels.offDay;
-  };
-  const open = now ? isOpenNow(schedule, now) : null;
+  const set = new Set(days);
+  const inToday = today !== null && set.has(today);
   return (
-    <details className="group rounded-xl bg-white ring-1 ring-ink-100">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-xs [&::-webkit-details-marker]:hidden">
-        <Clock className="h-3.5 w-3.5 flex-shrink-0 text-primary-600" aria-hidden="true" />
+    <div className="rounded-xl bg-white px-3 py-2 ring-1 ring-ink-100">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <CalendarDays className="h-3.5 w-3.5 flex-shrink-0 text-primary-600" aria-hidden="true" />
         <span className="font-bold text-ink-900">{branchName}</span>
-        {now && (
-          <>
-            <span className="text-ink-500">
-              {labels.today}: <span className="font-semibold text-ink-800">{periods(now.day)}</span>
-            </span>
-            <span
-              className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${open ? "bg-emerald-50 text-emerald-700" : "bg-ink-100 text-ink-500"}`}
-            >
-              {open ? labels.availableNow : labels.notAvailableNow}
-            </span>
-          </>
+        {today !== null && (
+          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${inToday ? "bg-emerald-50 text-emerald-700" : "bg-ink-100 text-ink-500"}`}>
+            {inToday ? labels.inToday : labels.notInToday}
+          </span>
         )}
-        <ChevronDown className="ms-auto h-4 w-4 flex-shrink-0 text-ink-400 transition group-open:rotate-180" aria-hidden="true" />
-      </summary>
-      <ul className="border-t border-ink-100 px-3 py-2 text-xs">
-        {WEEK_ORDER.map((day) => (
-          <li key={day} className={`flex justify-between gap-3 py-0.5 ${now?.day === day ? "font-bold text-ink-950" : "text-ink-600"}`}>
-            <span>{DAY_NAMES[locale][day]}</span>
-            <span className={`text-end ${schedule[day].closed ? "text-ink-400" : ""}`}>{periods(day)}</span>
+      </div>
+      <ul className="mt-1.5 flex flex-wrap gap-1">
+        {WEEK_ORDER.filter((d) => set.has(d)).map((d) => (
+          <li
+            key={d}
+            className={`rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${d === today ? "bg-primary-500 text-white" : "bg-primary-50 text-primary-900"}`}
+          >
+            {DAY_NAMES[locale][d]}
           </li>
         ))}
       </ul>
-    </details>
+    </div>
   );
 }
 
@@ -343,22 +331,22 @@ export function DoctorDirectory({
                         {labels.hiddenOnSite}
                       </span>
                     )}
-                    {doctor.hoursHidden && (
+                    {doctor.daysHidden && (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-ink-100 px-1.5 py-0.5 font-semibold">
-                        <Clock className="h-3 w-3" />
-                        {labels.hoursHidden}
+                        <CalendarDays className="h-3 w-3" />
+                        {labels.daysHidden}
                       </span>
                     )}
                   </p>
                 </div>
               </div>
 
-              {/* The doctor's own working hours, one row per branch. */}
-              {doctor.hours.length > 0 && (
+              {/* The doctor's working days, one row per branch. */}
+              {doctor.days.length > 0 && (
                 <div className="mt-3 space-y-1.5">
                   <p className="text-[10px] font-bold text-ink-400">{labels.workingHours}</p>
-                  {doctor.hours.map((h) => (
-                    <HoursRow key={h.branchId} branchName={branchName.get(h.branchId) ?? ""} schedule={h.schedule} locale={locale} labels={labels} />
+                  {doctor.days.map((h) => (
+                    <DaysRow key={h.branchId} branchName={branchName.get(h.branchId) ?? ""} days={h.days} locale={locale} labels={labels} />
                   ))}
                 </div>
               )}

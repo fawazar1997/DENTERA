@@ -3,31 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDoctor, updateDoctor } from "./db";
-import { supervisorMayEditHours } from "./supervisorAccess";
+import { supervisorMayEditDays } from "./supervisorAccess";
 import { logActivity } from "./activity";
-import { scheduleFromForm } from "./hours";
 import { isLocale, defaultLocale, localePath } from "./i18n";
-import type { WeekSchedule } from "./types";
 
 /**
- * The supervisor saves one doctor's working hours (through the supervisor link). Only the hours
- * change: the doctor's branches stay as the control panel set them, and a branch's hours are kept
- * only for a branch the doctor works at. Recorded in the activity log as the supervisor.
+ * The supervisor saves one doctor's working days (through the supervisor link), for the
+ * coordination directory only: the website's working hours and the doctor's branches stay as the
+ * control panel set them. Recorded in the activity log as the supervisor.
  */
-export async function saveDoctorHoursSupervisorAction(formData: FormData) {
+export async function saveDoctorDaysSupervisorAction(formData: FormData) {
   const key = String(formData.get("key") ?? "");
   const locale = isLocale(String(formData.get("locale"))) ? (String(formData.get("locale")) as "ar" | "en") : defaultLocale;
-  if (!(await supervisorMayEditHours(key))) throw new Error("Unauthorized");
+  if (!(await supervisorMayEditDays(key))) throw new Error("Unauthorized");
   const id = String(formData.get("doctorId") ?? "");
   const doctor = await getDoctor(id);
   if (!doctor) throw new Error("Not found");
-  const branches = new Set(doctor.branchIds ?? []);
-  const hours: Record<string, WeekSchedule> = {};
-  for (const branchId of formData.getAll("hoursFor").map(String)) {
-    if (branches.has(branchId)) hours[branchId] = scheduleFromForm(formData, `hours_${branchId}_`);
+  const days: Record<string, number[]> = {};
+  for (const branchId of doctor.branchIds ?? []) {
+    const list = [...new Set(formData.getAll(`days_${branchId}`).map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort();
+    if (list.length) days[branchId] = list;
   }
-  await updateDoctor(id, { hours: Object.keys(hours).length ? hours : undefined });
-  await logActivity("supervisor", "/doctors", "update", `${doctor.nameAr} — ${locale === "ar" ? "أوقات العمل" : "working hours"}`);
+  await updateDoctor(id, { directoryDays: Object.keys(days).length ? days : undefined });
+  await logActivity("supervisor", "/doctors", "update", `${doctor.nameAr} — ${locale === "ar" ? "أيام العمل" : "working days"}`);
   revalidatePath("/", "layout");
-  redirect(localePath(locale, `/doctor-hours/${key}?doctor=${encodeURIComponent(id)}&saved=1`));
+  redirect(localePath(locale, `/doctor-days/${key}?doctor=${encodeURIComponent(id)}&saved=1`));
 }

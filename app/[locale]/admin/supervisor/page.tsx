@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { BookUser, CalendarCheck, Check, Clock, FolderOpen, Minus, ShieldCheck } from "lucide-react";
+import { BookUser, CalendarCheck, CalendarDays, Check, FolderOpen, Minus, ShieldCheck } from "lucide-react";
 import type { ComponentType } from "react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
@@ -40,7 +40,7 @@ export default async function AdminSupervisorPage({ params }: { params: { locale
     {
       title: t.hoursTitle,
       note: settings.supervisorCanEditHours !== false ? t.hoursCanEdit : t.notAllowed,
-      icon: Clock,
+      icon: CalendarDays,
       ready: settings.supervisorCanEditHours !== false,
     },
     {

@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Lock } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getBranches, getDoctors } from "@/lib/db";
 import { getDictionary } from "@/lib/dictionaries";
 import { supervisorText } from "@/lib/supervisorText";
-import { supervisorMayEditHours } from "@/lib/supervisorAccess";
-import { saveDoctorHoursSupervisorAction } from "@/lib/supervisorActions";
-import { branchSchedule, defaultSchedule } from "@/lib/hours";
-import { DoctorBranchesField } from "@/components/admin/DoctorBranchesField";
+import { supervisorMayEditDays } from "@/lib/supervisorAccess";
+import { saveDoctorDaysSupervisorAction } from "@/lib/supervisorActions";
+import { DAY_NAMES, WEEK_ORDER } from "@/lib/hours";
 import { SubmitButton } from "@/components/admin/SubmitButton";
 import { DoctorHoursPicker } from "@/components/DoctorHoursPicker";
 import { Logo } from "@/components/Logo";
@@ -17,17 +16,18 @@ import { Logo } from "@/components/Logo";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Dentera — أوقات عمل الأطباء",
+  title: "Dentera — أيام عمل الأطباء",
   robots: { index: false, follow: false, nocache: true },
   referrer: "no-referrer",
 };
 
 /**
- * Doctors' working hours, through the supervisor link (when Control Panel → Supervisor link allows
- * it): pick a doctor, edit their hours in each of their branches. Branches and every other detail
- * stay the control panel's. A wrong key, or the permission turned off, gets a plain 404.
+ * Doctors' working days for the coordination directory, through the supervisor link (when Control
+ * Panel → Supervisor link allows it): pick a doctor, tick their days in each of their branches.
+ * Separate from the website's working hours; branches and every other detail stay the control
+ * panel's. A wrong key, or the permission turned off, gets a plain 404.
  */
-export default async function SupervisorDoctorHoursPage({
+export default async function SupervisorDoctorDaysPage({
   params,
   searchParams,
 }: {
@@ -35,13 +35,13 @@ export default async function SupervisorDoctorHoursPage({
   searchParams: Record<string, string | undefined>;
 }) {
   const locale: Locale = isLocale(params.locale) ? params.locale : defaultLocale;
-  if (!(await supervisorMayEditHours(params.key))) notFound();
+  if (!(await supervisorMayEditDays(params.key))) notFound();
   const ar = locale === "ar";
   const dict = getDictionary(locale);
   const t = supervisorText(locale);
   const [doctors, branches] = await Promise.all([getDoctors(), getBranches()]);
   const branchName = new Map(branches.map((b) => [b.id, ar ? b.nameAr : b.nameEn]));
-  const base = localePath(locale, `/doctor-hours/${params.key}`);
+  const base = localePath(locale, `/doctor-days/${params.key}`);
   const other = ar ? "en" : "ar";
   const Back = ar ? ArrowRight : ArrowLeft;
 
@@ -52,7 +52,7 @@ export default async function SupervisorDoctorHoursPage({
       name: ar ? d.nameAr : d.nameEn,
       other: ar ? d.nameEn : d.nameAr,
       branches: (d.branchIds ?? []).map((id) => branchName.get(id)).filter(Boolean).join("، ") || "—",
-      ownHours: Object.keys(d.hours ?? {}).length > 0,
+      ownHours: Object.values(d.directoryDays ?? {}).some((days) => days.length > 0),
       href: `${base}?doctor=${encodeURIComponent(d.id)}`,
       current: d.id === searchParams.doctor,
     }));
@@ -69,7 +69,7 @@ export default async function SupervisorDoctorHoursPage({
               <span className="truncate text-base font-bold text-white sm:text-lg">{t.hoursTitle}</span>
             </div>
             <Link
-              href={localePath(other, `/doctor-hours/${params.key}${doctor ? `?doctor=${encodeURIComponent(doctor.id)}` : ""}`)}
+              href={localePath(other, `/doctor-days/${params.key}${doctor ? `?doctor=${encodeURIComponent(doctor.id)}` : ""}`)}
               className="flex-shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-ink-100 hover:border-primary-400 hover:text-white"
             >
               {other === "ar" ? "العربية" : "English"}
@@ -99,7 +99,7 @@ export default async function SupervisorDoctorHoursPage({
           <section className="min-w-0">
             {!doctor ? (
               <div className="card hidden p-10 text-center text-ink-500 lg:block">
-                <Clock className="mx-auto h-10 w-10 text-primary-300" />
+                <CalendarDays className="mx-auto h-10 w-10 text-primary-300" />
                 <p className="mt-3">{t.hoursPick}</p>
               </div>
             ) : (
@@ -120,36 +120,32 @@ export default async function SupervisorDoctorHoursPage({
                 {doctorBranches.length === 0 ? (
                   <p className="mt-4 rounded-xl bg-sand-50 p-3 text-sm text-ink-600 ring-1 ring-ink-100">{t.hoursNoBranches}</p>
                 ) : (
-                  <form action={saveDoctorHoursSupervisorAction} className="mt-4 space-y-4">
+                  <form action={saveDoctorDaysSupervisorAction} className="mt-4 space-y-4">
                     <input type="hidden" name="key" value={params.key} />
                     <input type="hidden" name="locale" value={locale} />
                     <input type="hidden" name="doctorId" value={doctor.id} />
-                    <DoctorBranchesField
-                      key={doctor.id}
-                      locale={locale}
-                      lockBranches
-                      branches={doctorBranches.map((branch) => ({
-                        id: branch.id,
-                        name: ar ? branch.nameAr : branch.nameEn,
-                        initialHours: doctor.hours?.[branch.id] ?? branchSchedule(branch) ?? defaultSchedule(),
-                        hasOwnHours: !!doctor.hours?.[branch.id],
-                        checked: true,
-                      }))}
-                      labels={{
-                        worksAt: dict.admin.worksAt,
-                        setHours: dict.admin.doctorHours,
-                        hoursHint: dict.admin.doctorHoursHint,
-                        schedule: {
-                          open: dict.admin.dayOpen,
-                          closed: dict.doctorProfile.offDay,
-                          from: dict.admin.timeFrom,
-                          to: dict.admin.timeTo,
-                          addPeriod: dict.admin.addPeriod,
-                          removePeriod: dict.admin.removePeriod,
-                          copyToAll: dict.admin.copyToAllDays,
-                        },
-                      }}
-                    />
+                    {doctorBranches.map((branch) => {
+                      const chosen = new Set(doctor.directoryDays?.[branch.id] ?? []);
+                      return (
+                        <fieldset key={branch.id} className="min-w-0 rounded-xl border border-ink-100 p-3">
+                          <legend className="flex items-center gap-2 px-1 text-sm font-bold text-ink-900">
+                            <CalendarDays className="h-4 w-4 text-primary-600" />
+                            {ar ? branch.nameAr : branch.nameEn}
+                          </legend>
+                          <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            {WEEK_ORDER.map((day) => (
+                              <label
+                                key={day}
+                                className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-ink-800 ring-1 ring-ink-100 has-[:checked]:bg-primary-50 has-[:checked]:text-primary-900 has-[:checked]:ring-primary-300"
+                              >
+                                <input type="checkbox" name={`days_${branch.id}`} value={day} defaultChecked={chosen.has(day)} className="h-4 w-4 rounded border-ink-300" />
+                                {DAY_NAMES[locale][day]}
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                      );
+                    })}
                     <SubmitButton label={t.hoursSave} savedLabel={t.hoursSaved} />
                   </form>
                 )}

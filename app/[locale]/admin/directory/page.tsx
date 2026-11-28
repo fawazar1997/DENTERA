@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { Clock, ExternalLink, Link2 } from "lucide-react";
+import { CalendarDays, ExternalLink, Link2 } from "lucide-react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getSettings } from "@/lib/db";
 import { getDirectoryData } from "@/lib/directory";
@@ -84,7 +84,7 @@ export default async function AdminDirectoryPage({
 
         <section className="card mt-6 max-w-3xl p-6">
           <h2 className="flex items-center gap-2 font-bold text-ink-900">
-            <Clock className="h-5 w-5 text-primary-600" />
+            <CalendarDays className="h-5 w-5 text-primary-600" />
             {dict.admin.directoryHoursTitle}
           </h2>
           <p className="mt-1 text-sm text-ink-500">{dict.admin.directoryHoursHint}</p>

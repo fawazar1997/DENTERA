@@ -50,8 +50,13 @@ export type Doctor = {
   showInDirectory?: boolean;
   /** Show the "Contact coordination" WhatsApp button on the site (default yes). */
   showCoordinationOnSite?: boolean;
-  /** Show this doctor's own working hours in the coordination directory (default yes; needs the directory-wide switch on too). */
+  /** Show this doctor's working days in the coordination directory (default yes; needs the directory-wide switch on too). */
   showHoursInDirectory?: boolean;
+  /**
+   * Working days per branch id, for the coordination directory only (days of the week, 0 = Sunday …
+   * 6 = Saturday). Separate from `hours`, which is the website's; edited through the supervisor link.
+   */
+  directoryDays?: Record<string, number[]>;
   /**
    * Call-center extension per branch id: new booking requests for this
    * doctor at that branch are assigned to it automatically.
@@ -92,9 +97,9 @@ export type SiteSettings = {
    * the old link.
    */
   directoryKey?: string;
-  /** Show doctors' own working hours in the coordination directory (default yes). */
+  /** Show doctors' working days in the coordination directory (default yes). */
   directoryShowHours?: boolean;
-  /** The supervisor link may edit doctors' working hours (default yes). */
+  /** The supervisor link may edit doctors' working days for the coordination directory (default yes). */
   supervisorCanEditHours?: boolean;
   /** Secret part of the call center's private bookings link. */
   bookingsKey?: string;
