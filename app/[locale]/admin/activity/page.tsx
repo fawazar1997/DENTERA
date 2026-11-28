@@ -1,3 +1,4 @@
+import { supervisorText } from "@/lib/supervisorText";
 import Link from "next/link";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
@@ -30,13 +31,15 @@ export default async function AdminActivityPage({
   const marketingName = (process.env.MARKETING_USERNAME || "pr").trim();
   const hrName = (process.env.HR_USERNAME || "hr").trim();
   const financeName = (process.env.FINANCE_USERNAME || "finance").trim();
-  const userName = (user: string) => (user === "admin" ? t.admin : user === "hr" ? hrName : user === "finance" ? financeName : marketingName);
+  const supervisorName = supervisorText(locale).title;
+  const userName = (user: string) =>
+    user === "admin" ? t.admin : user === "hr" ? hrName : user === "finance" ? financeName : user === "supervisor" ? supervisorName : marketingName;
   const sectionLabels = new Map(
     ADMIN_SECTION_GROUPS.flatMap((g) => g.sections).map((s) => [s.path, dict.admin[s.label]] as const)
   );
   const sectionName = (path: string) => sectionLabels.get(path) ?? path;
 
-  const userFilter = ["admin", "marketing", "hr", "finance"].includes(searchParams.user ?? "") ? searchParams.user! : "";
+  const userFilter = ["admin", "marketing", "hr", "finance", "supervisor"].includes(searchParams.user ?? "") ? searchParams.user! : "";
   const sectionFilter = searchParams.section && sectionLabels.has(searchParams.section) ? searchParams.section : "";
   const entries = all.filter((e) => (!userFilter || e.user === userFilter) && (!sectionFilter || e.section === sectionFilter));
   const sections = [...new Set(all.map((e) => e.section))].filter((s) => sectionLabels.has(s));
@@ -71,6 +74,7 @@ export default async function AdminActivityPage({
           <option value="marketing">{marketingName}</option>
           <option value="hr">{hrName}</option>
           <option value="finance">{financeName}</option>
+          <option value="supervisor">{supervisorName}</option>
         </select>
         <select name="section" defaultValue={sectionFilter} aria-label={t.allSections} className="input w-auto flex-1">
           <option value="">{t.allSections}</option>

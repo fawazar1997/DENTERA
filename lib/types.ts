@@ -94,6 +94,8 @@ export type SiteSettings = {
   directoryKey?: string;
   /** Show doctors' own working hours in the coordination directory (default yes). */
   directoryShowHours?: boolean;
+  /** The supervisor link may edit doctors' working hours (default yes). */
+  supervisorCanEditHours?: boolean;
   /** Secret part of the call center's private bookings link. */
   bookingsKey?: string;
   /** Secret part of the staff price list link (/{locale}/prices/{key}). */

@@ -23,9 +23,12 @@ export function DoctorBranchesField({
   branches,
   locale,
   labels,
+  lockBranches = false,
 }: {
   branches: DoctorBranchOption[];
   locale: Locale;
+  /** Hours only: the doctor's branches are fixed (sent as they are), only their hours change. */
+  lockBranches?: boolean;
   labels: {
     worksAt: string;
     setHours: string;
@@ -48,7 +51,11 @@ export function DoctorBranchesField({
   };
 
   return (
-    <fieldset>
+    <fieldset className="min-w-0">
+      {lockBranches ? (
+        branches.filter((b) => b.checked).map((b) => <input key={b.id} type="hidden" name="branchIds" value={b.id} />)
+      ) : (
+      <>
       <legend className="label">{labels.worksAt}</legend>
       <div className="flex flex-wrap gap-4">
         {branches.map((branch) => (
@@ -65,6 +72,8 @@ export function DoctorBranchesField({
           </label>
         ))}
       </div>
+      </>
+      )}
 
       {branches
         .filter((b) => checked.has(b.id))

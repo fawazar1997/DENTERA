@@ -527,6 +527,14 @@ export async function generateDirectoryKeyAction() {
   revalidateAll();
 }
 
+/** Lets the supervisor link edit doctors' working hours, or not. */
+export async function setSupervisorHoursPermissionAction(formData: FormData) {
+  const user = await requireAdmin();
+  await updateSettings({ supervisorCanEditHours: formData.get("allowed") === "on" });
+  await logActivity(user, "/supervisor", "settings", "hours");
+  revalidateAll();
+}
+
 /** Shows or hides doctors' working hours in the coordination directory (all doctors). */
 export async function setDirectoryHoursVisibilityAction(formData: FormData) {
   const user = await requireAdmin();

@@ -24,10 +24,13 @@ export type ActivityAction =
   | "disconnect"
   | "settings";
 
+/** Who made a change: a control panel account, or the supervisor through their private link. */
+export type ActivityUser = AdminUser | "supervisor";
+
 export type ActivityEntry = {
   /** When, ISO time. */
   at: string;
-  user: AdminUser;
+  user: ActivityUser;
   /** Control panel section path ("/doctors", "/letters"…). */
   section: string;
   action: ActivityAction;
@@ -85,7 +88,7 @@ async function append(entry: ActivityEntry): Promise<void> {
  * reported as failed because its log line couldn't be saved.
  */
 export async function logActivity(
-  user: AdminUser | null,
+  user: ActivityUser | null,
   section: string,
   action: ActivityAction,
   item?: string

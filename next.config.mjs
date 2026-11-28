@@ -22,7 +22,8 @@ const nextConfig = {
       "/bookings/:path*", "/en/bookings/:path*", "/directory/:path*", "/en/directory/:path*",
       "/prices/:path*", "/en/prices/:path*", "/forms/:path*", "/en/forms/:path*",
       "/supervisor/:path*", "/en/supervisor/:path*", "/systems/:path*", "/en/systems/:path*",
-      "/sign/:path*", "/en/sign/:path*", "/finance/:path*", "/en/finance/:path*"];
+      "/sign/:path*", "/en/sign/:path*", "/finance/:path*", "/en/finance/:path*",
+      "/doctor-hours/:path*", "/en/doctor-hours/:path*"];
     return [
       {
         source: "/:path*",

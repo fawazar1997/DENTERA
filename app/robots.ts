@@ -25,6 +25,8 @@ export default function robots(): MetadataRoute.Robots {
         "/en/systems/",
         "/finance/",
         "/en/finance/",
+        "/doctor-hours/",
+        "/en/doctor-hours/",
       ],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,

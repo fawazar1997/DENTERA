@@ -1,10 +1,11 @@
 import { headers } from "next/headers";
-import { BookUser, CalendarCheck, Check, FolderOpen, Minus, ShieldCheck } from "lucide-react";
+import { BookUser, CalendarCheck, Check, Clock, FolderOpen, Minus, ShieldCheck } from "lucide-react";
 import type { ComponentType } from "react";
 import { isLocale, defaultLocale, type Locale, localePath } from "@/lib/i18n";
 import { getDictionary } from "@/lib/dictionaries";
 import { getSettings } from "@/lib/db";
-import { generateBookingsSupervisorKeyAction } from "@/lib/actions";
+import { generateBookingsSupervisorKeyAction, setSupervisorHoursPermissionAction } from "@/lib/actions";
+import { ToggleSwitch } from "@/components/admin/ToggleSwitch";
 import { supervisorText } from "@/lib/supervisorText";
 import { LinkCard } from "@/components/admin/LinkCard";
 import { RiyalIcon } from "@/components/RiyalIcon";
@@ -36,6 +37,12 @@ export default async function AdminSupervisorPage({ params }: { params: { locale
   const items: { title: string; note: string; icon: ComponentType<{ className?: string }>; ready: boolean }[] = [
     { title: dict.admin.bookings, note: t.canAssign, icon: CalendarCheck, ready: true },
     { title: dict.admin.formsArchive, note: t.viewOnly, icon: FolderOpen, ready: true },
+    {
+      title: t.hoursTitle,
+      note: settings.supervisorCanEditHours !== false ? t.hoursCanEdit : t.notAllowed,
+      icon: Clock,
+      ready: settings.supervisorCanEditHours !== false,
+    },
     {
       title: dict.admin.directory,
       note: settings.directoryKey ? t.sameAsStaff : t.notShared,
@@ -87,6 +94,18 @@ export default async function AdminSupervisorPage({ params }: { params: { locale
               </li>
             ))}
           </ul>
+          {/* The one thing the supervisor may change in the doctors' data: their working hours. */}
+          <div className="mt-4 rounded-xl2 bg-primary-50 px-4 py-3">
+            <ToggleSwitch
+              action={setSupervisorHoursPermissionAction}
+              name="allowed"
+              defaultChecked={settings.supervisorCanEditHours !== false}
+              label={t.canEditHours}
+              onLabel={t.allowed}
+              offLabel={t.notAllowed}
+            />
+            <p className="mt-2 text-xs text-ink-500">{t.canEditHoursHint}</p>
+          </div>
         </section>
       </div>
     </div>

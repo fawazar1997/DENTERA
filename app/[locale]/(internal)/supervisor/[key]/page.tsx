@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BookUser,
   CalendarCheck,
+  Clock,
   ExternalLink,
   FolderOpen,
   LayoutGrid,
@@ -59,6 +60,8 @@ export default async function SupervisorHomePage({ params }: { params: { locale:
   const cards: Card[] = [
     { href: `/bookings/${params.key}`, title: dict.admin.bookings, hint: t.bookingsHint, icon: CalendarCheck },
     { href: `/forms/${params.key}`, title: dict.admin.formsArchive, hint: t.formsHint, icon: FolderOpen },
+    // When Control Panel → Supervisor link allows it.
+    ...(settings.supervisorCanEditHours !== false ? [{ href: `/doctor-hours/${params.key}`, title: t.hoursTitle, hint: t.hoursHint, icon: Clock }] : []),
   ];
   // Staff pages (not the supervisor's own), as small quick links, once
   // their private links exist.
